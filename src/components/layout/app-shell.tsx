@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   LogOut,
   Settings,
+  LifeBuoy,
   ShieldCheck,
   Users,
   CircleUserRound,
@@ -125,6 +126,13 @@ const NAV_ITEMS = [
     accounting: false,
     group: "SİSTEM",
   },
+  {
+    href: "/support",
+    label: "Destek",
+    icon: LifeBuoy,
+    accounting: false,
+    group: "SİSTEM",
+  },
 ];
 
 export function AppShell({
@@ -166,7 +174,7 @@ export function AppShell({
   ];
 
   const visibleNavItems = NAV_ITEMS.filter((item) => {
-    if (item.href === "/settings") {
+    if (item.href === "/settings" || item.href === "/support") {
       return profile.role === "site_chief";
     }
 
@@ -422,7 +430,7 @@ export function AppShell({
           </AnimatePresence>
 
           <main className="flex-1 p-4 md:p-8">
-            {company && <TrialBanner company={company} />}
+            {company && <TrialBanner company={company} canRequestPlan={profile.role === "site_chief"} />}
             {profile.role === "company_manager" && (
               <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
                 Şirket yöneticisi hesabı: işlem yetkileri şantiye şefi

@@ -9,8 +9,7 @@ export function resolveAccountHome(
   account: AccountInfo
 ): string {
   if (!profile) return "/login";
-  // Süper admin paneli ayrı adımda gelecek; şimdilik bekleme ekranı.
-  if (account.is_super_admin) return "/pending-approval";
+  if (account.is_super_admin) return "/admin";
   if (!account.company) return "/onboarding";
   if (!profile.is_approved || profile.role === "pending") return "/pending-approval";
   if (account.company.access_status === "expired" || account.company.access_status === "suspended") {

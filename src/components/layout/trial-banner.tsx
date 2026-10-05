@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Clock3 } from "lucide-react";
 import type { CompanySummary } from "@/types/auth";
 import { SUPPORT_EMAIL } from "@/lib/constants/brand";
@@ -11,7 +12,7 @@ function remainingLabel(endsAt: string, now: number) {
   return `${minutes} dakika`;
 }
 
-export function TrialBanner({ company }: { company: CompanySummary }) {
+export function TrialBanner({ company, canRequestPlan }: { company: CompanySummary; canRequestPlan: boolean }) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -28,11 +29,21 @@ export function TrialBanner({ company }: { company: CompanySummary }) {
         Deneme sürümü — kalan süre:{" "}
         <strong>{remainingLabel(company.trial_ends_at, now)}</strong>. Süre
         dolduğunda verileriniz korunur ancak plan atanana kadar panele
-        erişilemez. Plan için{" "}
-        <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold underline">
-          {SUPPORT_EMAIL}
-        </a>{" "}
-        adresine yazın.
+        erişilemez.{" "}
+        {canRequestPlan ? (
+          <Link href="/support?konu=plan" className="font-semibold underline">
+            Plan talebi gönderin
+          </Link>
+        ) : (
+          <>
+            Plan için{" "}
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold underline">
+              {SUPPORT_EMAIL}
+            </a>{" "}
+            adresine yazın
+          </>
+        )}
+        .
       </p>
     </div>
   );

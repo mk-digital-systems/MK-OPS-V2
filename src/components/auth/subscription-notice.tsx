@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { Ban, Hourglass, LogOut, Mail, RefreshCw } from "lucide-react";
 import type { CompanySummary } from "@/types/auth";
+import type { SupportRequest } from "@/types/admin";
+import { SupportCenter } from "@/components/support/support-center";
 import { SUPPORT_EMAIL } from "@/lib/constants/brand";
 import { createClient } from "@/lib/supabase/client";
 import { BrandLogo } from "@/components/layout/brand-logo";
@@ -15,7 +17,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export function SubscriptionNotice({ company }: { company: CompanySummary }) {
+export function SubscriptionNotice({
+  company,
+  isSiteChief,
+  requests,
+}: {
+  company: CompanySummary;
+  isSiteChief: boolean;
+  requests: SupportRequest[];
+}) {
   const router = useRouter();
   const suspended = company.access_status === "suspended";
   const planEnded = !suspended && company.plan !== null;
@@ -28,7 +38,7 @@ export function SubscriptionNotice({ company }: { company: CompanySummary }) {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
-      <Card className="w-full max-w-md text-center">
+      <Card className="w-full max-w-lg text-center">
         <CardHeader className="items-center">
           <BrandLogo size={64} priority />
           {suspended ? (
@@ -51,7 +61,16 @@ export function SubscriptionNotice({ company }: { company: CompanySummary }) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Button asChild className="w-full">
+          {isSiteChief ? (
+            <div className="rounded-lg border p-4">
+              <SupportCenter initialRequests={requests} defaultTopic="plan" compact />
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Plan işlemleri için şantiye şefinizle iletişime geçin.
+            </p>
+          )}
+          <Button asChild variant={isSiteChief ? "outline" : "default"} className="w-full">
             <a href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`${company.name} — plan talebi`)}`}>
               <Mail className="h-4 w-4" />
               {SUPPORT_EMAIL}
