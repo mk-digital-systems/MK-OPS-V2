@@ -70,7 +70,7 @@ export function ProjectDetail({ project, typeLabel, sheets, personnel, cabinets,
     try {
       await new ProjectRepository(createClient()).cancel(project.id, cancellationReason);
       toast.success("Proje iptal alanına taşındı");
-      router.push(`/projects/${project.id}`);
+      router.push(`/panel/projects/${project.id}`);
       router.refresh();
       setCancelOpen(false);
     } catch (error) {
@@ -86,7 +86,7 @@ export function ProjectDetail({ project, typeLabel, sheets, personnel, cabinets,
     try {
       await new ProjectRepository(supabase).reactivate(project.id);
       toast.success("Proje tekrar aktif edildi");
-      router.push(`/projects/${project.id}`);
+      router.push(`/panel/projects/${project.id}`);
       router.refresh();
     } catch {
       toast.error("Proje aktifleştirilemedi");
@@ -104,7 +104,7 @@ export function ProjectDetail({ project, typeLabel, sheets, personnel, cabinets,
     try {
       await new ProjectRepository(createClient()).delete(project.id);
       toast.success("Proje kalıcı olarak silindi");
-      router.push("/projects");
+      router.push("/panel/projects");
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -183,7 +183,7 @@ export function ProjectDetail({ project, typeLabel, sheets, personnel, cabinets,
         <div className="flex flex-wrap gap-2">
           {!readOnly && !project.is_archived && !project.is_cancelled && (
             <Button asChild variant="outline">
-              <Link href={`/projects/${project.id}/edit`}>
+              <Link href={`/panel/projects/${project.id}/edit`}>
                 <Pencil className="h-4 w-4" />
                 Düzenle
               </Link>

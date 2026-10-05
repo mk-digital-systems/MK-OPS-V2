@@ -15,10 +15,10 @@ export function resolveAccountHome(
   if (account.company.access_status === "expired" || account.company.access_status === "suspended") {
     return "/subscription";
   }
-  return profile.role === "accounting" ? "/attendance" : "/";
+  return profile.role === "accounting" ? "/panel/attendance" : "/panel";
 }
 
 export function hasAppAccess(profile: UserProfile | null, account: AccountInfo): boolean {
   const home = resolveAccountHome(profile, account);
-  return home === "/" || home === "/attendance";
+  return home === "/panel" || home === "/panel/attendance";
 }

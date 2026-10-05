@@ -218,7 +218,7 @@ function CreateProjectForm({
       toast.success("Proje oluşturuldu", {
         description: `${created.project_code} · Başlamadı`,
       });
-      router.push(`/projects/${created.id}`);
+      router.push(`/panel/projects/${created.id}`);
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -480,7 +480,7 @@ function EditProjectForm({
         updated_by: user.id,
       });
       toast.success("Proje güncellendi");
-      router.push(`/projects/${project.id}`);
+      router.push(`/panel/projects/${project.id}`);
       router.refresh();
     } catch (error) {
       console.error(error);

@@ -44,7 +44,7 @@ export function UpdatePasswordForm() {
     }
 
     toast.success("Şifreniz güncellendi");
-    router.push("/");
+    router.push("/panel");
     router.refresh();
   }
 

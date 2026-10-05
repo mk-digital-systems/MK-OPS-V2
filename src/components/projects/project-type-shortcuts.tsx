@@ -31,7 +31,7 @@ export function ProjectTypeShortcuts({ compact = false }: Props) {
       {SHORTCUTS.map((shortcut) => (
         <Link
           key={shortcut.type}
-          href={`/projects?type=${shortcut.type}`}
+          href={`/panel/projects?type=${shortcut.type}`}
           className={cn(
             "flex shrink-0 items-center justify-center rounded-full font-bold tracking-wide shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             compact ? "h-12 w-12 text-sm" : "h-16 w-16 text-base",

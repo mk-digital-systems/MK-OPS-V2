@@ -483,7 +483,7 @@ export function WorkPlanEditor({
         absences,
       });
       toast.success("İş planı taslak olarak kaydedildi");
-      router.push(`/work-plans/drafts/${saved.id}/edit`);
+      router.push(`/panel/work-plans/drafts/${saved.id}/edit`);
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Taslak kaydedilemedi");
@@ -585,7 +585,7 @@ export function WorkPlanEditor({
       });
 
       toast.success("İş planı mevcut kurallara göre kaydedildi");
-      router.push(`/work-plans/${saved.id}`);
+      router.push(`/panel/work-plans/${saved.id}`);
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -625,7 +625,7 @@ export function WorkPlanEditor({
       if (draftId) await repo.deleteDraft(draftId);
       toast.success("WhatsApp paylaşımı tamamlandı; iş planı kaydedildi ve taslak kaldırıldı");
       setPreviewPlan(null);
-      router.push(`/work-plans/${saved.id}`);
+      router.push(`/panel/work-plans/${saved.id}`);
       router.refresh();
     } catch (error) {
       console.error(error);

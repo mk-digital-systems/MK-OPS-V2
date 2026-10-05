@@ -37,7 +37,7 @@ export function WorkPlanDetailView({ plan, readOnly = false, initialPreviewOpen 
     try {
       await new WorkPlanRepository(createClient()).deletePlan(currentPlan.id);
       toast.success("İş planı silindi");
-      router.push("/work-plans");
+      router.push("/panel/work-plans");
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -89,7 +89,7 @@ export function WorkPlanDetailView({ plan, readOnly = false, initialPreviewOpen 
         <div className="flex flex-wrap gap-2">
           {!readOnly && (
             <Button asChild variant="outline">
-              <Link href={`/work-plans/${currentPlan.id}/edit`}>
+              <Link href={`/panel/work-plans/${currentPlan.id}/edit`}>
                 <Pencil className="h-4 w-4" />
                 Düzenle
               </Link>
@@ -146,12 +146,12 @@ export function WorkPlanDetailView({ plan, readOnly = false, initialPreviewOpen 
         onClose={() => setPreviewOpen(false)}
         onEdit={() => {
           setPreviewOpen(false);
-          router.push(`/work-plans/${currentPlan.id}/edit`);
+          router.push(`/panel/work-plans/${currentPlan.id}/edit`);
         }}
         onShared={sourceDraftId ? async () => {
           await new WorkPlanRepository(createClient()).deleteDraft(sourceDraftId);
           toast.success("WhatsApp paylaşımı tamamlandı; taslak kaldırıldı");
-          router.replace(`/work-plans/${currentPlan.id}`);
+          router.replace(`/panel/work-plans/${currentPlan.id}`);
           router.refresh();
         } : undefined}
       />

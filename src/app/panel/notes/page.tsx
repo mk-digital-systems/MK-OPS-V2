@@ -5,5 +5,5 @@ export const metadata = {
 };
 
 export default async function NotesPage() {
-  redirect("/");
+  redirect("/panel");
 }

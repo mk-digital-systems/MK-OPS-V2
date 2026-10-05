@@ -126,7 +126,7 @@ export function EditableProjectsGrid({ projects, exportProjects, typeLabels, sel
       <table className="w-full min-w-[1100px] text-sm">
         <thead className="border-b bg-muted/40"><tr><Th>Tür</Th><Th>Proje Adı</Th><Th>Proje ID</Th><Th>Alınma Tarihi</Th><Th>Lokasyon</Th><Th>Proje Özeti</Th><Th>Not</Th><Th>Son Güncelleme</Th></tr></thead>
         <tbody>{projects.map(project => <tr key={project.id} className={project.status === "completed" ? "border-b border-blue-300 bg-blue-50 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40" : "border-b hover:bg-accent/30"}>
-          <Td>{typeLabels[project.project_type] ?? project.project_type}</Td><Td><Link href={`/projects/${project.id}`} className="font-medium text-primary hover:underline">{project.name}</Link></Td><Td>{project.project_code}</Td><Td>{formatDate(project.received_at)}</Td><Td>{project.location || "—"}</Td><Td>{summary(project)}</Td><Td><div className="max-w-[280px] whitespace-pre-wrap">{project.progress_notes || project.description || "—"}</div></Td><Td>{formatDateTime(project.updated_at)}</Td>
+          <Td>{typeLabels[project.project_type] ?? project.project_type}</Td><Td><Link href={`/panel/projects/${project.id}`} className="font-medium text-primary hover:underline">{project.name}</Link></Td><Td>{project.project_code}</Td><Td>{formatDate(project.received_at)}</Td><Td>{project.location || "—"}</Td><Td>{summary(project)}</Td><Td><div className="max-w-[280px] whitespace-pre-wrap">{project.progress_notes || project.description || "—"}</div></Td><Td>{formatDateTime(project.updated_at)}</Td>
         </tr>)}</tbody>
       </table>
       {!projects.length && <p className="p-10 text-center text-muted-foreground">Filtrelere uygun proje bulunamadı.</p>}

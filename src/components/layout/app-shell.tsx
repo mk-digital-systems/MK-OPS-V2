@@ -40,35 +40,35 @@ import { TrialBanner } from "@/components/layout/trial-banner";
 
 const NAV_ITEMS = [
   {
-    href: "/",
+    href: "/panel",
     label: "Dashboard",
     icon: LayoutDashboard,
     accounting: false,
     group: "OPERASYON",
   },
   {
-    href: "/projects",
+    href: "/panel/projects",
     label: "Projeler",
     icon: FolderKanban,
     accounting: false,
     group: "OPERASYON",
   },
   {
-    href: "/cancelled-projects",
+    href: "/panel/cancelled-projects",
     label: "İptal Projeler",
     icon: Ban,
     accounting: false,
     group: "OPERASYON",
   },
   {
-    href: "/work-plans",
+    href: "/panel/work-plans",
     label: "İş Planı",
     icon: ClipboardList,
     accounting: false,
     group: "OPERASYON",
   },
   {
-    href: "/imalatlar",
+    href: "/panel/imalatlar",
     label: "İmalatlar",
     icon: Hammer,
     accounting: false,
@@ -76,28 +76,28 @@ const NAV_ITEMS = [
   },
 
   {
-    href: "/personnel",
+    href: "/panel/personnel",
     label: "Personel",
     icon: Users,
     accounting: true,
     group: "KAYNAKLAR",
   },
   {
-    href: "/vehicles",
+    href: "/panel/vehicles",
     label: "Araçlar",
     icon: CarFront,
     accounting: false,
     group: "KAYNAKLAR",
   },
   {
-    href: "/inventory",
+    href: "/panel/inventory",
     label: "Malzeme Stok",
     icon: Boxes,
     accounting: false,
     group: "KAYNAKLAR",
   },
   {
-    href: "/custody",
+    href: "/panel/custody",
     label: "Araç Ekipmanları",
     icon: PackageCheck,
     accounting: false,
@@ -105,7 +105,7 @@ const NAV_ITEMS = [
   },
 
   {
-    href: "/attendance",
+    href: "/panel/attendance",
     label: "Puantaj",
     icon: CalendarCheck,
     accounting: true,
@@ -113,21 +113,21 @@ const NAV_ITEMS = [
   },
 
   {
-    href: "/profile",
+    href: "/panel/profile",
     label: "Profilim",
     icon: CircleUserRound,
     accounting: true,
     group: "SİSTEM",
   },
   {
-    href: "/settings",
+    href: "/panel/settings",
     label: "Ayarlar",
     icon: Settings,
     accounting: false,
     group: "SİSTEM",
   },
   {
-    href: "/support",
+    href: "/panel/support",
     label: "Destek",
     icon: LifeBuoy,
     accounting: false,
@@ -174,7 +174,7 @@ export function AppShell({
   ];
 
   const visibleNavItems = NAV_ITEMS.filter((item) => {
-    if (item.href === "/settings" || item.href === "/support") {
+    if (item.href === "/panel/settings" || item.href === "/panel/support") {
       return profile.role === "site_chief";
     }
 
@@ -189,13 +189,13 @@ export function AppShell({
   // İçinde bulunduğumuz sayfanın grubunu başlangıçta açık getir
   const activeGroup =
     NAV_ITEMS.find((item) =>
-      item.href === "/"
-        ? pathname === "/"
+      item.href === "/panel"
+        ? pathname === "/panel"
         : pathname.startsWith(item.href)
     )?.group ?? null;
 
   const [openGroup, setOpenGroup] = useState<string | null>(
-    pathname.startsWith("/users") ? "YÖNETİM" : activeGroup
+    pathname.startsWith("/panel/users") ? "YÖNETİM" : activeGroup
   );
 
   const toggleGroup = (groupName: string) => {
@@ -250,8 +250,8 @@ export function AppShell({
               <div className="mt-1 flex flex-col gap-1 pl-3">
                 {groupItems.map((item) => {
                   const active =
-                    item.href === "/"
-                      ? pathname === "/"
+                    item.href === "/panel"
+                      ? pathname === "/panel"
                       : pathname.startsWith(item.href);
 
                   const Icon = item.icon;
@@ -311,11 +311,11 @@ export function AppShell({
           {openGroup === "YÖNETİM" && (
             <div className="mt-1 pl-3">
               <Link
-                href="/users"
+                href="/panel/users"
                 onClick={() => setMobileOpen(false)}
                 className={cn(
                   "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                  pathname.startsWith("/users")
+                  pathname.startsWith("/panel/users")
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
@@ -349,7 +349,7 @@ export function AppShell({
           {nav}
           <div className="mt-auto space-y-2 border-t border-border/70 p-3">
             <Link
-              href="/profile"
+              href="/panel/profile"
               className="flex items-center gap-3 rounded-lg bg-muted px-3 py-2 transition-colors hover:bg-accent"
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-background">
@@ -454,13 +454,13 @@ export function AppShell({
 }
 
 function moduleForPath(pathname: string): PermissionModule | null {
-  if (pathname.startsWith("/projects")) return "projects";
-  if (pathname.startsWith("/work-plans")) return "work_plans";
-  if (pathname.startsWith("/personnel")) return "personnel";
-  if (pathname.startsWith("/attendance")) return "attendance";
-  if (pathname.startsWith("/vehicles")) return "vehicles";
-  if (pathname.startsWith("/inventory")) return "inventory";
-  if (pathname.startsWith("/custody")) return "custody";
-  if (pathname.startsWith("/imalatlar")) return "productions";
+  if (pathname.startsWith("/panel/projects")) return "projects";
+  if (pathname.startsWith("/panel/work-plans")) return "work_plans";
+  if (pathname.startsWith("/panel/personnel")) return "personnel";
+  if (pathname.startsWith("/panel/attendance")) return "attendance";
+  if (pathname.startsWith("/panel/vehicles")) return "vehicles";
+  if (pathname.startsWith("/panel/inventory")) return "inventory";
+  if (pathname.startsWith("/panel/custody")) return "custody";
+  if (pathname.startsWith("/panel/imalatlar")) return "productions";
   return null;
 }

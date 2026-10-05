@@ -98,7 +98,7 @@ export function WorkPlansHome({ todayPlan, pastPlans, drafts, readOnly = false }
         <div className="flex flex-wrap gap-2">
           {!readOnly && (
             <Button asChild>
-              <Link href="/work-plans/new">
+              <Link href="/panel/work-plans/new">
                 <Plus className="h-4 w-4" />
                 Yeni İş Planı
               </Link>
@@ -134,7 +134,7 @@ export function WorkPlansHome({ todayPlan, pastPlans, drafts, readOnly = false }
                 hits.map((hit) => (
                   <Link
                     key={hit.team_id}
-                    href={`/work-plans/${hit.plan_id}`}
+                    href={`/panel/work-plans/${hit.plan_id}`}
                     className="block rounded-xl border px-4 py-3 transition-colors hover:bg-accent/40"
                   >
                     <div className="flex flex-wrap items-center gap-2">
@@ -165,7 +165,7 @@ export function WorkPlansHome({ todayPlan, pastPlans, drafts, readOnly = false }
           {drafts.length === 0 ? (
             <Card><CardContent className="p-5 text-sm text-muted-foreground">Kaydedilmiş taslak bulunmuyor.</CardContent></Card>
           ) : drafts.map((draft) => (
-            <Link key={draft.id} href={`/work-plans/drafts/${draft.id}/edit`}>
+            <Link key={draft.id} href={`/panel/work-plans/drafts/${draft.id}/edit`}>
               <Card className="mb-2 transition-colors hover:bg-accent/30">
                 <CardContent className="flex items-center justify-between p-4">
                   <div>
@@ -185,7 +185,7 @@ export function WorkPlansHome({ todayPlan, pastPlans, drafts, readOnly = false }
           Bugünün İş Planı
         </h2>
         {todayPlan ? (
-          <Link href={`/work-plans/${todayPlan.id}`}>
+          <Link href={`/panel/work-plans/${todayPlan.id}`}>
             <Card className="transition-all hover:-translate-y-0.5 hover:shadow-md">
               <CardContent className="flex items-start justify-between gap-4 p-5">
                 <div>
@@ -217,7 +217,7 @@ export function WorkPlansHome({ todayPlan, pastPlans, drafts, readOnly = false }
                 Bugün için henüz iş planı yok.
               </p>
               <Button asChild>
-                <Link href="/work-plans/new">Bugünün Planını Oluştur</Link>
+                <Link href="/panel/work-plans/new">Bugünün Planını Oluştur</Link>
               </Button>
             </CardContent>
           </Card>
@@ -264,7 +264,7 @@ export function WorkPlansHome({ todayPlan, pastPlans, drafts, readOnly = false }
             </Card>
           ) : (
             pastOnly.map((plan) => (
-              <Link key={plan.id} href={`/work-plans/${plan.id}`}>
+              <Link key={plan.id} href={`/panel/work-plans/${plan.id}`}>
                 <Card className="mb-2 transition-colors hover:bg-accent/30">
                   <CardContent className="flex items-center justify-between p-4">
                     <div className="flex items-center gap-2">

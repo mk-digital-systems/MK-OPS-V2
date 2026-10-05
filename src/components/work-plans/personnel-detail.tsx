@@ -98,7 +98,7 @@ export function PersonnelDetail({
 
   function updatePeriod(nextYear: number, nextMonth: number) {
     router.push(
-      `/personnel/${personnel.id}?year=${nextYear}&month=${nextMonth}`
+      `/panel/personnel/${personnel.id}?year=${nextYear}&month=${nextMonth}`
     );
   }
 
@@ -234,7 +234,7 @@ export function PersonnelDetail({
     <div className="space-y-6">
       <div>
         <Button asChild variant="ghost" size="sm" className="-ml-3 mb-3">
-          <Link href="/personnel">
+          <Link href="/panel/personnel">
             <ArrowLeft className="h-4 w-4" />
             Personel Listesine Dön
           </Link>

@@ -150,6 +150,17 @@ export function RegisterForm() {
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             Kayıt Ol
           </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            Kayıt olarak{" "}
+            <Link href="/kullanim-sartlari" className="underline" target="_blank">
+              Kullanım Şartları
+            </Link>
+            &apos;nı kabul etmiş ve{" "}
+            <Link href="/gizlilik-politikasi" className="underline" target="_blank">
+              Gizlilik Politikası ve KVKK Aydınlatma Metni
+            </Link>
+            &apos;ni okumuş olursunuz.
+          </p>
           <p className="text-center text-sm text-muted-foreground">
             Zaten hesabınız var mı?{" "}
             <Link href="/login" className="text-primary hover:underline">

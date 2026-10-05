@@ -31,37 +31,37 @@ const STAT_CARDS = [
     key: "total" as const,
     label: "Toplam Proje",
     icon: FolderKanban,
-    href: "/projects",
+    href: "/panel/projects",
   },
   {
     key: "waiting" as const,
     label: "Başlamadı",
     icon: PauseCircle,
-    href: "/projects?status=waiting",
+    href: "/panel/projects?status=waiting",
   },
   {
     key: "in_progress" as const,
     label: "Devam Ediyor",
     icon: HardHat,
-    href: "/projects?status=in_progress",
+    href: "/panel/projects?status=in_progress",
   },
   {
     key: "delayed" as const,
     label: "Gecikmiş",
     icon: TriangleAlert,
-    href: "/projects?status=delayed",
+    href: "/panel/projects?status=delayed",
   },
   {
     key: "completed" as const,
     label: "Tamamlandı",
     icon: CheckCircle2,
-    href: "/archive?status=completed",
+    href: "/panel/archive?status=completed",
   },
   {
     key: "archived" as const,
     label: "Arşiv",
     icon: Archive,
-    href: "/archive",
+    href: "/panel/archive",
   },
 ];
 
@@ -199,7 +199,7 @@ function VehicleDeadlineAlerts({
         {alerts.map((alert) => (
           <Link
             key={`${alert.vehicle_id}-${alert.deadline_type}`}
-            href="/vehicles"
+            href="/panel/vehicles"
             className={`rounded-xl border p-4 transition-transform hover:-translate-y-0.5 ${getDeadlineClasses(
               alert.days_remaining
             )}`}
@@ -233,25 +233,25 @@ const CRITICAL_ITEMS = [
     key: "delayed" as const,
     label: "Gecikmiş Projeler",
     color: "bg-red-500",
-    href: "/projects?status=delayed",
+    href: "/panel/projects?status=delayed",
   },
   {
     key: "excavation_waiting" as const,
     label: "Kazı İzni Bekleyen",
     color: "bg-orange-500",
-    href: "/projects?excavation=false",
+    href: "/panel/projects?excavation=false",
   },
   {
     key: "obk_waiting" as const,
     label: "OBK Bekleyen",
     color: "bg-violet-500",
-    href: "/projects?stage=obk_waiting",
+    href: "/panel/projects?stage=obk_waiting",
   },
   {
     key: "cable_waiting" as const,
     label: "Kablo Bekleyen",
     color: "bg-yellow-500",
-    href: "/projects?stage=cable_waiting",
+    href: "/panel/projects?stage=cable_waiting",
   },
 ];
 
@@ -303,7 +303,7 @@ function ProjectMiniList({
           projects.map((project) => (
             <Link
               key={project.id}
-              href={`/projects/${project.id}`}
+              href={`/panel/projects/${project.id}`}
               className="flex items-start justify-between gap-3 rounded-xl border border-transparent px-3 py-2.5 transition-colors hover:border-border hover:bg-accent/40"
             >
               <div className="min-w-0">

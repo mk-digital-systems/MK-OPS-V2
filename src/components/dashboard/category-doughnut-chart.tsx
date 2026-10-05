@@ -38,7 +38,7 @@ function buildStageHref(category: string, stage: ProjectAnalysisStage): string {
     params.set("status", "excavation_permit_waiting");
   else params.set("status", "in_progress");
 
-  return `/projects?${params.toString()}`;
+  return `/panel/projects?${params.toString()}`;
 }
 
 export function CategoryDoughnutChart({

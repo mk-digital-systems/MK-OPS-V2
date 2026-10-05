@@ -9,7 +9,7 @@ export default function NotFound() {
         Aradığınız kayıt veya sayfa mevcut değil.
       </p>
       <Button asChild>
-        <Link href="/">Dashboard’a dön</Link>
+        <Link href="/panel">Panele dön</Link>
       </Button>
     </div>
   );

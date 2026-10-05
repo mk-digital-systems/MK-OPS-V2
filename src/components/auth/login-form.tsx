@@ -48,7 +48,7 @@ export function LoginForm() {
     }
 
     toast.success("Hoş geldiniz");
-    const redirect = searchParams.get("redirect") || "/";
+    const redirect = searchParams.get("redirect") || "/panel";
     router.push(redirect);
     router.refresh();
   }

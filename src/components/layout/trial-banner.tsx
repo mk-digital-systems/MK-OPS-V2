@@ -31,7 +31,7 @@ export function TrialBanner({ company, canRequestPlan }: { company: CompanySumma
         dolduğunda verileriniz korunur ancak plan atanana kadar panele
         erişilemez.{" "}
         {canRequestPlan ? (
-          <Link href="/support?konu=plan" className="font-semibold underline">
+          <Link href="/panel/support?konu=plan" className="font-semibold underline">
             Plan talebi gönderin
           </Link>
         ) : (

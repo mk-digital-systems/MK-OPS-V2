@@ -493,7 +493,7 @@ export function MonthlyAttendanceTable({
           </Button>
           {!historyMode && (
             <Button asChild variant="outline">
-              <Link href="/attendance/history">
+              <Link href="/panel/attendance/history">
                 <History className="h-4 w-4" />
                 Geçmiş Puantaj
               </Link>
@@ -905,7 +905,7 @@ const AttendanceRow = memo(function AttendanceRow({
           />
           <span className="min-w-0">
             <Link
-              href={`/personnel/${personnel.id}?year=${days[0]?.isoDate.slice(0, 4)}&month=${Number(days[0]?.isoDate.slice(5, 7))}`}
+              href={`/panel/personnel/${personnel.id}?year=${days[0]?.isoDate.slice(0, 4)}&month=${Number(days[0]?.isoDate.slice(5, 7))}`}
               className="block truncate font-medium text-primary hover:underline"
               title={`${personnel.full_name} personel sayfasını aç`}
             >

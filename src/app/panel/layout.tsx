@@ -22,38 +22,38 @@ export default async function AppLayout({
     new NotesRepository(supabase).list(),
     new UserRepository(supabase).getWritableModules(),
   ]);
-  const pathname = (await headers()).get("x-app-pathname") || "/";
-  const permissionModule = pathname.startsWith("/projects") ? "projects"
-    : pathname.startsWith("/work-plans") ? "work_plans"
-    : pathname.startsWith("/imalatlar") ? "productions"
-    : pathname.startsWith("/vehicles") ? "vehicles"
-    : pathname.startsWith("/inventory") ? "inventory"
-    : pathname.startsWith("/custody") ? "custody" : null;
+  const pathname = (await headers()).get("x-app-pathname") || "/panel";
+  const permissionModule = pathname.startsWith("/panel/projects") ? "projects"
+    : pathname.startsWith("/panel/work-plans") ? "work_plans"
+    : pathname.startsWith("/panel/imalatlar") ? "productions"
+    : pathname.startsWith("/panel/vehicles") ? "vehicles"
+    : pathname.startsWith("/panel/inventory") ? "inventory"
+    : pathname.startsWith("/panel/custody") ? "custody" : null;
 
   if (
     profile.role === "accounting" &&
-    !pathname.startsWith("/attendance") &&
-    !pathname.startsWith("/personnel") &&
-    !pathname.startsWith("/profile") &&
+    !pathname.startsWith("/panel/attendance") &&
+    !pathname.startsWith("/panel/personnel") &&
+    !pathname.startsWith("/panel/profile") &&
     (!permissionModule || !writableModules.includes(permissionModule))
-  ) redirect("/attendance");
+  ) redirect("/panel/attendance");
 
   if (
-    (pathname.startsWith("/users") || pathname.startsWith("/settings")) &&
+    (pathname.startsWith("/panel/users") || pathname.startsWith("/panel/settings")) &&
     profile.role !== "site_chief"
-  ) redirect(profile.role === "accounting" ? "/attendance" : "/");
+  ) redirect(profile.role === "accounting" ? "/panel/attendance" : "/panel");
 
   const isWriteOnlyRoute =
-    pathname === "/projects/new" ||
-    /^\/projects\/[^/]+\/edit$/.test(pathname) ||
-    pathname === "/work-plans/new" ||
-    /^\/work-plans\/[^/]+\/edit$/.test(pathname);
+    pathname === "/panel/projects/new" ||
+    /^\/panel\/projects\/[^/]+\/edit$/.test(pathname) ||
+    pathname === "/panel/work-plans/new" ||
+    /^\/panel\/work-plans\/[^/]+\/edit$/.test(pathname);
   if (isWriteOnlyRoute) {
-    const requiredModule = pathname.startsWith("/work-plans")
+    const requiredModule = pathname.startsWith("/panel/work-plans")
       ? "work_plans"
       : "projects";
     if (!writableModules.includes(requiredModule)) {
-      redirect(pathname.startsWith("/work-plans") ? "/work-plans" : "/projects");
+      redirect(pathname.startsWith("/panel/work-plans") ? "/panel/work-plans" : "/panel/projects");
     }
   }
 

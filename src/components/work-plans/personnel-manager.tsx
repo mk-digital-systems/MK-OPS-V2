@@ -509,7 +509,7 @@ export function PersonnelManager({
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <Link
-                          href={`/personnel/${person.id}`}
+                          href={`/panel/personnel/${person.id}`}
                           className="font-medium text-primary hover:underline"
                         >
                           {person.full_name}

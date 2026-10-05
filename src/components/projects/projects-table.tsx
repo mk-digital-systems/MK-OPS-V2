@@ -90,7 +90,7 @@ export function ProjectsTable({
         header: "Proje ID",
         cell: ({ row }) => (
           <Link
-            href={`/projects/${row.original.id}`}
+            href={`/panel/projects/${row.original.id}`}
             className="font-medium text-primary hover:underline"
           >
             {row.original.project_code}
@@ -118,7 +118,7 @@ export function ProjectsTable({
         cell:({row})=>row.original.project_type==="HP_ODAKLI"?"—":row.original.location,
       },
       {
-        id:"sheet_numbers",header:"Paftalar",cell:({row})=>row.original.sheet_summaries?.length?<div className="flex min-w-[150px] flex-wrap gap-1">{row.original.sheet_summaries.map(sheet=><Link key={sheet.id} href={`/projects/${row.original.id}?sheet=${sheet.id}`} className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-primary hover:underline">{sheet.sheet_no}</Link>)}</div>:"—",
+        id:"sheet_numbers",header:"Paftalar",cell:({row})=>row.original.sheet_summaries?.length?<div className="flex min-w-[150px] flex-wrap gap-1">{row.original.sheet_summaries.map(sheet=><Link key={sheet.id} href={`/panel/projects/${row.original.id}?sheet=${sheet.id}`} className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-primary hover:underline">{sheet.sheet_no}</Link>)}</div>:"—",
       },
       {
         id:"matched_sheet_addresses",header:"Eşleşen Pafta Adresi",cell:({row})=>row.original.matched_sheets?.length?<div className="min-w-[240px] space-y-1">{row.original.matched_sheets.map(sheet=><div key={sheet.id} className="rounded-lg border bg-muted/30 px-2 py-1.5"><p className="text-xs font-semibold">{sheet.sheet_no||"Pafta numarası yok"}</p><p className="text-xs text-muted-foreground">{sheet.address}</p><p className="text-[11px] text-primary">{row.original.project_code} · {row.original.name}</p></div>)}</div>:"—",
@@ -192,19 +192,19 @@ export function ProjectsTable({
           <div className="flex flex-wrap items-center gap-4">
             <ProjectTypeShortcuts compact />
             <Button asChild variant="outline">
-              <Link href="/archive">
+              <Link href="/panel/archive">
                 <Archive className="h-4 w-4" />
                 Arşiv
               </Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/cancelled-projects">
+              <Link href="/panel/cancelled-projects">
                 <Ban className="h-4 w-4" />
                 İptal Alanı
               </Link>
             </Button>
             <Button asChild>
-              <Link href="/projects/new">
+              <Link href="/panel/projects/new">
                 <Plus className="h-4 w-4" />
                 Yeni Proje
               </Link>
