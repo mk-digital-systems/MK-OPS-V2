@@ -13,6 +13,8 @@ import {
 } from "@/lib/validations/auth";
 import { createClient } from "@/lib/supabase/client";
 import { BrandLogo } from "@/components/layout/brand-logo";
+import { CompanyFields } from "@/components/auth/company-fields";
+import { completeOnboarding } from "@/modules/company/complete-onboarding";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -34,34 +36,59 @@ export function RegisterForm() {
       email: "",
       password: "",
       password_confirmation: "",
+      signup_mode: "create",
+      company_name: "",
+      join_code: "",
     },
   });
+  const mode = form.watch("signup_mode");
 
   async function submit(values: RegisterFormValues) {
     setLoading(true);
-    const { data, error } = await createClient().auth.signUp({
+    const supabase = createClient();
+    const company = {
+      signup_mode: values.signup_mode,
+      company_name: values.company_name,
+      join_code: values.signup_mode === "join" ? values.join_code : "",
+    };
+    // Şirket seçimi, e-posta doğrulamasından sonraki ilk girişte de kullanılır.
+    const { data, error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
       options: {
-        data: { full_name: values.full_name },
+        data: { full_name: values.full_name, ...company },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
-    setLoading(false);
 
     if (error) {
+      setLoading(false);
       toast.error("Kayıt oluşturulamadı", { description: error.message });
       return;
     }
     if (!data.session) {
+      setLoading(false);
       toast.success("Kayıt oluşturuldu", {
-        description: "E-posta adresinizi doğruladıktan sonra giriş yapın.",
+        description:
+          "E-posta adresinize gelen bağlantıyla hesabınızı doğrulayın, ardından giriş yapın.",
       });
       router.replace("/login");
       return;
     }
 
-    router.replace("/pending-approval");
-    router.refresh();
+    try {
+      const result = await completeOnboarding(supabase, company);
+      toast.success(result.message);
+      router.replace(result.path);
+    } catch (onboardingError) {
+      toast.error("Hesap oluşturuldu ancak şirket adımı tamamlanamadı", {
+        description: (onboardingError as Error)?.message,
+      });
+      router.replace("/onboarding");
+    } finally {
+      setLoading(false);
+      router.refresh();
+    }
   }
 
   return (
@@ -69,14 +96,20 @@ export function RegisterForm() {
       <CardHeader className="space-y-3">
         <BrandLogo size={56} priority />
         <div>
-          <CardTitle>Kullanıcı Kaydı</CardTitle>
+          <CardTitle>Kayıt Ol</CardTitle>
           <CardDescription>
-            Kayıt sonrası göreviniz şantiye şefi tarafından onaylanacaktır.
+            Şirketinizi kurun ya da çalıştığınız şirkete katılın.
           </CardDescription>
         </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
+          <CompanyFields
+            mode={mode}
+            register={form.register}
+            setValue={form.setValue}
+            errors={form.formState.errors}
+          />
           <FormField
             label="Ad Soyad"
             error={form.formState.errors.full_name?.message}

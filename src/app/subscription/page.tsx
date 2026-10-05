@@ -1,25 +1,21 @@
 import { redirect } from "next/navigation";
-import { PendingApproval } from "@/components/auth/pending-approval";
+import { SubscriptionNotice } from "@/components/auth/subscription-notice";
 import { createClient } from "@/lib/supabase/server";
 import { UserRepository } from "@/modules/users/user-repository";
 import { CompanyRepository } from "@/modules/company/company-repository";
 import { resolveAccountHome } from "@/lib/account-routing";
 
 export const metadata = {
-  title: "Yetki Onayı Bekleniyor",
+  title: "Abonelik",
 };
 
-export default async function PendingApprovalPage() {
+export default async function SubscriptionPage() {
   const supabase = await createClient();
   const profile = await new UserRepository(supabase).getCurrent();
   if (!profile) redirect("/login");
   const account = await new CompanyRepository(supabase).getMyAccount();
   const home = resolveAccountHome(profile, account);
-  if (home !== "/pending-approval") redirect(home);
-  return (
-    <PendingApproval
-      companyName={account.company?.name ?? null}
-      isSuperAdmin={account.is_super_admin}
-    />
-  );
+  if (home !== "/subscription" || !account.company) redirect(home);
+
+  return <SubscriptionNotice company={account.company} />;
 }

@@ -29,12 +29,13 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import type { PermissionModule, UserProfile, UserRole } from "@/types/auth";
+import type { CompanySummary, PermissionModule, UserProfile, UserRole } from "@/types/auth";
 import { USER_ROLE_LABELS } from "@/types/auth";
 import type { SharedNote } from "@/types/note";
 import { QuickNotesPanel } from "@/components/notes/quick-notes-panel";
 import { PrivateNotesPanel } from "@/components/notes/private-notes-panel";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants/brand";
+import { TrialBanner } from "@/components/layout/trial-banner";
 
 const NAV_ITEMS = [
   {
@@ -132,12 +133,14 @@ export function AppShell({
   avatarUrl,
   notes,
   writableModules,
+  company,
 }: {
   children: React.ReactNode;
   profile: UserProfile;
   avatarUrl: string | null;
   notes: SharedNote[];
   writableModules: PermissionModule[];
+  company: CompanySummary | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -330,7 +333,9 @@ export function AppShell({
               <p className="text-sm font-semibold tracking-tight">
                 {APP_NAME}
               </p>
-              <p className="text-xs text-muted-foreground">{APP_TAGLINE}</p>
+              <p className="text-xs text-muted-foreground">
+                {company?.name ?? APP_TAGLINE}
+              </p>
             </div>
           </div>
           {nav}
@@ -417,6 +422,7 @@ export function AppShell({
           </AnimatePresence>
 
           <main className="flex-1 p-4 md:p-8">
+            {company && <TrialBanner company={company} />}
             {profile.role === "company_manager" && (
               <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
                 Şirket yöneticisi hesabı: işlem yetkileri şantiye şefi

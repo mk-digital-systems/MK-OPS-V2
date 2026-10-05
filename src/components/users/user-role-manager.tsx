@@ -20,6 +20,7 @@ import { USER_ROLE_LABELS } from "@/types/auth";
 import { formatDateTime } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { UserRepository } from "@/modules/users/user-repository";
+import { CompanyRepository } from "@/modules/company/company-repository";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -161,6 +162,26 @@ export function UserRoleManager({
   }
 
   async function deleteUser(user: UserProfile) {
+    // Onaylanmamış kullanıcı için hesabı silmek yerine şirketten çıkarılır;
+    // kişi başka bir şirkete katılabilir.
+    if (!user.is_approved) {
+      if (!window.confirm(`${user.full_name || user.email} kullanıcısının katılma isteği reddedilsin mi?`)) return;
+      setDeletingId(user.id);
+      try {
+        await new CompanyRepository(createClient()).rejectJoinRequest(user.id);
+        setUsers((current) => current.filter((item) => item.id !== user.id));
+        toast.success("Katılma isteği reddedildi");
+      } catch (error) {
+        console.error(error);
+        toast.error("İstek reddedilemedi", {
+          description: (error as Error)?.message,
+        });
+      } finally {
+        setDeletingId(null);
+      }
+      return;
+    }
+
     const confirmed = window.confirm(
       `${user.full_name || user.email} kullanıcısı tamamen silinecek. Tekrar erişebilmesi için yeniden kayıt olup şantiye şefi onayı beklemesi gerekecek. Devam edilsin mi?`
     );
@@ -321,7 +342,8 @@ export function UserRoleManager({
                           size="icon"
                           onClick={() => deleteUser(user)}
                           disabled={deletingId === user.id}
-                          aria-label="Kullanıcıyı tamamen kaldır"
+                          aria-label={user.is_approved ? "Kullanıcıyı tamamen kaldır" : "Katılma isteğini reddet"}
+                          title={user.is_approved ? "Kullanıcıyı tamamen kaldır" : "Katılma isteğini reddet"}
                         >
                           {deletingId === user.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />

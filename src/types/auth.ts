@@ -14,9 +14,31 @@ export type UserProfile = {
   is_approved: boolean;
   approved_at: string | null;
   approved_by: string | null;
+  company_id: string | null;
   created_at: string;
   updated_at: string;
 };
+
+export type CompanyAccessStatus = "trial" | "active" | "expired" | "suspended";
+
+export type CompanySummary = {
+  id: string;
+  name: string;
+  access_status: CompanyAccessStatus;
+  trial_ends_at: string;
+  plan: string | null;
+  plan_ends_at: string | null;
+  user_limit: number | null;
+  /** Yalnızca onaylı şantiye şefine döner. */
+  join_code: string | null;
+};
+
+export type AccountInfo = {
+  is_super_admin: boolean;
+  company: CompanySummary | null;
+};
+
+export type SignupMode = "create" | "join";
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   pending: "Onay Bekliyor",

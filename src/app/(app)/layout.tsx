@@ -4,6 +4,8 @@ import { AppShell } from "@/components/layout/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import { UserRepository } from "@/modules/users/user-repository";
 import { NotesRepository } from "@/modules/notes/notes-repository";
+import { CompanyRepository } from "@/modules/company/company-repository";
+import { hasAppAccess, resolveAccountHome } from "@/lib/account-routing";
 
 export default async function AppLayout({
   children,
@@ -13,8 +15,8 @@ export default async function AppLayout({
   const supabase = await createClient();
   const profile = await new UserRepository(supabase).getCurrent();
   if (!profile) redirect("/login");
-  if (!profile.is_approved || profile.role === "pending")
-    redirect("/pending-approval");
+  const account = await new CompanyRepository(supabase).getMyAccount();
+  if (!hasAppAccess(profile, account)) redirect(resolveAccountHome(profile, account));
   const [avatarUrl, notes, writableModules] = await Promise.all([
     new UserRepository(supabase).createAvatarUrl(profile.avatar_path),
     new NotesRepository(supabase).list(),
@@ -61,6 +63,7 @@ export default async function AppLayout({
       avatarUrl={avatarUrl}
       notes={notes}
       writableModules={writableModules}
+      company={account.company}
     >
       {children}
     </AppShell>
