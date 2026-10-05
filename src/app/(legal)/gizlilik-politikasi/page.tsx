@@ -11,7 +11,7 @@ export default function PrivacyPolicyPage() {
   return (
     <LegalDocument title="Gizlilik Politikası ve KVKK Aydınlatma Metni" updatedAt="6 Ekim 2026">
       <p>
-        {APP_NAME}, şirketlerin şantiye ve saha operasyonlarını yönetmesi için sunulan bir yazılım hizmetidir (SaaS).
+        {APP_NAME}, şirketlerin saha ve operasyon süreçlerini yönetmesi için sunulan bir yazılım hizmetidir (SaaS).
         Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (&quot;KVKK&quot;) kapsamında, {APP_NAME} kullanılırken
         kişisel verilerin nasıl işlendiğini açıklar.
       </p>
@@ -95,7 +95,7 @@ export default function PrivacyPolicyPage() {
       <ul>
         <li>Tüm bağlantılar HTTPS ile şifrelenir.</li>
         <li>Her şirketin verisi veritabanı seviyesinde ayrılır; kullanıcılar yalnızca kendi şirketlerinin verisine erişir.</li>
-        <li>Şirkete katılan kullanıcılar şantiye şefi onayı olmadan veri göremez; yetkiler rol ve modül bazında verilir.</li>
+        <li>Şirkete katılan kullanıcılar şirketin yöneticisi onaylamadan veri göremez; yetkiler rol ve modül bazında verilir.</li>
       </ul>
 
       <h2>8. Çerezler</h2>

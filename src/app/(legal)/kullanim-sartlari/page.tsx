@@ -21,8 +21,8 @@ export default function TermsPage() {
 
       <h2>2. Hizmetin tanımı</h2>
       <p>
-        {APP_NAME}, şirketlerin şantiye ve saha operasyonlarını dijital ortamda yönetmesini sağlayan bir yazılım
-        hizmetidir. Hizmet; proje ve pafta takibi, günlük iş planı, personel ve puantaj, avans, malzeme stoku, araç ve
+        {APP_NAME}, şirketlerin saha ve operasyon süreçlerini dijital ortamda yönetmesini sağlayan bir yazılım
+        hizmetidir. Hizmet; iş ve proje takibi, günlük iş planı, personel ve puantaj, avans, malzeme stoku, araç ve
         ekipman takibi, imalat kayıtları, raporlama ve kullanıcı yetkilendirme gibi özellikler içerir. Özellikler
         zaman içinde geliştirilebilir veya değiştirilebilir.
       </p>
@@ -30,9 +30,9 @@ export default function TermsPage() {
       <h2>3. Hesap ve şirket yapısı</h2>
       <ul>
         <li>Kayıt sırasında doğru ve güncel bilgi vermeniz gerekir. Giriş bilgilerinizin gizliliğinden siz sorumlusunuz.</li>
-        <li>Yeni şirket kuran kullanıcı, o şirketin ana şantiye şefi olur. Her şirketin tek bir ana şantiye şefi bulunur.</li>
-        <li>Diğer kullanıcılar şirket adı ve katılım koduyla katılma isteği gönderir; şantiye şefi onaylayana kadar şirket verisine erişemez.</li>
-        <li>Rol ve modül yetkileri şantiye şefi tarafından belirlenir. Şirket hesabı altında yapılan işlemlerden şirket sorumludur.</li>
+        <li>Yeni şirket kuran kullanıcı, o şirketin ana yöneticisi olur. Her şirketin tek bir ana yöneticisi bulunur.</li>
+        <li>Diğer kullanıcılar şirket adı ve katılım koduyla katılma isteği gönderir; ana yönetici onaylayana kadar şirket verisine erişemez.</li>
+        <li>Rol ve modül yetkileri ana yönetici tarafından belirlenir. Şirket hesabı altında yapılan işlemlerden şirket sorumludur.</li>
         <li>Her şirketin verisi diğer şirketlerden ayrı tutulur.</li>
       </ul>
 
