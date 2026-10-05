@@ -34,6 +34,7 @@ import { USER_ROLE_LABELS } from "@/types/auth";
 import type { SharedNote } from "@/types/note";
 import { QuickNotesPanel } from "@/components/notes/quick-notes-panel";
 import { PrivateNotesPanel } from "@/components/notes/private-notes-panel";
+import { APP_NAME } from "@/lib/constants/brand";
 
 const NAV_ITEMS = [
   {
@@ -327,7 +328,7 @@ export function AppShell({
             <BrandLogo size={40} priority />
             <div>
               <p className="text-sm font-semibold tracking-tight">
-                AZG İLETİŞİM
+                {APP_NAME}
               </p>
               <p className="text-xs text-muted-foreground">Şantiye Proje Takip</p>
             </div>
@@ -387,7 +388,7 @@ export function AppShell({
                 {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
               <BrandLogo size={28} />
-              <span className="text-sm font-semibold">AZG İLETİŞİM ŞANTİYE</span>
+              <span className="text-sm font-semibold">{APP_NAME}</span>
             </div>
             <ThemeToggle />
           </header>

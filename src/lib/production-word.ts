@@ -1,4 +1,5 @@
 import type { ProductionEntry } from "@/types/production";
+import { APP_NAME } from "@/lib/constants/brand";
 
 export async function downloadProductionWord(entries: ProductionEntry[], from: string, to: string, leaderName?: string) {
   const { AlignmentType, Document, HeadingLevel, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType } = await import("docx");
@@ -13,7 +14,7 @@ export async function downloadProductionWord(entries: ProductionEntry[], from: s
     return map;
   }, new Map<string, number>()).entries()];
   const doc = new Document({ sections: [{ children: [
-    new Paragraph({ text: "AZG İLETİŞİM MERKEZ", heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER }),
+    new Paragraph({ text: APP_NAME, heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER }),
     new Paragraph({ text: "İMALAT DÖKÜMÜ", heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER }),
     new Paragraph({ children: [new TextRun({ text: "Tarih Aralığı: ", bold: true }), new TextRun(`${from} - ${to}`)] }),
     ...(leaderName ? [new Paragraph({ children: [new TextRun({ text: "Ekip Başı: ", bold: true }), new TextRun(leaderName)] })] : []),

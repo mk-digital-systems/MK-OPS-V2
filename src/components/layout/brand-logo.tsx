@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { APP_LOGO_SRC, APP_NAME } from "@/lib/constants/brand";
 
 type BrandLogoProps = {
   className?: string;
@@ -14,8 +15,8 @@ export function BrandLogo({
 }: BrandLogoProps) {
   return (
     <Image
-      src="/images/logo-azg.jpeg"
-      alt="AZG İLETİŞİM ŞANTİYE"
+      src={APP_LOGO_SRC}
+      alt={APP_NAME}
       width={size}
       height={size}
       priority={priority}

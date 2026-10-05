@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { WorkPlanTeamTable } from "@/components/work-plans/work-plan-team-table";
 import { WorkPlanAbsences } from "@/components/work-plans/work-plan-absences";
+import { APP_NAME, FILE_NAME_PREFIX } from "@/lib/constants/brand";
 
 type Props = {
   plan: DailyWorkPlanWithTeams;
@@ -157,7 +158,7 @@ export function WhatsAppPreview({ plan, open, onClose, onEdit, onShared }: Props
 
       const file = new File(
         [blob],
-        `AZG-gunluk-is-plani-${plan.plan_date}.png`,
+        `${FILE_NAME_PREFIX}-gunluk-is-plani-${plan.plan_date}.png`,
         {
           type: "image/png",
         }
@@ -166,8 +167,8 @@ export function WhatsAppPreview({ plan, open, onClose, onEdit, onShared }: Props
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: "AZG İletişim Merkez Günlük İş Planı",
-          text: `AZG iletişim Merkez Günlük İş Planı — ${plan.plan_date}`,
+          title: `${APP_NAME} Günlük İş Planı`,
+          text: `${APP_NAME} Günlük İş Planı — ${plan.plan_date}`,
         });
         await onShared?.();
         return;
@@ -175,7 +176,7 @@ export function WhatsAppPreview({ plan, open, onClose, onEdit, onShared }: Props
 
       if (navigator.share) {
         await navigator.share({
-          title: "AZG İletişim Merkez Günlük İş Planı",
+          title: `${APP_NAME} Günlük İş Planı`,
           text,
         });
         await onShared?.();
@@ -232,7 +233,7 @@ export function WhatsAppPreview({ plan, open, onClose, onEdit, onShared }: Props
               <BrandLogo size={42} />
               <div>
                 <p className="text-[15px] font-extrabold tracking-wide">
-                  ÇANAKKALE / MERKEZ
+                  {APP_NAME}
                 </p>
                 <p className="mt-0.5 text-[11px] font-semibold tracking-wide text-[#111111]">
                   GÜNLÜK İŞ PLANI

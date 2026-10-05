@@ -1,7 +1,6 @@
 import type { InventoryCatalog, InventoryMaterial, InventoryStockCategory } from "@/types/inventory";
 import { INVENTORY_STOCK_CATEGORIES, INVENTORY_UNITS } from "@/lib/constants/inventory";
-
-const SITE_NAME = "ÇANAKKALE MERKEZ ŞANTİYE";
+import { APP_NAME } from "@/lib/constants/brand";
 
 type InventoryExportOptions = {
   catalogs: InventoryCatalog[];
@@ -33,7 +32,7 @@ export function getInventoryExportTitle(categories: InventoryStockCategory[]) {
   const names = INVENTORY_STOCK_CATEGORIES
     .filter((item) => categories.includes(item.value))
     .map((item) => item.label.replace(/ Malzeme$/, ""));
-  return `${SITE_NAME} ${names.join(" / ")} MALZEME LİSTESİ`.toLocaleUpperCase("tr-TR");
+  return `${APP_NAME} ${names.join(" / ")} MALZEME LİSTESİ`.toLocaleUpperCase("tr-TR");
 }
 
 function buildRows({ catalogs, materials, categories }: InventoryExportOptions) {

@@ -1,4 +1,5 @@
 import type { ProductionEntry } from "@/types/production";
+import { APP_LOGO_SRC, APP_NAME, FILE_NAME_PREFIX } from "@/lib/constants/brand";
 
 const PAGE_WIDTH_MM = 210;
 const PAGE_HEIGHT_MM = 297;
@@ -26,7 +27,7 @@ export async function saveAndShareDailyProduction(entries: ProductionEntry[], da
   const shareFiles = [files.pdf];
   if (navigator.share && (!navigator.canShare || navigator.canShare({ files: shareFiles }))) {
     await navigator.share({
-      title: `AZG Günlük İmalat ${formatPdfDate(date)}`,
+      title: `${APP_NAME} Günlük İmalat ${formatPdfDate(date)}`,
       text: `${formatPdfDate(date)} tarihli günlük imalat raporu`,
       files: shareFiles,
     });
@@ -35,7 +36,7 @@ export async function saveAndShareDailyProduction(entries: ProductionEntry[], da
 
   downloadFile(files.pdf);
   window.open(
-    `https://wa.me/?text=${encodeURIComponent(`${formatPdfDate(date)} tarihli AZG günlük imalat raporu PDF olarak indirildi.`)}`,
+    `https://wa.me/?text=${encodeURIComponent(`${formatPdfDate(date)} tarihli ${APP_NAME} günlük imalat raporu PDF olarak indirildi.`)}`,
     "_blank",
     "noopener,noreferrer"
   );
@@ -140,7 +141,7 @@ async function createProductionFiles(entries: ProductionEntry[], dateLabel: stri
       y += TEAM_GAP_MM;
     }
 
-    const pdfFile = new File([pdf.output("blob")], `AZG-MERKEZ-IMALAT-(${fileSuffix}).pdf`, { type: "application/pdf" });
+    const pdfFile = new File([pdf.output("blob")], `${FILE_NAME_PREFIX}-IMALAT-(${fileSuffix}).pdf`, { type: "application/pdf" });
     return { pdf: pdfFile };
   } finally {
     root.remove();
@@ -182,7 +183,7 @@ function waitForImages(root: HTMLElement) {
     ? Promise.resolve()
     : new Promise<void>((resolve, reject) => {
         image.onload = () => resolve();
-        image.onerror = () => reject(new Error("AZG logosu yüklenemedi"));
+        image.onerror = () => reject(new Error("Logo yüklenemedi"));
       })));
 }
 
@@ -197,11 +198,11 @@ function buildPdfDom(entries: ProductionEntry[], dateLabel: string) {
   header.dataset.pdfHeader = "true";
   Object.assign(header.style, { display: "grid", gridTemplateColumns: "130px 1fr 160px", alignItems: "center", gap: "16px", borderBottom: "1px solid #111827", paddingBottom: "14px" });
   const logo = document.createElement("img");
-  logo.src = "/images/logo-azg.jpeg";
-  logo.alt = "AZG";
-  Object.assign(logo.style, { width: "112px", height: "64px", objectFit: "contain" });
+  logo.src = APP_LOGO_SRC;
+  logo.alt = APP_NAME;
+  Object.assign(logo.style, { width: "64px", height: "64px", objectFit: "contain" });
   const title = document.createElement("strong");
-  title.textContent = "AZG MERKEZ GÜNLÜK İMALAT";
+  title.textContent = `${APP_NAME} GÜNLÜK İMALAT`;
   Object.assign(title.style, { textAlign: "center", fontSize: "22px" });
   const dateLabelElement = document.createElement("strong");
   dateLabelElement.textContent = `Tarih: ${dateLabel}`;

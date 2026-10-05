@@ -1,4 +1,4 @@
-# AZG İLETİŞİM ŞANTİYE — Proje Takip Sistemi
+# MK OPS — Proje Takip Sistemi
 
 Production kalitesinde şantiye proje aşama takip uygulaması.
 

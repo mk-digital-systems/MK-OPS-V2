@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import type { Project } from "@/types/project";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { APP_NAME, FILE_NAME_PREFIX } from "@/lib/constants/brand";
 
 type Props = { projects: Project[]; exportProjects: Project[]; typeLabels: Record<string, string>; selectedTypeLabel?: string };
 const STATUS_LABELS: Record<string, string> = { waiting: "Başlamadı", excavation_permit_waiting: "Kazı İzni Bekliyor", in_progress: "Devam Ediyor", completed: "Bitti", delayed: "Gecikmiş" };
@@ -14,7 +15,7 @@ const STATUS_LABELS: Record<string, string> = { waiting: "Başlamadı", excavati
 export function EditableProjectsGrid({ projects, exportProjects, typeLabels, selectedTypeLabel }: Props) {
   const reportRef = useRef<HTMLDivElement>(null);
   const [sharing, setSharing] = useState<"whatsapp" | "excel" | null>(null);
-  const reportTitle = `AZG İLETİŞİM(MERKEZ) PROJE TAKİP${selectedTypeLabel ? ` — ${selectedTypeLabel.toLocaleUpperCase("tr-TR")}` : ""}`;
+  const reportTitle = `${APP_NAME} PROJE TAKİP${selectedTypeLabel ? ` — ${selectedTypeLabel.toLocaleUpperCase("tr-TR")}` : ""}`;
 
   async function shareReport() {
     if (!reportRef.current) return;
@@ -54,7 +55,7 @@ export function EditableProjectsGrid({ projects, exportProjects, typeLabels, sel
       } finally {
         wrapper.remove();
       }
-      const file = new File([blob], "azg-proje-takip.png", { type: "image/png" });
+      const file = new File([blob], `${FILE_NAME_PREFIX}-proje-takip.png`, { type: "image/png" });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
         await navigator.share({ title: reportTitle, text: reportTitle, files: [file] });
         return;
@@ -62,7 +63,7 @@ export function EditableProjectsGrid({ projects, exportProjects, typeLabels, sel
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = "azg-proje-takip.png";
+      anchor.download = `${FILE_NAME_PREFIX}-proje-takip.png`;
       anchor.click();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       toast.info("Tablo görseli indirildi", { description: "Tarayıcı dosya eklemeyi desteklemediği için indirilen PNG dosyasını mesaja ekleyin." });
@@ -104,7 +105,7 @@ export function EditableProjectsGrid({ projects, exportProjects, typeLabels, sel
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = "azg-proje-takip.xlsx";
+      anchor.download = `${FILE_NAME_PREFIX}-proje-takip.xlsx`;
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (error) {

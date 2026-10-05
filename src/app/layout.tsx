@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import "./globals.css";
+import { APP_NAME, APP_TAGLINE } from "@/lib/constants/brand";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,11 +18,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "AZG İLETİŞİM ŞANTİYE",
-    template: "%s · AZG İLETİŞİM ŞANTİYE",
+    default: APP_NAME,
+    template: `%s · ${APP_NAME}`,
   },
   description:
-    "AZG İLETİŞİM ŞANTİYE — Proje Takip Sistemi. Projelerin aşama durumunu profesyonelce yönetin.",
+    `${APP_NAME} — ${APP_TAGLINE}. Projelerin aşama durumunu profesyonelce yönetin.`,
 };
 
 export default function RootLayout({

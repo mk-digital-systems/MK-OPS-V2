@@ -6,6 +6,7 @@ import {
   maskTcIdentityNumber,
   toFileSlug,
 } from "@/lib/attendance-excel";
+import { APP_NAME, FILE_NAME_PREFIX } from "@/lib/constants/brand";
 
 type AttendanceWordPerson = {
   fullName: string;
@@ -179,7 +180,7 @@ export async function downloadMonthlyAttendanceWord(options: {
           new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: { after: 100 },
-            children: [new TextRun({ text: "AZG İLETİŞİM MERKEZ", bold: true, size: 30 })],
+            children: [new TextRun({ text: APP_NAME, bold: true, size: 30 })],
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
@@ -210,7 +211,7 @@ export async function downloadMonthlyAttendanceWord(options: {
   const blob = await Packer.toBlob(document);
   downloadBlob(
     blob,
-    `AZG-Iletisim-Merkez-Puantaj-${options.year}-${pad(options.month)}.docx`
+    `${FILE_NAME_PREFIX}-Puantaj-${options.year}-${pad(options.month)}.docx`
   );
 }
 
@@ -286,7 +287,7 @@ export async function downloadPersonnelAttendanceWord(options: {
       {
         properties: { page: { margin: { top: 1000, right: 1000, bottom: 1000, left: 1000 } } },
         children: [
-          new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 100 }, children: [new TextRun({ text: "AZG İLETİŞİM MERKEZ", bold: true, size: 30 })] }),
+          new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 100 }, children: [new TextRun({ text: APP_NAME, bold: true, size: 30 })] }),
           new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 280 }, children: [new TextRun({ text: "PERSONEL PUANTAJ RAPORU", bold: true, size: 24 })] }),
           new Paragraph({ children: [new TextRun({ text: `Ad Soyad: ${options.person.fullName}`, bold: true })] }),
           new Paragraph({ children: [new TextRun({ text: `TC Kimlik No: ${maskTcIdentityNumber(options.person.tcIdentityNumber)}` })] }),
@@ -310,6 +311,6 @@ export async function downloadPersonnelAttendanceWord(options: {
   const blob = await Packer.toBlob(document);
   downloadBlob(
     blob,
-    `AZG-Iletisim-Merkez-${toFileNamePart(options.person.fullName)}-Puantaj-${options.year}-${pad(options.month)}.docx`
+    `${FILE_NAME_PREFIX}-${toFileNamePart(options.person.fullName)}-Puantaj-${options.year}-${pad(options.month)}.docx`
   );
 }

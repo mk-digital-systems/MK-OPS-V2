@@ -1,4 +1,5 @@
 import type { SharedNote } from "@/types/note";
+import { APP_NAME, FILE_NAME_PREFIX } from "@/lib/constants/brand";
 
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
@@ -30,7 +31,7 @@ export async function downloadNotesPdf(notes: SharedNote[]) {
 
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
     pdf.addImage(imageUrl, "PNG", x, MARGIN_MM, width, height, undefined, "FAST");
-    pdf.save(`AZG-Notlar-${todayFileName()}.pdf`);
+    pdf.save(`${FILE_NAME_PREFIX}-Notlar-${todayFileName()}.pdf`);
   } finally {
     root.remove();
   }
@@ -55,7 +56,7 @@ function buildNotesDom(notes: SharedNote[]) {
   const header = document.createElement("header");
   Object.assign(header.style, { borderBottom: "3px solid #111827", paddingBottom: "16px", marginBottom: "22px", textAlign: "center" });
   const title = document.createElement("h1");
-  title.textContent = "AZG İLETİŞİM · NOTLAR";
+  title.textContent = `${APP_NAME} · NOTLAR`;
   Object.assign(title.style, { margin: "0", fontSize: "25px", fontWeight: "700" });
   const created = document.createElement("p");
   created.textContent = `Çıktı tarihi: ${new Intl.DateTimeFormat("tr-TR").format(new Date())}`;

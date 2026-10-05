@@ -20,6 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BrandLogo } from "@/components/layout/brand-logo";
+import { APP_NAME, APP_TAGLINE } from "@/lib/constants/brand";
 
 export function LoginForm() {
   const router = useRouter();
@@ -59,7 +60,7 @@ export function LoginForm() {
         <div>
           <CardTitle className="text-2xl tracking-tight">Giriş Yap</CardTitle>
           <CardDescription>
-            AZG İLETİŞİM ŞANTİYE — Proje Takip Sistemi
+            {APP_NAME} — {APP_TAGLINE}
           </CardDescription>
         </div>
       </CardHeader>
