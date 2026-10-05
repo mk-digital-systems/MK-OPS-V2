@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Mail } from "lucide-react";
+import { Mail, MessageCircle } from "lucide-react";
 import {
   APP_NAME,
   APP_TAGLINE,
   COMPANY_LEGAL_NAME,
   SUPPORT_EMAIL,
+  whatsappUrl,
 } from "@/lib/constants/brand";
 import { BrandLogo } from "@/components/layout/brand-logo";
 
@@ -44,6 +45,17 @@ export function SiteFooter() {
               <a href={`mailto:${SUPPORT_EMAIL}`} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground">
                 <Mail className="h-4 w-4" />
                 {SUPPORT_EMAIL}
+              </a>
+            </li>
+            <li>
+              <a
+                href={whatsappUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp ile yazın
               </a>
             </li>
           </ul>

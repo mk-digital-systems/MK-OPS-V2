@@ -10,13 +10,13 @@ import {
   Hammer,
   KeyRound,
   LockKeyhole,
-  Mail,
+  MessageCircle,
   ShieldCheck,
   Users,
   Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { APP_NAME, APP_TAGLINE, SITE_URL, contactMailto } from "@/lib/constants/brand";
+import { APP_NAME, APP_TAGLINE, SITE_URL, whatsappUrl } from "@/lib/constants/brand";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { SiteFooter } from "@/components/marketing/site-footer";
 import { BrandLogo } from "@/components/layout/brand-logo";
@@ -156,8 +156,8 @@ export default async function LandingPage() {
                   <Link href={user ? "/panel" : "/register"}>{user ? "Panele Git" : "48 Saat Ücretsiz Dene"}</Link>
                 </Button>
                 <Button asChild size="lg" variant="outline">
-                  <a href={contactMailto()}>
-                    <Mail className="h-4 w-4" />
+                  <a href={whatsappUrl()} target="_blank" rel="noopener noreferrer">
+                    <MessageCircle className="h-4 w-4" />
                     Bilgi Al
                   </a>
                 </Button>
@@ -278,8 +278,8 @@ export default async function LandingPage() {
                   <Link href={user ? "/panel" : "/register"}>{user ? "Panele Git" : "Ücretsiz Dene"}</Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <a href={contactMailto("MK OPS plan ve fiyat teklifi")}>
-                    <Mail className="h-4 w-4" />
+                  <a href={whatsappUrl("MK OPS plan ve fiyat bilgisi almak istiyorum.")} target="_blank" rel="noopener noreferrer">
+                    <MessageCircle className="h-4 w-4" />
                     Fiyat Teklifi Al
                   </a>
                 </Button>
