@@ -34,7 +34,7 @@ import { USER_ROLE_LABELS } from "@/types/auth";
 import type { SharedNote } from "@/types/note";
 import { QuickNotesPanel } from "@/components/notes/quick-notes-panel";
 import { PrivateNotesPanel } from "@/components/notes/private-notes-panel";
-import { APP_NAME } from "@/lib/constants/brand";
+import { APP_NAME, APP_TAGLINE } from "@/lib/constants/brand";
 
 const NAV_ITEMS = [
   {
@@ -330,7 +330,7 @@ export function AppShell({
               <p className="text-sm font-semibold tracking-tight">
                 {APP_NAME}
               </p>
-              <p className="text-xs text-muted-foreground">Şantiye Proje Takip</p>
+              <p className="text-xs text-muted-foreground">{APP_TAGLINE}</p>
             </div>
           </div>
           {nav}

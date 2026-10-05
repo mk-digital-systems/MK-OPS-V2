@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     template: `%s · ${APP_NAME}`,
   },
   description:
-    `${APP_NAME} — ${APP_TAGLINE}. Projelerin aşama durumunu profesyonelce yönetin.`,
+    `${APP_NAME} — ${APP_TAGLINE}. Projeler, personel, puantaj, depo ve araçlar tek panelde.`,
 };
 
 export default function RootLayout({

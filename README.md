@@ -1,4 +1,4 @@
-# MK OPS — Proje Takip Sistemi
+# MK OPS — Şantiye Operasyon Yönetimi
 
 Production kalitesinde şantiye proje aşama takip uygulaması.
 
