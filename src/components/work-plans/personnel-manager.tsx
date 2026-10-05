@@ -299,7 +299,7 @@ export function PersonnelManager({
         ).listPersonnelCustodyBalances(editing.id);
         if (custody.length > 0) {
           toast.error("Personel pasife alınamaz", {
-            description: `Üzerinde ${custody.length} aktif malzeme zimmeti var. Önce zimmetleri başka personele/ekibe aktarın veya şantiye deposuna iade edin.`,
+            description: `Üzerinde ${custody.length} aktif malzeme zimmeti var. Önce zimmetleri başka personele/ekibe aktarın veya depoya iade edin.`,
           });
           setLoading(false);
           return;

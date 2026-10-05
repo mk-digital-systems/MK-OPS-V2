@@ -67,7 +67,7 @@ export function SubscriptionNotice({
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Plan işlemleri için şantiye şefinizle iletişime geçin.
+              Plan işlemleri için firma yöneticinizle iletişime geçin.
             </p>
           )}
           <Button asChild variant={isSiteChief ? "outline" : "default"} className="w-full">

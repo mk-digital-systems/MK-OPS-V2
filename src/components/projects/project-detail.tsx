@@ -1,380 +1,282 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { ArchiveRestore, Ban, Copy, Eye, Loader2, Pencil, Trash2 } from "lucide-react";
-import { toast } from "sonner";
-import type { Project, ProjectSheet, ProjectCabinet } from "@/types/project";
-import type { Personnel } from "@/types/work-plan";
-import { ProjectSheetProgress } from "@/components/projects/project-sheet-progress";
-import { BgfdCabinetProgress } from "@/components/projects/bgfd-cabinet-progress";
-import { HpFocusedSheetManager } from "@/components/projects/hp-focused-sheet-manager";
 import {
-  PROJECT_STATUSES,
-  formatBooleanChoice,
-  isBfOrGfProject,
-  isOngoingProjectStatus,
-  isCorporateStyleProject,
-} from "@/lib/constants/project";
+  Archive,
+  ArchiveRestore,
+  ArrowLeft,
+  Ban,
+  CheckCircle2,
+  Loader2,
+  PauseCircle,
+  Pencil,
+  PlayCircle,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
+import { toast } from "sonner";
+import type { Project, ProjectProgressData, ProjectStatus, ProjectType } from "@/types/project";
+import type { Personnel } from "@/types/work-plan";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { getDisplayImageUrl } from "@/lib/project-image-url";
 import { createClient } from "@/lib/supabase/client";
 import { ProjectRepository } from "@/modules/projects/project-repository";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ProjectStatusIndicators } from "@/components/projects/project-status-indicators";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ProgressBar, ProjectStatusBadge, TypeDot } from "@/components/projects/project-status-indicators";
+import { StageBoard } from "@/components/projects/stage-board";
 
 type Props = {
   project: Project;
-  typeLabel: string;
-  readOnly?: boolean;
-  sheets: ProjectSheet[];
+  type: ProjectType;
+  progress: ProjectProgressData;
   personnel: Personnel[];
-  cabinets: ProjectCabinet[];
+  readOnly: boolean;
 };
 
-export function ProjectDetail({ project, typeLabel, sheets, personnel, cabinets, readOnly = false }: Props) {
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [cancelOpen, setCancelOpen] = useState(false);
-  const [imageOpen, setImageOpen] = useState(false);
-  const [imageLoadFailed, setImageLoadFailed] = useState(false);
-  const [cancellationReason, setCancellationReason] = useState("");
-  const isBfOrGf = isBfOrGfProject(project.project_type);
-  const isHpFocused = project.project_type === "HP_ODAKLI";
-  const tracksObk = isBfOrGf && project.tracks_obk;
-  const isOngoing = isOngoingProjectStatus(project.status);
-  const canCancel = !project.is_archived && !project.is_cancelled && (project.status === "waiting" || project.status === "in_progress");
-  const progressCount = sheets.reduce((total, sheet) => total + sheet.progress.length, 0) + cabinets.reduce((total, cabinet) => total + cabinet.progress.length, 0);
+type Busy = "status" | "archive" | "cancel" | "reactivate" | "delete" | null;
 
-  async function handleCopyImageUrl() {
-    if (!project.image_url) return;
+export function ProjectDetail({ project, type, progress, personnel, readOnly }: Props) {
+  const router = useRouter();
+  const [busy, setBusy] = useState<Busy>(null);
+  const [reasonDialog, setReasonDialog] = useState<"hold" | "cancel" | null>(null);
+  const [reason, setReason] = useState("");
+  const repository = () => new ProjectRepository(createClient());
+  const editable = !readOnly && !project.is_archived && !project.is_cancelled;
+
+  async function run(kind: Busy, action: () => Promise<unknown>, success: string, after?: () => void) {
+    setBusy(kind);
     try {
-      await navigator.clipboard.writeText(project.image_url);
-      toast.success("Görsel URL kopyalandı.");
-    } catch {
-      toast.error("Görsel URL kopyalanamadı.");
+      await action();
+      toast.success(success);
+      if (after) after();
+      else router.refresh();
+    } catch (error) {
+      toast.error("İşlem yapılamadı", { description: (error as Error)?.message });
+    } finally {
+      setBusy(null);
     }
   }
 
-  async function handleCancel() {
-    if (cancellationReason.trim().length < 3) {
-      toast.error("İptal sebebi en az 3 karakter olmalıdır");
+  const setStatus = (status: ProjectStatus, holdReason?: string) =>
+    run("status", () => repository().setStatus(project.id, status, holdReason), "Proje durumu güncellendi");
+
+  async function submitReason() {
+    if (reason.trim().length < 3) {
+      toast.error("En az 3 karakter yazın");
       return;
     }
-    setLoading(true);
-    try {
-      await new ProjectRepository(createClient()).cancel(project.id, cancellationReason);
-      toast.success("Proje iptal alanına taşındı");
-      router.push(`/panel/projects/${project.id}`);
-      router.refresh();
-      setCancelOpen(false);
-    } catch (error) {
-      toast.error("Proje iptal edilemedi", { description: (error as Error).message });
-    } finally {
-      setLoading(false);
-    }
+    if (reasonDialog === "hold") await setStatus("on_hold", reason);
+    else await run("cancel", () => repository().cancel(project.id, reason), "Proje iptal edildi");
+    setReasonDialog(null);
+    setReason("");
   }
 
-  async function handleReactivate() {
-    setLoading(true);
-    const supabase = createClient();
-    try {
-      await new ProjectRepository(supabase).reactivate(project.id);
-      toast.success("Proje tekrar aktif edildi");
-      router.push(`/panel/projects/${project.id}`);
-      router.refresh();
-    } catch {
-      toast.error("Proje aktifleştirilemedi");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleDelete() {
-    const confirmed = window.confirm(
-      `${project.project_code} · ${project.name} kalıcı olarak silinsin mi?\n\nBağlı paftalar, kablolar, dolaplar ve tüm ilerleme kayıtları da silinecek. Bu işlem geri alınamaz.`
-    );
-    if (!confirmed) return;
-    setLoading(true);
-    try {
-      await new ProjectRepository(createClient()).delete(project.id);
-      toast.success("Proje kalıcı olarak silindi");
+  function remove() {
+    if (!window.confirm(`${project.name} ve bütün aşama kayıtları kalıcı olarak silinsin mi?`)) return;
+    void run("delete", () => repository().delete(project.id), "Proje silindi", () => {
       router.push("/panel/projects");
       router.refresh();
-    } catch (error) {
-      console.error(error);
-      toast.error("Proje silinemedi");
-    } finally {
-      setLoading(false);
-    }
+    });
   }
 
-  const fields = [
-    ...(isBfOrGf
-      ? [
-          { label: "Pafta Sayısı", value: project.sheet_count ?? "—" },
-          { label: "HP Bilgisi", value: project.hp_count ?? "—" },
-          { label: "Pafta Yapısı", value: project.is_single_sheet ? "Tek pafta" : "Çoklu pafta" },
-        ]
-      : []),
-    { label: "Proje ID", value: project.project_code },
-    { label: "Proje Türü", value: typeLabel },
-    ...(isHpFocused
-      ? [{ label: "Pafta Bazlı İlerleme", value: `%${project.progress_percent ?? 0}` }]
-      : [
-          { label: "Mevki", value: project.location },
-          { label: "Alınan Tarih", value: formatDate(project.received_at) },
-        ]),
-    ...(isCorporateStyleProject(project.project_type)
-      ? [
-          { label: "Toplam Proje Tarihi", value: formatDate(project.project_date) },
-          { label: "Öncelik Sırası", value: project.priority_order ?? "—" },
-        ]
-      : []),
-    {
-      label: "Bitiş Tarihi",
-      value: project.completed_at
-        ? formatDate(project.completed_at)
-        : "Arşive aktarılınca işlenir",
-    },
-    { label: "Oluşturulma", value: formatDateTime(project.created_at) },
-    { label: "Güncelleme", value: formatDateTime(project.updated_at) },
-    {
-      label: "Arşiv",
-      value: project.is_archived
-        ? `Evet (${formatDateTime(project.archived_at)})`
-        : "Hayır",
-    },
-    { label: "Bitiren Ekip Başı", value: project.completed_by_name ?? "—" },
-    ...(project.is_cancelled
-      ? [
-          { label: "İptal Tarihi", value: formatDateTime(project.cancelled_at) },
-          { label: "İptal Sebebi", value: project.cancellation_reason ?? "—" },
-        ]
-      : []),
-    ...(project.status === "in_progress"
-      ? [{ label: "Mevcut Ekip Başı", value: project.current_team_leader_name ?? "—" }]
-      : []),
+  const info = [
+    { label: "Proje kodu", value: project.project_code },
+    { label: "Konum", value: project.location },
+    { label: "Sorumlu ekip / firma", value: project.team_name || "—" },
+    { label: "Son çalışan ekip", value: project.current_team_leader_name || "—" },
+    { label: "Kabul tarihi", value: project.received_at ? formatDate(project.received_at) : "—" },
+    { label: "Planlanan başlangıç", value: project.start_date ? formatDate(project.start_date) : "—" },
+    { label: "Planlanan bitiş", value: project.estimated_end_date ? formatDate(project.estimated_end_date) : "—" },
+    { label: "Tamamlanma", value: project.completed_at ? formatDate(project.completed_at) : "—" },
   ];
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div
-          className={
-            isOngoing
-              ? "space-y-3 rounded-2xl border border-amber-300 bg-amber-50 p-5 dark:border-amber-800 dark:bg-amber-950/35"
-              : "space-y-2"
-          }
-        >
+      <Link href="/panel/projects" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="h-4 w-4" />
+        Projeler
+      </Link>
+
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-3xl font-semibold tracking-tight">
-              {project.name}
-            </h1>
+            <h1 className="text-3xl font-semibold tracking-tight">{project.name}</h1>
+            <ProjectStatusBadge status={project.status} />
+            {project.is_archived && <span className="rounded-md bg-muted px-2 py-0.5 text-xs">Arşivde</span>}
+            {project.is_cancelled && <span className="rounded-md bg-rose-100 px-2 py-0.5 text-xs text-rose-700">İptal edildi</span>}
           </div>
-          <p className="text-sm text-muted-foreground">{project.project_code}</p>
-          <ProjectStatusIndicators project={project} />
+          <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+            <TypeDot color={type.color} />
+            {type.name} · {project.project_code}
+          </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {!readOnly && !project.is_archived && !project.is_cancelled && (
-            <Button asChild variant="outline">
-              <Link href={`/panel/projects/${project.id}/edit`}>
-                <Pencil className="h-4 w-4" />
-                Düzenle
-              </Link>
+        {!readOnly && (
+          <div className="flex flex-wrap gap-2">
+            {editable && (
+              <Button asChild variant="outline">
+                <Link href={`/panel/projects/${project.id}/edit`}>
+                  <Pencil className="h-4 w-4" />
+                  Düzenle
+                </Link>
+              </Button>
+            )}
+            {editable && project.status !== "on_hold" && project.status !== "completed" && (
+              <Button variant="outline" onClick={() => setReasonDialog("hold")} disabled={busy !== null}>
+                <PauseCircle className="h-4 w-4" />
+                Beklemeye al
+              </Button>
+            )}
+            {editable && project.status === "on_hold" && (
+              <Button variant="outline" onClick={() => setStatus("in_progress")} disabled={busy !== null}>
+                <PlayCircle className="h-4 w-4" />
+                Devam ettir
+              </Button>
+            )}
+            {editable && project.status !== "completed" && (
+              <Button
+                variant="outline"
+                onClick={() => window.confirm("Proje, aşamaları tamamlanmamış olsa da tamamlandı olarak işaretlensin mi?") && setStatus("completed")}
+                disabled={busy !== null}
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Tamamlandı
+              </Button>
+            )}
+            {editable && project.status === "completed" && (
+              <Button variant="outline" onClick={() => setStatus("in_progress")} disabled={busy !== null}>
+                <RotateCcw className="h-4 w-4" />
+                Yeniden aç
+              </Button>
+            )}
+            {!project.is_cancelled && (
+              <Button
+                variant="outline"
+                onClick={() =>
+                  run("archive", () => repository().setArchived(project.id, !project.is_archived), project.is_archived ? "Proje arşivden çıkarıldı" : "Proje arşivlendi")
+                }
+                disabled={busy !== null}
+              >
+                {busy === "archive" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : project.is_archived ? (
+                  <ArchiveRestore className="h-4 w-4" />
+                ) : (
+                  <Archive className="h-4 w-4" />
+                )}
+                {project.is_archived ? "Arşivden çıkar" : "Arşivle"}
+              </Button>
+            )}
+            {editable && project.status !== "completed" && (
+              <Button variant="outline" onClick={() => setReasonDialog("cancel")} disabled={busy !== null}>
+                <Ban className="h-4 w-4" />
+                İptal et
+              </Button>
+            )}
+            {project.is_cancelled && (
+              <Button
+                variant="outline"
+                onClick={() => run("reactivate", () => repository().reactivate(project.id), "Proje yeniden aktif edildi")}
+                disabled={busy !== null}
+              >
+                <RotateCcw className="h-4 w-4" />
+                Yeniden aktif et
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" onClick={remove} disabled={busy !== null} aria-label="Projeyi sil">
+              {busy === "delete" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             </Button>
-          )}
-          {!readOnly && project.is_cancelled && !project.is_archived && (
-            <Button onClick={handleReactivate} disabled={loading}>
-              {loading ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <ArchiveRestore className="h-4 w-4" />
-              )}
-              Tekrar Aktif Et
-            </Button>
-          )}
-          {!readOnly && canCancel && (
-            <Button variant="destructive" onClick={() => setCancelOpen(true)} disabled={loading}>
-              <Ban className="h-4 w-4" />
-              Projeyi İptal Et
-            </Button>
-          )}
-          {!readOnly && (
-            <Button variant="destructive" onClick={handleDelete} disabled={loading}>
-              {loading ? <Loader2 className="animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              Projeyi Sil
-            </Button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {project.is_cancelled && <Card className="border-rose-300 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/30"><CardHeader><CardTitle className="text-base text-rose-700 dark:text-rose-300">İptal Bilgileri</CardTitle></CardHeader><CardContent className="space-y-3 text-sm"><div><span className="font-medium">İptal sebebi:</span> <span className="whitespace-pre-wrap">{project.cancellation_reason}</span></div><div><span className="font-medium">İptal tarihi:</span> {formatDateTime(project.cancelled_at)}</div><div><span className="font-medium">İptal öncesi ekip:</span> {project.current_team_leader_name || "Ekip ataması bulunmuyor"}</div><div><span className="font-medium">Kayıtlı işlem:</span> {progressCount > 0 ? `${progressCount} ilerleme kaydı korunuyor` : "İlerleme kaydı bulunmuyor"}</div></CardContent></Card>}
+      {project.status === "on_hold" && project.hold_reason && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          <strong>Beklemede:</strong> {project.hold_reason}
+        </div>
+      )}
+      {project.is_cancelled && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
+          <strong>İptal nedeni:</strong> {project.cancellation_reason} · {formatDateTime(project.cancelled_at)}
+        </div>
+      )}
 
-      {Boolean(project.cancellation_history?.length) && <Card><CardHeader><CardTitle className="text-base">İptal Geçmişi</CardTitle></CardHeader><CardContent className="space-y-3">{[...(project.cancellation_history ?? [])].sort((a, b) => b.cancelled_at.localeCompare(a.cancelled_at)).map((history) => <div key={history.id} className="rounded-lg border p-4 text-sm"><p className="whitespace-pre-wrap"><span className="font-medium">İptal sebebi:</span> {history.reason}</p><div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground"><span>İptal edildi: {formatDateTime(history.cancelled_at)}</span><span>{history.reactivated_at ? `Yeniden aktif edildi: ${formatDateTime(history.reactivated_at)}` : "Proje halen iptal durumunda"}</span></div></div>)}</CardContent></Card>}
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Proje Bilgileri</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid gap-4 sm:grid-cols-2">
-              {fields.map((field) => (
-                <div key={field.label} className="space-y-1">
-                  <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-                    {field.label}
-                  </dt>
-                  <dd className="text-sm font-medium">{field.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Açıklama</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-              {project.description?.trim() || "Açıklama girilmemiş."}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {!isHpFocused && <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Proje Görseli</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {project.image_url ? (
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => { setImageLoadFailed(false); setImageOpen(true); }}>
-                <Eye className="h-4 w-4" />
-                Göster
-              </Button>
-              <Button variant="outline" onClick={handleCopyImageUrl}>
-                <Copy className="h-4 w-4" />
-                URL Kopyala
-              </Button>
+      <Card>
+        <CardContent className="space-y-5 p-6">
+          <div>
+            <div className="mb-2 flex items-center justify-between text-sm">
+              <span className="font-medium">Genel ilerleme</span>
+              <span className="text-muted-foreground">
+                {type.stages.length} aşama{type.has_sections ? ` · ${progress.sections.length} ${type.section_label.toLocaleLowerCase("tr-TR")}` : ""}
+              </span>
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Görsel URL eklenmemiş.</p>
-          )}
-        </CardContent>
-      </Card>}
-
-      {!isHpFocused && <Dialog open={imageOpen} onOpenChange={setImageOpen}>
-        <DialogContent className="max-h-[90vh] w-[calc(100vw-2rem)] max-w-[90vw] overflow-y-auto p-4 sm:p-6 [&>button]:flex [&>button]:h-10 [&>button]:w-10 [&>button]:items-center [&>button]:justify-center">
-          <DialogHeader>
-            <DialogTitle>Proje Görseli</DialogTitle>
-          </DialogHeader>
-          {imageLoadFailed ? (
-            <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">Görsel yüklenemedi.</div>
-          ) : project.image_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={getDisplayImageUrl(project.image_url)} alt={`${project.name} proje görseli`} loading="lazy" referrerPolicy="no-referrer" className="mx-auto block max-h-[78vh] max-w-full object-contain" onError={() => setImageLoadFailed(true)} />
-          ) : null}
-        </DialogContent>
-      </Dialog>}
-
-      {!isHpFocused && <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Aşama Tarihleri</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="space-y-1">
-              <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-                Alınan Tarih
-              </dt>
-              <dd className="text-sm font-medium">
-                {formatDate(project.received_at)}
-              </dd>
-            </div>
-            {PROJECT_STATUSES.map((stage) => (
-              <div key={stage.value} className="space-y-1">
-                <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {"dateLabel" in stage && stage.dateLabel
-                    ? stage.dateLabel
-                    : `${stage.label} Tarihi`}
-                </dt>
-                <dd className="text-sm font-medium">
-                  {formatDate(project[stage.dateKey])}
-                </dd>
+            <ProgressBar value={project.progress_percent} status={project.status} />
+          </div>
+          <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            {info.map((item) => (
+              <div key={item.label}>
+                <dt className="text-xs text-muted-foreground">{item.label}</dt>
+                <dd className="mt-0.5 font-medium">{item.value}</dd>
               </div>
             ))}
           </dl>
         </CardContent>
-      </Card>}
+      </Card>
 
-      {project.project_type === "BGFD" ? <BgfdCabinetProgress project={project} cabinets={cabinets} personnel={personnel} readOnly={readOnly || project.is_archived || project.is_cancelled}/> : project.project_type === "HP_ODAKLI" ? <HpFocusedSheetManager project={project} sheets={sheets} personnel={personnel} readOnly={readOnly || project.is_archived || project.is_cancelled}/> : isCorporateStyleProject(project.project_type) ? null : <ProjectSheetProgress project={project} sheets={sheets} personnel={personnel} readOnly={readOnly || project.is_archived || project.is_cancelled} />}
-
-      {project.project_type !== "BGFD" && project.project_type !== "HP_ODAKLI" && (isBfOrGf ||
-        isOngoing ||
-        project.cable_pulled !== null ||
-        project.obk_pulled !== null ||
-        project.joint_done !== null ||
-        project.progress_notes) && (
+      {(project.description || project.image_url) && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">
-              {isBfOrGf
-                ? `${project.project_type} Proje Takibi`
-                : "Devam Eden İş Adımları"}
-            </CardTitle>
+            <CardTitle className="text-base">Açıklama</CardTitle>
           </CardHeader>
-          <CardContent>
-            <dl className="grid gap-4 sm:grid-cols-2">
-              {(!isBfOrGf || tracksObk) && (
-              <div className="space-y-1">
-                <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {isBfOrGf ? "OBK" : "Kablo"}
-                </dt>
-                <dd className="text-sm font-medium">
-                  {formatBooleanChoice(
-                    isBfOrGf
-                      ? project.obk_pulled
-                      : project.cable_pulled,
-                    "Çekildi",
-                    "Çekilmedi"
-                  )}
-                </dd>
-              </div>
-              )}
-              <div className="space-y-1">
-                <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Ek
-                </dt>
-                <dd className="text-sm font-medium">
-                  {formatBooleanChoice(
-                    project.joint_done,
-                    "Yapıldı",
-                    "Yapılmadı"
-                  )}
-                </dd>
-              </div>
-              <div className="space-y-1 sm:col-span-2">
-                <dt className="text-xs uppercase tracking-wide text-muted-foreground">
-                  İş Adımı Açıklaması
-                </dt>
-                <dd className="whitespace-pre-wrap text-sm font-medium text-muted-foreground">
-                  {project.progress_notes?.trim() || "—"}
-                </dd>
-              </div>
-            </dl>
+          <CardContent className="space-y-4">
+            {project.description && <p className="whitespace-pre-wrap text-sm text-muted-foreground">{project.description}</p>}
+            {project.image_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={getDisplayImageUrl(project.image_url)}
+                alt={`${project.name} görseli`}
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                className="max-h-96 rounded-xl border object-contain"
+              />
+            )}
           </CardContent>
         </Card>
       )}
 
-      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}><DialogContent><DialogHeader><DialogTitle>Projeyi İptal Et</DialogTitle></DialogHeader><div className="space-y-4"><p className="text-sm text-muted-foreground">{project.project_code} · {project.name} aktif ve arşiv listelerinden kaldırılarak İptal Alanı&apos;na taşınacak. Geçmiş ekip ve işlem kayıtları korunacak.</p><div className="space-y-2"><Label htmlFor="cancellation-reason">İptal Sebebi</Label><Textarea id="cancellation-reason" value={cancellationReason} onChange={(event) => setCancellationReason(event.target.value)} placeholder="Projenin neden iptal edildiğini yazın..." rows={4} /></div><div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setCancelOpen(false)}>Vazgeç</Button><Button variant="destructive" disabled={loading || cancellationReason.trim().length < 3} onClick={handleCancel}>{loading && <Loader2 className="animate-spin" />}İptal Et</Button></div></div></DialogContent></Dialog>
+      <StageBoard projectId={project.id} type={type} data={progress} personnel={personnel} readOnly={!editable} />
+
+      <Dialog open={reasonDialog !== null} onOpenChange={(open) => !open && setReasonDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{reasonDialog === "hold" ? "Projeyi beklemeye al" : "Projeyi iptal et"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>{reasonDialog === "hold" ? "Bekleme nedeni" : "İptal nedeni"}</Label>
+            <Textarea
+              rows={3}
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              placeholder={reasonDialog === "hold" ? "Örn. izin bekleniyor, malzeme bekleniyor…" : "Neden iptal edildiğini yazın"}
+              autoFocus
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setReasonDialog(null)}>
+              Vazgeç
+            </Button>
+            <Button variant={reasonDialog === "cancel" ? "destructive" : "default"} onClick={submitReason} disabled={busy !== null}>
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+              {reasonDialog === "hold" ? "Beklemeye al" : "İptal et"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

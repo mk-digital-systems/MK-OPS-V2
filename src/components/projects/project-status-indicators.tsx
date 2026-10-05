@@ -1,68 +1,46 @@
-import type { Project } from "@/types/project";
+import { cn } from "@/lib/utils";
 import {
-  formatBooleanChoice,
+  getStageStatusMeta,
+  getStatusBarColor,
   getStatusColor,
   getStatusLabel,
-  isOngoingProjectStatus,
 } from "@/lib/constants/project";
 import { Badge } from "@/components/ui/badge";
 
-type Props = {
-  project: Project;
-};
+export function ProjectStatusBadge({ status, className }: { status: string; className?: string }) {
+  return <Badge className={cn(getStatusColor(status), className)}>{getStatusLabel(status)}</Badge>;
+}
 
-export function ProjectStatusIndicators({ project }: Props) {
-  if (project.is_cancelled) {
-    return <Badge className="bg-rose-600 text-white hover:bg-rose-600">İptal Edildi</Badge>;
-  }
+export function StageStatusBadge({ status }: { status: string }) {
+  const meta = getStageStatusMeta(status);
+  return <Badge className={meta.color}>{meta.label}</Badge>;
+}
 
-  const isOngoing = isOngoingProjectStatus(project.status);
-
-  if (!isOngoing) {
-    return (
-      <Badge className={getStatusColor(project.status)}>
-        {getStatusLabel(project.status)}
-      </Badge>
-    );
-  }
-
+export function ProgressBar({
+  value,
+  status,
+  showLabel = true,
+  className,
+}: {
+  value: number;
+  status?: string;
+  showLabel?: boolean;
+  className?: string;
+}) {
+  const percent = Math.max(0, Math.min(100, Math.round(value)));
   return (
-    <div className="flex flex-wrap gap-1.5">
-      <Badge className="bg-amber-400 text-amber-950 hover:bg-amber-400 dark:bg-amber-500 dark:text-amber-950">
-        Devam Ediyor
-      </Badge>
-
-      {project.status === "excavation_permit_waiting" && (
-        <Badge className="border-amber-500 bg-background text-amber-700 dark:text-amber-300">
-          Kazı İzni Bekliyor
-        </Badge>
-      )}
-
-      {project.status === "delayed" && (
-        <Badge className="border-rose-500 bg-background text-rose-700 dark:text-rose-300">
-          Gecikmiş
-        </Badge>
-      )}
-
-      <Badge className="border-border bg-background">
-        Ek:{" "}
-        {formatBooleanChoice(
-          project.joint_done,
-          "Yapıldı",
-          "Yapılmadı"
-        )}
-      </Badge>
-
-      {project.tracks_obk && (
-        <Badge className="border-border bg-background">
-          OBK:{" "}
-          {formatBooleanChoice(
-            project.obk_pulled,
-            "Çekildi",
-            "Çekilmedi"
-          )}
-        </Badge>
-      )}
+    <div className={cn("flex items-center gap-2", className)}>
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+        <div
+          className={cn("h-full rounded-full transition-all", status ? getStatusBarColor(status) : "bg-primary")}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      {showLabel && <span className="w-10 text-right text-xs font-medium tabular-nums">%{percent}</span>}
     </div>
   );
+}
+
+export function TypeDot({ color }: { color: string | null }) {
+  return <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color || "#94a3b8" }} />;
 }

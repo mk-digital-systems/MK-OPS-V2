@@ -787,7 +787,7 @@ export function WorkPlanEditor({
                     onChange={(e) =>
                       updateTeam(team.client_id, { team_type: e.target.value })
                     }
-                    placeholder="Fiber, Kazı, Montaj..."
+                    placeholder="Montaj, Bakım, Kazı..."
                   />
                   <datalist id={`team-type-${team.client_id}`}>
                     {typeSuggestions.map((suggestion) => (

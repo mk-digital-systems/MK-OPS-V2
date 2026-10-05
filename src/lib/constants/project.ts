@@ -1,168 +1,175 @@
-export const FIXED_PROJECT_TYPES = [
-  { key: "HP_ODAKLI", label: "HP Odaklı" },
-  { key: "KURUMSAL_TTVPN", label: "Kurumsal TTVPN" },
-  { key: "BGFD", label: "BGFD" },
-  { key: "ERISIM_ZORUNLULUK", label: "Erişim Zorunluluk" },
-] as const;
-
-export const CUSTOM_PROJECT_TYPE_KEYS = [
-  "custom_1",
-  "custom_2",
-  "custom_3",
-  "custom_4",
-] as const;
-
-export type FixedProjectTypeKey = (typeof FIXED_PROJECT_TYPES)[number]["key"];
-export type CustomProjectTypeKey = (typeof CUSTOM_PROJECT_TYPE_KEYS)[number];
-
 export const PROJECT_STATUSES = [
   {
     value: "waiting",
     label: "Başlamadı",
-    dateKey: "waiting_at" as const,
     color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+    bar: "bg-slate-400",
   },
   {
     value: "in_progress",
     label: "Devam Ediyor",
-    dateKey: "in_progress_at" as const,
     color: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+    bar: "bg-blue-500",
   },
   {
-    value: "excavation_permit_waiting",
-    label: "Kazı İzni Bekliyor",
-    dateKey: "excavation_permit_waiting_at" as const,
+    value: "on_hold",
+    label: "Beklemede",
     color: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+    bar: "bg-amber-500",
   },
   {
     value: "delayed",
-    label: "Devam Ediyor · Gecikmiş",
-    dateKey: "delayed_at" as const,
+    label: "Gecikti",
     color: "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300",
+    bar: "bg-rose-500",
   },
   {
     value: "completed",
-    label: "Bitti",
-    dateKey: "completed_at" as const,
-    dateLabel: "Bitiş Tarihi",
+    label: "Tamamlandı",
     color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+    bar: "bg-emerald-500",
   },
 ] as const;
 
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number]["value"];
-export type StageDateKey = (typeof PROJECT_STATUSES)[number]["dateKey"];
 
-export const AUTOMATIC_PROJECT_STATUSES = PROJECT_STATUSES.filter((status) =>
-  ["waiting", "excavation_permit_waiting", "in_progress", "completed"].includes(status.value)
-);
+export function getStatusLabel(status: string): string {
+  return PROJECT_STATUSES.find((item) => item.value === status)?.label ?? status;
+}
 
-export const CABLE_OPTIONS = [
-  { value: "true", label: "Kablo çekildi" },
-  { value: "false", label: "Kablo çekilmedi" },
+export function getStatusColor(status: string): string {
+  return PROJECT_STATUSES.find((item) => item.value === status)?.color ?? PROJECT_STATUSES[0].color;
+}
+
+export function getStatusBarColor(status: string): string {
+  return PROJECT_STATUSES.find((item) => item.value === status)?.bar ?? PROJECT_STATUSES[0].bar;
+}
+
+export const STAGE_STATUSES = [
+  { value: "not_started", label: "Başlamadı", color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200" },
+  { value: "in_progress", label: "Devam ediyor", color: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300" },
+  { value: "done", label: "Tamamlandı", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" },
 ] as const;
 
-export const OBK_OPTIONS = [
-  { value: "true", label: "OBK çekildi" },
-  { value: "false", label: "OBK çekilmedi" },
-] as const;
+export type StageStatus = (typeof STAGE_STATUSES)[number]["value"];
 
-export const JOINT_OPTIONS = [
-  { value: "true", label: "Ek yapıldı" },
-  { value: "false", label: "Ek yapılmadı" },
-] as const;
+export function getStageStatusMeta(status: string) {
+  return STAGE_STATUSES.find((item) => item.value === status) ?? STAGE_STATUSES[0];
+}
 
-export const DEFAULT_CUSTOM_PROJECT_TYPES: Record<CustomProjectTypeKey, string> =
+/** Aşama birimi önerileri; firma farklı bir birim de yazabilir. */
+export const UNIT_SUGGESTIONS = ["m", "m²", "m³", "km", "adet", "ton", "kg", "lt", "saat", "gün", "araç", "nokta"];
+
+export const PROJECT_TYPE_COLORS = ["#2563eb", "#0891b2", "#16a34a", "#ca8a04", "#ea580c", "#dc2626", "#9333ea", "#475569"];
+
+export type ProjectTypeTemplate = {
+  name: string;
+  description: string;
+  has_sections: boolean;
+  section_label: string;
+  stages: { name: string; unit?: string }[];
+};
+
+/** Proje türü şablonları; firma ekledikten sonra dilediği gibi düzenler. */
+export const PROJECT_TYPE_TEMPLATES: ProjectTypeTemplate[] = [
   {
-    custom_1: "Özel Kategori 1",
-    custom_2: "Özel Kategori 2",
-    custom_3: "Özel Kategori 3",
-    custom_4: "Özel Kategori 4",
-  };
+    name: "Bina İnşaatı",
+    description: "Konut, ticari veya kamu binası yapımı",
+    has_sections: true,
+    section_label: "Blok",
+    stages: [
+      { name: "Hafriyat", unit: "m³" },
+      { name: "Temel" },
+      { name: "Kaba inşaat" },
+      { name: "Çatı" },
+      { name: "Mekanik ve elektrik tesisat" },
+      { name: "İnce işler" },
+      { name: "Teslim" },
+    ],
+  },
+  {
+    name: "Altyapı Hattı",
+    description: "Su, kanalizasyon veya yağmur suyu hattı",
+    has_sections: true,
+    section_label: "Etap",
+    stages: [
+      { name: "Kazı izni" },
+      { name: "Kazı", unit: "m" },
+      { name: "Boru döşeme", unit: "m" },
+      { name: "Test" },
+      { name: "Dolgu", unit: "m" },
+      { name: "Yol onarımı", unit: "m²" },
+    ],
+  },
+  {
+    name: "Doğalgaz Hattı",
+    description: "Doğalgaz dağıtım hattı ve servis bağlantıları",
+    has_sections: true,
+    section_label: "Hat",
+    stages: [
+      { name: "Kazı izni" },
+      { name: "Kazı", unit: "m" },
+      { name: "Boru döşeme", unit: "m" },
+      { name: "Servis hattı", unit: "adet" },
+      { name: "Basınç testi" },
+      { name: "Dolgu ve asfalt", unit: "m²" },
+    ],
+  },
+  {
+    name: "Elektrik Tesisatı",
+    description: "Enerji hattı, pano ve aydınlatma işleri",
+    has_sections: false,
+    section_label: "Bölüm",
+    stages: [
+      { name: "Keşif" },
+      { name: "Kablo kanalı", unit: "m" },
+      { name: "Kablo çekimi", unit: "m" },
+      { name: "Pano montajı", unit: "adet" },
+      { name: "Test ve devreye alma" },
+    ],
+  },
+  {
+    name: "Fiber / Telekom Hattı",
+    description: "Fiber optik veya bakır hat tesisi",
+    has_sections: true,
+    section_label: "Bölge",
+    stages: [
+      { name: "Kazı", unit: "m" },
+      { name: "Kablo çekimi", unit: "m" },
+      { name: "Ek", unit: "adet" },
+      { name: "Ölçüm ve test" },
+    ],
+  },
+  {
+    name: "Araç Bakım / Servis",
+    description: "Filo bakımı, servis veya montaj işleri",
+    has_sections: false,
+    section_label: "Bölüm",
+    stages: [
+      { name: "Kabul" },
+      { name: "Arıza tespiti" },
+      { name: "Parça temini" },
+      { name: "Onarım", unit: "saat" },
+      { name: "Kontrol ve teslim" },
+    ],
+  },
+  {
+    name: "Genel İş",
+    description: "Her türlü saha işi için basit akış",
+    has_sections: false,
+    section_label: "Bölüm",
+    stages: [{ name: "Hazırlık" }, { name: "Uygulama" }, { name: "Kontrol" }, { name: "Teslim" }],
+  },
+];
 
 export const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 export const DEFAULT_PAGE_SIZE = 25;
 
-export function isBfOrGfProject(projectType: string): boolean {
-  return projectType === "BF" || projectType === "GF";
-}
-export function isHpFocusedProject(projectType:string):boolean{return projectType==="HP_ODAKLI";}
-export function isCorporateStyleProject(projectType: string): boolean {
-  return projectType === "KURUMSAL_TTVPN" || projectType === "ERISIM_ZORUNLULUK";
-}
-
-export function isOngoingProjectStatus(status: string): boolean {
-  return status === "in_progress";
-}
-
-export function deriveProjectStatus(project: {
-  received_at: string | null;
-  tracks_obk: boolean;
-  obk_pulled: boolean | null;
-  joint_done: boolean | null;
-  cable_pulled: boolean | null;
-  tracks_excavation: boolean;
-  excavation_done: boolean | null;
-}): ProjectStatus {
-  const allRequiredStepsDone =
-    project.joint_done === true &&
-    project.cable_pulled === true &&
-    (!project.tracks_obk || project.obk_pulled === true) &&
-    (!project.tracks_excavation || project.excavation_done === true);
-
-  if (allRequiredStepsDone) return "completed";
-
-  if (project.received_at) {
-    const receivedAt = new Date(`${project.received_at}T00:00:00`);
-    const today = new Date(`${todayISODate()}T00:00:00`);
-    const elapsedDays = Math.floor(
-      (today.getTime() - receivedAt.getTime()) / 86_400_000
-    );
-    if (elapsedDays >= 30) return "delayed";
-  }
-
-  if (
-    project.obk_pulled === true ||
-    project.joint_done === true ||
-    project.cable_pulled === true
-  ) {
-    return "in_progress";
-  }
-
-  return "waiting";
-}
-
-export function getStatusLabel(status: string): string {
-  return PROJECT_STATUSES.find((s) => s.value === status)?.label ?? status;
-}
-
-export function getStatusColor(status: string): string {
-  return (
-    PROJECT_STATUSES.find((s) => s.value === status)?.color ??
-    "bg-slate-100 text-slate-700"
-  );
-}
-
-export function getStageDateKey(status: ProjectStatus): StageDateKey {
-  return (
-    PROJECT_STATUSES.find((s) => s.value === status)?.dateKey ?? "waiting_at"
-  );
-}
-
-export function getStageDateLabel(status: ProjectStatus): string {
-  const meta = PROJECT_STATUSES.find((s) => s.value === status);
-  if (meta && "dateLabel" in meta && meta.dateLabel) return meta.dateLabel as string;
-  return `${meta?.label ?? "Aşama"} Tarihi`;
-}
-
-
-export function formatBooleanChoice(
-  value: boolean | null | undefined,
-  trueLabel: string,
-  falseLabel: string
-): string {
-  if (value === true) return trueLabel;
-  if (value === false) return falseLabel;
-  return "—";
+export function formatQuantity(value: number | string | null | undefined, unit?: string | null): string {
+  if (value === null || value === undefined || value === "") return "—";
+  const number = Number(value);
+  const text = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 3 }).format(number);
+  return unit ? `${text} ${unit}` : text;
 }
 
 export function todayISODate(): string {

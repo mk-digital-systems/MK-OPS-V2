@@ -183,7 +183,7 @@ export function UserRoleManager({
     }
 
     const confirmed = window.confirm(
-      `${user.full_name || user.email} kullanıcısı tamamen silinecek. Tekrar erişebilmesi için yeniden kayıt olup şantiye şefi onayı beklemesi gerekecek. Devam edilsin mi?`
+      `${user.full_name || user.email} kullanıcısı tamamen silinecek. Tekrar erişebilmesi için yeniden kayıt olup ana yönetici onayı beklemesi gerekecek. Devam edilsin mi?`
     );
     if (!confirmed) return;
 
@@ -223,7 +223,7 @@ export function UserRoleManager({
           icon={<Clock3 className="h-5 w-5 text-amber-500" />}
         />
         <Summary
-          label="Şirket Yöneticisi"
+          label="Yönetici"
           value={`${managerCount}/3`}
           icon={<ShieldCheck className="h-5 w-5 text-blue-500" />}
         />
@@ -289,7 +289,7 @@ export function UserRoleManager({
 
                   {isChief ? (
                     <div className="text-sm text-muted-foreground">
-                      Ana şantiye şefi hesabı
+                      Ana yönetici hesabı
                     </div>
                   ) : (
                     <Select
@@ -306,7 +306,7 @@ export function UserRoleManager({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="company_manager">
-                          Şirket Yöneticisi
+                          Yönetici
                         </SelectItem>
                         <SelectItem value="accounting">Muhasebe</SelectItem>
                         <SelectItem value="pending">
@@ -409,7 +409,7 @@ export function UserRoleManager({
           <DialogHeader>
             <DialogTitle>{permissionUser?.full_name || permissionUser?.email || "Kullanıcı"} · Yetkiler</DialogTitle>
             <p className="text-sm text-muted-foreground">
-              İşlem yetkilerini şantiye şefi açıp kapatabilir. Kapalı modüller salt okunur kalır.
+              İşlem yetkilerini ana yönetici açıp kapatabilir. Kapalı modüller salt okunur kalır.
             </p>
           </DialogHeader>
           {permissionUser && permissionUserValues && (

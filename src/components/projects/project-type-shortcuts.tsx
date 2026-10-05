@@ -1,45 +1,36 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import type { ProjectType } from "@/types/project";
+import { TypeDot } from "@/components/projects/project-status-indicators";
 
-type Props = {
-  compact?: boolean;
-};
-
-const SHORTCUTS = [
-  {
-    type: "HP_ODAKLI",
-    label:"HP",
-    className:
-      "bg-violet-600 text-white shadow-violet-600/25 hover:bg-violet-700",
-  },
-  {
-    type: "KURUMSAL_TTVPN",
-    label:"TTVPN",
-    className:
-      "bg-cyan-600 text-white shadow-cyan-600/25 hover:bg-cyan-700",
-  },
-  {
-    type: "BGFD",
-    className:
-      "bg-emerald-600 text-white shadow-emerald-600/25 hover:bg-emerald-700",
-  },
-] as const;
-
-export function ProjectTypeShortcuts({ compact = false }: Props) {
+/** Proje türlerine hızlı filtre bağlantıları. */
+export function ProjectTypeShortcuts({
+  types,
+  selectedTypeId,
+  basePath = "/panel/projects",
+}: {
+  types: ProjectType[];
+  selectedTypeId?: string;
+  basePath?: string;
+}) {
+  if (types.length === 0) return null;
+  const chip = "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors";
   return (
-    <div className="flex items-center gap-3" aria-label="Hızlı proje erişimi">
-      {SHORTCUTS.map((shortcut) => (
+    <div className="flex flex-wrap gap-2">
+      <Link
+        href={basePath}
+        className={cn(chip, !selectedTypeId || selectedTypeId === "all" ? "border-primary bg-primary/10 text-primary" : "hover:bg-accent")}
+      >
+        Tümü
+      </Link>
+      {types.map((type) => (
         <Link
-          key={shortcut.type}
-          href={`/panel/projects?type=${shortcut.type}`}
-          className={cn(
-            "flex shrink-0 items-center justify-center rounded-full font-bold tracking-wide shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-            compact ? "h-12 w-12 text-sm" : "h-16 w-16 text-base",
-            shortcut.className
-          )}
-          title={`${shortcut.type} projelerine git`}
+          key={type.id}
+          href={`${basePath}?type=${type.id}`}
+          className={cn(chip, selectedTypeId === type.id ? "border-primary bg-primary/10 text-primary" : "hover:bg-accent")}
         >
-          {"label" in shortcut ? shortcut.label : shortcut.type}
+          <TypeDot color={type.color} />
+          {type.name}
         </Link>
       ))}
     </div>

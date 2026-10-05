@@ -106,7 +106,7 @@ export function CustodyManager({ initialMaterials, initialBalances, initialMovem
   return <div className="space-y-6">
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div><h1 className="text-3xl font-semibold tracking-tight">Araç Ekipmanları</h1>
-        <p className="mt-1 text-sm text-muted-foreground">El aletleri ve ekipmanların şantiye deposu ile araçlar arasındaki takibi</p></div>
+        <p className="mt-1 text-sm text-muted-foreground">El aletleri ve ekipmanların depo ile araçlar arasındaki takibi</p></div>
       {!readOnly && <div className="flex gap-2"><Button variant="outline" onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" />Yeni Ekipman</Button>
         <Button onClick={openWarehouseAssignment}><CarFront className="h-4 w-4" />Araca Zimmetle</Button></div>}
     </div>

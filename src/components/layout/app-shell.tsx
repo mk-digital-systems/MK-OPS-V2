@@ -281,7 +281,7 @@ export function AppShell({
         );
       })}
 
-      {/* Yönetim - sadece Şantiye Şefi */}
+      {/* Yönetim - sadece Ana Yönetici */}
       {profile.role === "site_chief" && (
         <div>
           <button
@@ -433,14 +433,14 @@ export function AppShell({
             {company && <TrialBanner company={company} canRequestPlan={profile.role === "site_chief"} />}
             {profile.role === "company_manager" && (
               <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
-                Şirket yöneticisi hesabı: işlem yetkileri şantiye şefi
+                Yönetici hesabı: işlem yetkileri ana yönetici
                 tarafından alan bazında belirlenir.
               </div>
             )}
             {profile.role === "accounting" && (
               <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
                 Muhasebe hesabı: Personel ve Puantaj listeleri ile dökümler açıktır.
-                İşlem yetkileri şantiye şefi tarafından ayrıca verilir.
+                İşlem yetkileri ana yönetici tarafından ayrıca verilir.
               </div>
             )}
             {children}

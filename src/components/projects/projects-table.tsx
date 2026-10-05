@@ -1,443 +1,327 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import {
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  type ColumnDef,
-} from "@tanstack/react-table";
-import { Archive, Ban, ChevronLeft, ChevronRight, Plus, Search } from "lucide-react";
-import type { PaginatedResult, Project } from "@/types/project";
-import {
-  DEFAULT_PAGE_SIZE,
-  PAGE_SIZE_OPTIONS,
-  AUTOMATIC_PROJECT_STATUSES,
-  PROJECT_STATUSES,
-} from "@/lib/constants/project";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import { ChevronLeft, ChevronRight, FileSpreadsheet, Loader2, Plus, Search } from "lucide-react";
+import { toast } from "sonner";
+import type { ArchiveScope, PaginatedResult, Project, ProjectType } from "@/types/project";
+import { PAGE_SIZE_OPTIONS, PROJECT_STATUSES, getStatusLabel } from "@/lib/constants/project";
+import { FILE_NAME_PREFIX } from "@/lib/constants/brand";
+import { cn, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { NativeSelect } from "@/components/ui/native-select";
 import { ProjectTypeShortcuts } from "@/components/projects/project-type-shortcuts";
-import { ProjectStatusIndicators } from "@/components/projects/project-status-indicators";
-import { EditableProjectsGrid } from "@/components/projects/editable-projects-grid";
+import { ProgressBar, ProjectStatusBadge, TypeDot } from "@/components/projects/project-status-indicators";
 
 type Props = {
   title: string;
   result: PaginatedResult<Project>;
-  typeOptions: { key: string; label: string }[];
+  types: ProjectType[];
   locations: string[];
-  typeLabels: Record<string, string>;
   showCreate?: boolean;
-  defaultArchiveScope?: "active" | "archived" | "cancelled" | "all";
-  allowArchiveScopeFilter?: boolean;
-  showInlineEdit?: boolean;
   exportProjects?: Project[];
+  defaultArchiveScope: ArchiveScope;
+  allowArchiveScopeFilter?: boolean;
+};
+
+const SCOPE_LABELS: Record<ArchiveScope, string> = {
+  active: "Aktif projeler",
+  archived: "Arşiv",
+  cancelled: "İptal edilenler",
+  all: "Tümü (iptal hariç)",
 };
 
 export function ProjectsTable({
   title,
   result,
-  typeOptions,
+  types,
   locations,
-  typeLabels,
-  showCreate = true,
-  defaultArchiveScope = "active",
-  allowArchiveScopeFilter = true,
-  showInlineEdit = false,
-  exportProjects = result.data,
+  showCreate = false,
+  exportProjects,
+  defaultArchiveScope,
+  allowArchiveScopeFilter = false,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
-  const [search, setSearch] = useState(searchParams.get("q") ?? "");
-  const [dirtyCount] = useState(0);
+  const params = useSearchParams();
+  const [pending, startTransition] = useTransition();
+  const [search, setSearch] = useState(params.get("q") ?? "");
+  const [exporting, setExporting] = useState(false);
+  const typeById = new Map(types.map((type) => [type.id, type]));
 
-  function updateParams(updates: Record<string, string | null>) {
-    if (
-      dirtyCount > 0 &&
-      !window.confirm(
-        "Kaydedilmemiş proje değişiklikleri var. Filtreyi değiştirmeden önce devam etmek istiyor musunuz?"
-      )
-    ) {
-      return;
+  function setParam(updates: Record<string, string | null>) {
+    const next = new URLSearchParams(params.toString());
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === null || value === "" || value === "all") next.delete(key);
+      else next.set(key, value);
     }
-    const params = new URLSearchParams(searchParams.toString());
-    Object.entries(updates).forEach(([key, value]) => {
-      if (!value || value === "all") params.delete(key);
-      else params.set(key, value);
-    });
-    startTransition(() => {
-      router.push(`${pathname}?${params.toString()}`);
-    });
+    if (!("page" in updates)) next.delete("page");
+    startTransition(() => router.push(`${pathname}${next.toString() ? `?${next}` : ""}`));
   }
 
-  const columns = useMemo<ColumnDef<Project>[]>(
-    () => [
-      {
-        accessorKey: "project_code",
-        header: "Proje ID",
-        cell: ({ row }) => (
-          <Link
-            href={`/panel/projects/${row.original.id}`}
-            className="font-medium text-primary hover:underline"
-          >
-            {row.original.project_code}
-          </Link>
-        ),
-      },
-      {
-        accessorKey: "name",
-        header: "Proje Adı",
-        cell: ({ row }) => (
-          <div className="max-w-[220px] truncate font-medium">
-            {row.original.name}
-          </div>
-        ),
-      },
-      {
-        accessorKey: "project_type",
-        header: "Tür",
-        cell: ({ row }) =>
-          typeLabels[row.original.project_type] ?? row.original.project_type,
-      },
-      {
-        accessorKey: "location",
-        header: "Lokasyon",
-        cell:({row})=>row.original.project_type==="HP_ODAKLI"?"—":row.original.location,
-      },
-      {
-        id:"sheet_numbers",header:"Paftalar",cell:({row})=>row.original.sheet_summaries?.length?<div className="flex min-w-[150px] flex-wrap gap-1">{row.original.sheet_summaries.map(sheet=><Link key={sheet.id} href={`/panel/projects/${row.original.id}?sheet=${sheet.id}`} className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-primary hover:underline">{sheet.sheet_no}</Link>)}</div>:"—",
-      },
-      {
-        id:"matched_sheet_addresses",header:"Eşleşen Pafta Adresi",cell:({row})=>row.original.matched_sheets?.length?<div className="min-w-[240px] space-y-1">{row.original.matched_sheets.map(sheet=><div key={sheet.id} className="rounded-lg border bg-muted/30 px-2 py-1.5"><p className="text-xs font-semibold">{sheet.sheet_no||"Pafta numarası yok"}</p><p className="text-xs text-muted-foreground">{sheet.address}</p><p className="text-[11px] text-primary">{row.original.project_code} · {row.original.name}</p></div>)}</div>:"—",
-      },
-      {
-        id:"progress_percent",header:"İlerleme",cell:({row})=>row.original.project_type==="HP_ODAKLI"?`%${row.original.progress_percent??0}`:"—",
-      },
-      {
-        accessorKey: "status",
-        header: "Durum",
-        cell: ({ row }) => <ProjectStatusIndicators project={row.original} />,
-      },
-      {
-        accessorKey: "current_team_leader_name",
-        header: "Mevcut Ekip Başı",
-        cell: ({ row }) => row.original.status === "in_progress" ? (row.original.current_team_leader_name || "—") : "—",
-      },
-      {
-        id: "stage_date",
-        header: "Aşama Tarihi",
-        cell: ({ row }) => {
-          const statusMeta = PROJECT_STATUSES.find(
-            (s) => s.value === row.original.status
-          );
-          const dateKey = statusMeta?.dateKey ?? "waiting_at";
-          return formatDate(row.original[dateKey]);
-        },
-      },
-      {
-        accessorKey: "received_at",
-        header: "Alınan Tarih",
-        cell: ({ row }) => formatDate(row.original.received_at),
-      },
-      {
-        accessorKey: "updated_at",
-        header: "Güncelleme",
-        cell: ({ row }) => formatDateTime(row.original.updated_at),
-      },
-      {
-        accessorKey: "completed_by_name",
-        header: "Bitiren Ekip Başı",
-        cell: ({ row }) => row.original.completed_by_name || "—",
-      },
-      {
-        accessorKey: "completed_at",
-        header: "Bitiş Tarihi",
-        cell: ({ row }) => formatDate(row.original.completed_at),
-      },
-    ],
-    [typeLabels]
-  );
+  async function exportExcel() {
+    if (!exportProjects?.length) {
+      toast.error("Aktarılacak proje yok");
+      return;
+    }
+    setExporting(true);
+    try {
+      const { Workbook } = await import("exceljs");
+      const workbook = new Workbook();
+      const sheet = workbook.addWorksheet("Projeler");
+      sheet.columns = [
+        { header: "Proje Kodu", key: "code", width: 16 },
+        { header: "Proje Adı", key: "name", width: 32 },
+        { header: "Tür", key: "type", width: 22 },
+        { header: "Konum", key: "location", width: 22 },
+        { header: "Durum", key: "status", width: 16 },
+        { header: "İlerleme %", key: "progress", width: 12 },
+        { header: "Başlangıç", key: "start", width: 14 },
+        { header: "Planlanan Bitiş", key: "end", width: 16 },
+        { header: "Sorumlu Ekip", key: "team", width: 22 },
+      ];
+      for (const project of exportProjects) {
+        sheet.addRow({
+          code: project.project_code,
+          name: project.name,
+          type: typeById.get(project.project_type_id)?.name ?? "",
+          location: project.location,
+          status: getStatusLabel(project.status),
+          progress: project.progress_percent,
+          start: project.start_date ? formatDate(project.start_date) : "",
+          end: project.estimated_end_date ? formatDate(project.estimated_end_date) : "",
+          team: project.current_team_leader_name ?? project.team_name ?? "",
+        });
+      }
+      sheet.getRow(1).font = { bold: true };
+      const buffer = await workbook.xlsx.writeBuffer();
+      const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${FILE_NAME_PREFIX}-projeler.xlsx`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error("Excel oluşturulamadı", { description: (error as Error)?.message });
+    } finally {
+      setExporting(false);
+    }
+  }
 
-  const table = useReactTable({
-    data: result.data,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    manualPagination: true,
-    pageCount: result.totalPages,
-  });
+  const selectedType = params.get("type") ?? "all";
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {result.total} kayıt · Sayfa {result.page}/{result.totalPages}
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{result.count} proje</p>
         </div>
-        {showCreate && (
-          <div className="flex flex-wrap items-center gap-4">
-            <ProjectTypeShortcuts compact />
-            <Button asChild variant="outline">
-              <Link href="/panel/archive">
-                <Archive className="h-4 w-4" />
-                Arşiv
-              </Link>
+        <div className="flex flex-wrap gap-2">
+          {exportProjects && (
+            <Button variant="outline" onClick={exportExcel} disabled={exporting}>
+              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+              Excel
             </Button>
-            <Button asChild variant="outline">
-              <Link href="/panel/cancelled-projects">
-                <Ban className="h-4 w-4" />
-                İptal Alanı
-              </Link>
-            </Button>
+          )}
+          {showCreate && (
             <Button asChild>
               <Link href="/panel/projects/new">
                 <Plus className="h-4 w-4" />
                 Yeni Proje
               </Link>
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
+      {defaultArchiveScope === "active" && <ProjectTypeShortcuts types={types} selectedTypeId={selectedType} basePath={pathname} />}
+
       <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base">Filtreler</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col gap-3 lg:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                placeholder="Proje ID, proje adı veya pafta adresi..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    updateParams({ q: search || null, page: "1" });
-                  }
-                }}
-              />
-            </div>
-            <Button
-              variant="secondary"
-              onClick={() => updateParams({ q: search || null, page: "1" })}
-              disabled={isPending}
+        <CardContent className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5">
+          <form
+            className="relative sm:col-span-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setParam({ q: search.trim() || null });
+            }}
+          >
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Kod, ad, konum, ekip…" className="pl-9" />
+          </form>
+          <NativeSelect value={params.get("status") ?? "all"} onChange={(event) => setParam({ status: event.target.value })} aria-label="Durum">
+            <option value="all">Tüm durumlar</option>
+            {PROJECT_STATUSES.map((status) => (
+              <option key={status.value} value={status.value}>
+                {status.label}
+              </option>
+            ))}
+          </NativeSelect>
+          <NativeSelect value={selectedType} onChange={(event) => setParam({ type: event.target.value })} aria-label="Proje türü">
+            <option value="all">Tüm türler</option>
+            {types.map((type) => (
+              <option key={type.id} value={type.id}>
+                {type.name}
+              </option>
+            ))}
+          </NativeSelect>
+          {allowArchiveScopeFilter ? (
+            <NativeSelect
+              value={params.get("scope") ?? defaultArchiveScope}
+              onChange={(event) => setParam({ scope: event.target.value === defaultArchiveScope ? null : event.target.value })}
+              aria-label="Kapsam"
             >
-              Ara
-            </Button>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-8">
-            <Select
-              value={searchParams.get("status") ?? "all"}
-              onValueChange={(value) => updateParams({ status: value, stage: null, page: "1" })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Durum" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tüm Durumlar</SelectItem>
-                {AUTOMATIC_PROJECT_STATUSES.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>
-                    {s.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={searchParams.get("type") ?? "all"}
-              onValueChange={(v) => updateParams({ type: v, location: v === "KURUMSAL_TTVPN" || v === "ERISIM_ZORUNLULUK" ? searchParams.get("location") : null, page: "1" })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Tür" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tüm Türler</SelectItem>
-                {typeOptions.map((t) => (
-                  <SelectItem key={t.key} value={t.key}>
-                    {t.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {(searchParams.get("type") === "KURUMSAL_TTVPN" || searchParams.get("type") === "ERISIM_ZORUNLULUK") && (
-              <Select value={searchParams.get("location") ?? "all"} onValueChange={(v) => updateParams({ location: v, page: "1" })}>
-                <SelectTrigger><SelectValue placeholder="Lokasyon" /></SelectTrigger>
-                <SelectContent><SelectItem value="all">Tüm Lokasyonlar</SelectItem>{locations.map(location=><SelectItem key={location} value={location}>{location}</SelectItem>)}</SelectContent>
-              </Select>
-            )}
-
-            {allowArchiveScopeFilter ? (
-              <Select
-                value={
-                  (searchParams.get("q") ? "all" : searchParams.get("scope")) ??
-                  defaultArchiveScope ??
-                  "active"
-                }
-                onValueChange={(v) => updateParams({ scope: v, page: "1" })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Kapsam" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Aktif</SelectItem>
-                  <SelectItem value="archived">Arşiv</SelectItem>
-                  <SelectItem value="cancelled">İptal</SelectItem>
-                  <SelectItem value="all">Aktif + Arşiv</SelectItem>
-                </SelectContent>
-              </Select>
-            ) : (
-              <Select
-                value={String(searchParams.get("pageSize") ?? DEFAULT_PAGE_SIZE)}
-                onValueChange={(v) => updateParams({ pageSize: v, page: "1" })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sayfa boyutu" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PAGE_SIZE_OPTIONS.map((size) => (
-                    <SelectItem key={size} value={String(size)}>
-                      {size} / sayfa
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
-          </div>
+              {(["active", "archived", "cancelled", "all"] as ArchiveScope[]).map((scope) => (
+                <option key={scope} value={scope}>
+                  {SCOPE_LABELS[scope]}
+                </option>
+              ))}
+            </NativeSelect>
+          ) : (
+            <NativeSelect value={params.get("location") ?? "all"} onChange={(event) => setParam({ location: event.target.value })} aria-label="Konum">
+              <option value="all">Tüm konumlar</option>
+              {locations.map((location) => (
+                <option key={location} value={location}>
+                  {location}
+                </option>
+              ))}
+            </NativeSelect>
+          )}
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden">
-        {showInlineEdit ? (
-          <EditableProjectsGrid
-            projects={result.data}
-            exportProjects={exportProjects}
-            typeLabels={typeLabels}
-            selectedTypeLabel={searchParams.get("type") && searchParams.get("type") !== "all" ? typeLabels[searchParams.get("type")!] : undefined}
-          />
-        ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-sm">
-            <thead className="border-b bg-muted/40">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th
-                      key={header.id}
-                      className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={columns.length}
-                    className="px-4 py-12 text-center text-muted-foreground"
-                  >
-                    Kayıt bulunamadı.
-                  </td>
-                </tr>
+      <div className={cn("transition-opacity", pending && "opacity-60")}>
+        {result.data.length === 0 ? (
+          <Card>
+            <CardContent className="py-14 text-center text-sm text-muted-foreground">
+              {types.length === 0 && showCreate ? (
+                <>
+                  Önce <Link href="/panel/settings" className="font-medium text-primary underline">Ayarlar</Link> sayfasından proje türlerinizi tanımlayın.
+                </>
               ) : (
-                table.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className={row.original.status === "completed" ? "border-b border-blue-300 bg-blue-50 last:border-0 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40" : "border-b last:border-0 hover:bg-accent/30"}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3 align-middle">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))
+                "Kriterlere uyan proje yok."
               )}
-            </tbody>
-          </table>
-        </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className="hidden overflow-hidden rounded-2xl border bg-card md:block">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/60 text-left text-xs text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Proje</th>
+                    <th className="px-4 py-3 font-medium">Tür</th>
+                    <th className="px-4 py-3 font-medium">Konum</th>
+                    <th className="px-4 py-3 font-medium">Durum</th>
+                    <th className="w-44 px-4 py-3 font-medium">İlerleme</th>
+                    <th className="px-4 py-3 font-medium">Planlanan bitiş</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {result.data.map((project) => {
+                    const type = typeById.get(project.project_type_id);
+                    return (
+                      <tr key={project.id} className="transition-colors hover:bg-muted/40">
+                        <td className="px-4 py-3">
+                          <Link href={`/panel/projects/${project.id}`} className="font-medium hover:underline">
+                            {project.name}
+                          </Link>
+                          <p className="text-xs text-muted-foreground">{project.project_code}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center gap-2">
+                            <TypeDot color={type?.color ?? null} />
+                            {type?.name ?? "—"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{project.location}</td>
+                        <td className="px-4 py-3">
+                          <ProjectStatusBadge status={project.status} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <ProgressBar value={project.progress_percent} status={project.status} />
+                        </td>
+                        <td className={cn("px-4 py-3", project.status === "delayed" && "font-medium text-rose-600")}>
+                          {project.estimated_end_date ? formatDate(project.estimated_end_date) : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="grid gap-3 md:hidden">
+              {result.data.map((project) => {
+                const type = typeById.get(project.project_type_id);
+                return (
+                  <Link key={project.id} href={`/panel/projects/${project.id}`} className="rounded-2xl border bg-card p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{project.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {project.project_code} · {project.location}
+                        </p>
+                      </div>
+                      <ProjectStatusBadge status={project.status} />
+                    </div>
+                    <p className="mt-2 inline-flex items-center gap-2 text-xs text-muted-foreground">
+                      <TypeDot color={type?.color ?? null} />
+                      {type?.name ?? "—"}
+                    </p>
+                    <ProgressBar value={project.progress_percent} status={project.status} className="mt-3" />
+                  </Link>
+                );
+              })}
+            </div>
+          </>
         )}
+      </div>
 
-        <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>Sayfa boyutu</span>
-            <Select
+      {result.count > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            Sayfa başına
+            <NativeSelect
+              className="h-9 w-20"
               value={String(result.pageSize)}
-              onValueChange={(v) => updateParams({ pageSize: v, page: "1" })}
+              onChange={(event) => setParam({ pageSize: event.target.value })}
             >
-              <SelectTrigger className="h-9 w-[100px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PAGE_SIZE_OPTIONS.map((size) => (
-                  <SelectItem key={size} value={String(size)}>
-                    {size}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </NativeSelect>
           </div>
-
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              size="sm"
-              disabled={result.page <= 1 || isPending}
-              onClick={() =>
-                updateParams({ page: String(Math.max(1, result.page - 1)) })
-              }
+              size="icon"
+              disabled={result.page <= 1}
+              onClick={() => setParam({ page: String(result.page - 1) })}
+              aria-label="Önceki sayfa"
             >
               <ChevronLeft className="h-4 w-4" />
-              Önceki
             </Button>
-            <span className="text-sm text-muted-foreground">
+            <span>
               {result.page} / {result.totalPages}
             </span>
             <Button
               variant="outline"
-              size="sm"
-              disabled={result.page >= result.totalPages || isPending}
-              onClick={() =>
-                updateParams({
-                  page: String(Math.min(result.totalPages, result.page + 1)),
-                })
-              }
+              size="icon"
+              disabled={result.page >= result.totalPages}
+              onClick={() => setParam({ page: String(result.page + 1) })}
+              aria-label="Sonraki sayfa"
             >
-              Sonraki
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
-      </Card>
+      )}
     </div>
   );
 }

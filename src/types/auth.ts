@@ -29,7 +29,7 @@ export type CompanySummary = {
   plan: string | null;
   plan_ends_at: string | null;
   user_limit: number | null;
-  /** Yalnızca onaylı şantiye şefine döner. */
+  /** Yalnızca onaylı ana yöneticiye döner. */
   join_code: string | null;
 };
 
@@ -42,8 +42,8 @@ export type SignupMode = "create" | "join";
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   pending: "Onay Bekliyor",
-  site_chief: "Şantiye Şefi",
-  company_manager: "Şirket Yöneticisi",
+  site_chief: "Ana Yönetici",
+  company_manager: "Yönetici",
   accounting: "Muhasebe",
 };
 
