@@ -44,7 +44,7 @@ export class SettingsRepository {
           value: payload,
           updated_by: userId,
         },
-        { onConflict: "key" }
+        { onConflict: "company_id,key" }
       )
       .select("value")
       .single();

@@ -38,12 +38,13 @@ Deno.serve(async (request: Request) => {
 
     const { data: callerProfile } = await userClient
       .from("profiles")
-      .select("role, is_approved")
+      .select("role, is_approved, company_id")
       .eq("id", user.id)
       .single();
     if (
       callerProfile?.role !== "site_chief" ||
-      callerProfile.is_approved !== true
+      callerProfile.is_approved !== true ||
+      !callerProfile.company_id
     ) {
       return jsonResponse(
         { error: "Yalnız şantiye şefi kullanıcı silebilir" },
@@ -73,11 +74,15 @@ Deno.serve(async (request: Request) => {
 
     const { data: targetProfile, error: targetProfileError } = await adminClient
       .from("profiles")
-      .select("role, avatar_path")
+      .select("role, avatar_path, company_id")
       .eq("id", targetUserId)
       .maybeSingle();
     if (targetProfileError) throw targetProfileError;
-    if (targetProfile?.role === "site_chief") {
+    // Şef yalnızca kendi şirketinin kullanıcısını silebilir.
+    if (!targetProfile || targetProfile.company_id !== callerProfile.company_id) {
+      return jsonResponse({ error: "Silinecek kullanıcı bulunamadı" }, 404);
+    }
+    if (targetProfile.role === "site_chief") {
       return jsonResponse(
         { error: "Birincil Şantiye Şefi hesabı silinemez" },
         403

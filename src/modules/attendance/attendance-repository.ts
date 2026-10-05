@@ -143,7 +143,7 @@ export class AttendanceRepository {
   async saveMonthNotes(year: number, month: number, notes: string): Promise<void> {
     const { error } = await this.supabase
       .from("attendance_month_notes")
-      .upsert({ year, month, notes: notes.trim() }, { onConflict: "year,month" });
+      .upsert({ year, month, notes: notes.trim() }, { onConflict: "company_id,year,month" });
     if (error) throw error;
   }
 
