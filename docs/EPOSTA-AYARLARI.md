@@ -19,12 +19,12 @@ Toplu/işlem e-postası için bir SMTP sağlayıcısı gerekir. Seçenekler:
 | **Brevo** | Günde 300 | Türkçe arayüz, pazarlama e-postası da gönderebilir |
 | Mevcut kurumsal posta (Google Workspace, Yandex, hosting) | Sağlayıcıya göre | Günlük gönderim sınırları düşük olabilir |
 
-Gönderen adres olarak alan adınızda ayrı bir adres önerilir: `bildirim@<alanadiniz>` veya
-`no-reply@<alanadiniz>`. Yanıtlar için "Reply-To" olarak `iletisim@mk-digitalsystems.com` kullanılabilir.
+Gönderen adres olarak alan adınızda ayrı bir adres önerilir: `bildirim@mk-ops.tr` veya
+`no-reply@mk-ops.tr`. Yanıtlar için "Reply-To" olarak `iletisim@mk-digitalsystems.com` kullanılabilir.
 
 ## 2. Alan adını doğrulayın (SPF / DKIM / DMARC)
 
-Sağlayıcının panelinde alan adınızı ekleyin; size birkaç DNS kaydı verir. Bunları alan adınızın DNS
+Sağlayıcının panelinde `mk-ops.tr` alan adını ekleyin; size birkaç DNS kaydı verir. Bunları alan adının DNS
 yönetimine (alan adını aldığınız firma veya Vercel DNS) ekleyin:
 
 - **SPF** (TXT): sağlayıcının sunucularının sizin adınıza gönderebileceğini söyler.
@@ -39,7 +39,7 @@ Supabase → **Authentication → Emails → SMTP Settings** → *Enable Custom 
 
 | Alan | Değer |
 |---|---|
-| Sender email | `bildirim@<alanadiniz>` |
+| Sender email | `bildirim@mk-ops.tr` |
 | Sender name | `MK OPS` |
 | Host | Sağlayıcının verdiği (ör. Resend: `smtp.resend.com`) |
 | Port | `465` (SSL) veya `587` (TLS) |
@@ -68,17 +68,17 @@ Supabase bunları gönderim sırasında doldurur.
 E-postadaki bağlantıların yeni alan adınıza gitmesi için:
 
 1. Supabase → **Authentication → URL Configuration**
-   - **Site URL:** `https://<alanadiniz>`
-   - **Redirect URLs:** `https://<alanadiniz>/**` ekleyin (önizleme için
+   - **Site URL:** `https://www.mk-ops.tr`
+   - **Redirect URLs:** `https://www.mk-ops.tr/**` ve `https://mk-ops.tr/**` ekleyin (önizleme için
      `https://*-mk-digital6.vercel.app/**` da kalabilir).
 2. Vercel → Project → **Settings → Environment Variables**
-   - `NEXT_PUBLIC_SITE_URL` = `https://<alanadiniz>` (Production) → ardından yeniden dağıtın.
-     Site haritası, arama motoru bağlantıları ve paylaşım önizlemeleri bu adresi kullanır.
+   - `NEXT_PUBLIC_SITE_URL` tanımlıysa değeri `https://www.mk-ops.tr` olmalı (tanımlı değilse kod varsayılan
+     olarak bu adresi kullanır). Site haritası, arama motoru bağlantıları ve paylaşım önizlemeleri bu adresi kullanır.
 
 ## 6. Deneyin
 
 1. Yeni bir e-posta ile kayıt olun → doğrulama e-postası gelmeli, gönderen "MK OPS" olmalı,
-   bağlantı `https://<alanadiniz>/auth/callback...` ile başlamalı.
+   bağlantı `https://www.mk-ops.tr/auth/callback...` ile başlamalı.
 2. Giriş ekranında "Şifremi unuttum" → sıfırlama e-postası gelmeli, bağlantı yeni şifre ekranını açmalı.
 3. Gelmezse: sağlayıcının panelindeki gönderim kayıtlarına ve spam klasörüne bakın; Supabase →
    Logs → Auth bölümünde hata mesajı görünür.

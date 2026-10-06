@@ -7,7 +7,7 @@ import { COMPANY_LEGAL_NAME, SUPPORT_EMAIL } from "@/lib/constants/brand";
 export const LEGAL_ENTITY = {
   /** Ticaret unvanı (şahıs şirketiyse ad soyad + unvan) */
   name: COMPANY_LEGAL_NAME,
-  address: "",
+  address: "Merkez / Bolu",
   taxOffice: "",
   taxNumber: "",
   mersis: "",
