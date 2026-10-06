@@ -30,6 +30,8 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 | 10 | Malzeme stoku: firmaya özel kategoriler, çoklu depo, depolar arası sevkiyat (telekom kategorileri ve Biga şubesi kaldırıldı) | ✅ |
 | 11 | Kullanım kılavuzu `/kilavuz` (herkese açık; panel menüsünden ve site alt bilgisinden bağlantı) | ✅ |
 | 12 | Firma gizli alanı: Ayarlar'da firma şifresi, şifreyle açılan ortak gizli notlar (sunucu korumalı); küçük işler | ✅ |
+| 13 | Panel başlığında firma logosu | ✅ |
+| 14 | İmalatlar projeye bağlı: iş kalemi satırları projeye iş kaydı açar (ilerleme + hakediş); fiyatlı ek işler hakedişe dahil | ✅ |
 
 Kurulu migration'lar: `20261005000000` … `20261011000001`. Kurulacak: `20261011000002_inventory_messages.sql`.
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.

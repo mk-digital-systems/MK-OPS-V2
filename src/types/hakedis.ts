@@ -1,7 +1,10 @@
 export type HakedisReportRow = {
   id: string;
+  /** stage: projenin iş kalemi; extra: imalattaki ek iş (fiyatı Hakediş sayfasından girilir) */
+  kind: "stage" | "extra";
   log_date: string;
-  project_id: string;
+  /** Projesiz ek işte null */
+  project_id: string | null;
   project_code: string;
   project_name: string;
   section_name: string | null;
@@ -21,7 +24,7 @@ export type HakedisReport = {
   priced_count: number;
   unpriced_count: number;
   by_project: Array<{
-    project_id: string;
+    project_id: string | null;
     project_code: string;
     project_name: string;
     type_name: string;
@@ -30,7 +33,7 @@ export type HakedisReport = {
   }>;
   by_stage: Array<{
     type_name: string;
-    stage_id: string;
+    stage_id: string | null;
     stage_name: string;
     unit: string | null;
     quantity: number;

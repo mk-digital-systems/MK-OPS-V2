@@ -62,6 +62,12 @@ export class HakedisRepository {
     if (error) throw error;
   }
 
+  /** İmalattaki ek işin (kind = extra) birim fiyatı; null fiyatı kaldırır. */
+  async setExtraPrice(itemId: string, unitPrice: number | null): Promise<void> {
+    const { error } = await this.supabase.rpc("set_production_extra_price", { p_item_id: itemId, p_unit_price: unitPrice });
+    if (error) throw error;
+  }
+
   async updateCompanySettings(payrollStartDay: number, currency: CurrencyCode): Promise<void> {
     const { error } = await this.supabase.rpc("update_company_settings", {
       p_payroll_start_day: payrollStartDay,

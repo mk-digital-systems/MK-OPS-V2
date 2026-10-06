@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Loader2, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -392,8 +393,13 @@ function StageRow({
                 <span className="tabular-nums text-muted-foreground">{formatMoney(pricing.logValues[log.id].amount, currency)}</span>
               )}
               {log.team_leader_name && <span>{log.team_leader_name}</span>}
-              {log.notes && <span className="text-muted-foreground">{log.notes}</span>}
-              {!readOnly && (
+              {log.notes && log.source !== "production" && <span className="text-muted-foreground">{log.notes}</span>}
+              {log.source === "production" && (
+                <Link href={`/panel/imalatlar?tarih=${log.log_date}`} className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 hover:underline dark:bg-blue-950 dark:text-blue-300" title="Bu kayıt İmalatlar'dan geldi; orada düzenlenir">
+                  İmalat
+                </Link>
+              )}
+              {!readOnly && log.source !== "production" && (
                 <button type="button" onClick={() => removeLog(log)} className="ml-auto text-muted-foreground hover:text-destructive" aria-label="Kaydı sil">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>

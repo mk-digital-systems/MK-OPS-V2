@@ -11,6 +11,8 @@ import type { HakedisPeriod } from "@/lib/hakedis";
 import { formatMoney } from "@/lib/hakedis";
 import { formatQuantity } from "@/lib/constants/project";
 import { brandFilePrefix } from "@/lib/report-brand";
+import { createClient } from "@/lib/supabase/client";
+import { HakedisRepository } from "@/modules/hakedis/hakedis-repository";
 import { useReportBrand } from "@/components/layout/company-brand-provider";
 import { cn, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -86,10 +88,10 @@ export function HakedisReportView({ report, periods, currency, canEditPrices }: 
         projects.addRow({ code: row.project_code, name: row.project_name, type: row.type_name, amount: Number(row.amount) })
       );
 
-      const stages = workbook.addWorksheet("Aşamalar");
+      const stages = workbook.addWorksheet("İş Kalemleri");
       stages.columns = [
         { header: "Tür", key: "type", width: 22 },
-        { header: "Aşama", key: "stage", width: 26 },
+        { header: "İş Kalemi", key: "stage", width: 26 },
         { header: "Miktar", key: "quantity", width: 14 },
         { header: "Birim", key: "unit", width: 10 },
         { header: "Tutar", key: "amount", width: 18, style: { numFmt: moneyFormat } },
@@ -104,7 +106,7 @@ export function HakedisReportView({ report, periods, currency, canEditPrices }: 
         { header: "Proje Kodu", key: "code", width: 14 },
         { header: "Proje", key: "project", width: 28 },
         { header: "Bölüm", key: "section", width: 16 },
-        { header: "Aşama", key: "stage", width: 22 },
+        { header: "İş Kalemi", key: "stage", width: 22 },
         { header: "Miktar", key: "quantity", width: 12 },
         { header: "Birim", key: "unit", width: 8 },
         { header: "Birim Fiyat", key: "price", width: 14, style: { numFmt: moneyFormat } },
@@ -118,7 +120,7 @@ export function HakedisReportView({ report, periods, currency, canEditPrices }: 
           code: row.project_code,
           project: row.project_name,
           section: row.section_name ?? "",
-          stage: row.stage_name,
+          stage: row.kind === "extra" ? `${row.stage_name} (ek iş)` : row.stage_name,
           quantity: Number(row.quantity),
           unit: row.unit ?? "",
           price: row.unit_price === null ? null : Number(row.unit_price),
@@ -145,7 +147,7 @@ export function HakedisReportView({ report, periods, currency, canEditPrices }: 
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "projects", label: `Projeler (${report.by_project.length})` },
-    { key: "stages", label: `Aşamalar (${report.by_stage.length})` },
+    { key: "stages", label: `İş kalemleri (${report.by_stage.length})` },
     { key: "leaders", label: "Ekip şefleri" },
     { key: "rows", label: `Ayrıntı (${report.rows.length})` },
   ];
@@ -225,7 +227,7 @@ export function HakedisReportView({ report, periods, currency, canEditPrices }: 
               Bu kayıtlar toplama dahil değil.{" "}
               {canEditPrices ? (
                 <Link href="/panel/settings" className="underline">
-                  Aşama fiyatlarını girin
+                  İş kalemi fiyatlarını girin
                 </Link>
               ) : (
                 "Fiyat girilmesi için yöneticinize başvurun."
@@ -261,9 +263,15 @@ export function HakedisReportView({ report, periods, currency, canEditPrices }: 
             <Table
               head={["Proje", "Tür", "Fiyatsız", "Tutar"]}
               rows={report.by_project.map((row) => [
-                <Link key="p" href={`/panel/projects/${row.project_id}`} className="font-medium hover:underline">
-                  {row.project_name} <span className="text-xs text-muted-foreground">{row.project_code}</span>
-                </Link>,
+                row.project_id ? (
+                  <Link key="p" href={`/panel/projects/${row.project_id}`} className="font-medium hover:underline">
+                    {row.project_name} <span className="text-xs text-muted-foreground">{row.project_code}</span>
+                  </Link>
+                ) : (
+                  <span key="p" className="font-medium">
+                    {row.project_name} <span className="text-xs text-muted-foreground">(projesiz ek iş)</span>
+                  </span>
+                ),
                 row.type_name,
                 row.unpriced > 0 ? <span className="text-amber-700">{row.unpriced}</span> : "—",
                 <span key="a" className="font-semibold">{money(row.amount)}</span>,
@@ -271,7 +279,7 @@ export function HakedisReportView({ report, periods, currency, canEditPrices }: 
             />
           ) : tab === "stages" ? (
             <Table
-              head={["Tür", "Aşama", "Miktar", "Tutar"]}
+              head={["Tür", "İş kalemi", "Miktar", "Tutar"]}
               rows={report.by_stage.map((row) => [
                 row.type_name,
                 row.stage_name,
@@ -289,16 +297,29 @@ export function HakedisReportView({ report, periods, currency, canEditPrices }: 
             </>
           ) : (
             <Table
-              head={["Tarih", "Proje", "Aşama", "Miktar", "Birim fiyat", "Tutar", "Ekip şefi"]}
+              head={["Tarih", "Proje", "İş kalemi", "Miktar", "Birim fiyat", "Tutar", "Ekip şefi"]}
               rows={report.rows.map((row) => [
                 formatDate(row.log_date),
                 <span key="p">
                   {row.project_name}
                   {row.section_name && <span className="text-xs text-muted-foreground"> · {row.section_name}</span>}
                 </span>,
-                row.stage_name,
+                row.kind === "extra" ? (
+                  <span key="s">
+                    {row.stage_name}{" "}
+                    <span className="rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">Ek iş</span>
+                  </span>
+                ) : (
+                  row.stage_name
+                ),
                 formatQuantity(row.quantity, row.unit),
-                row.unit_price === null ? <span className="text-amber-700">Fiyat yok</span> : money(row.unit_price),
+                row.kind === "extra" ? (
+                  <ExtraPriceInput key="price" itemId={row.id} unitPrice={row.unit_price} onSaved={() => router.refresh()} />
+                ) : row.unit_price === null ? (
+                  <span className="text-amber-700">Fiyat yok</span>
+                ) : (
+                  money(row.unit_price)
+                ),
                 row.amount === null ? "—" : <span className="font-semibold">{money(row.amount)}</span>,
                 row.team_leader_name ?? "—",
               ])}
@@ -307,6 +328,42 @@ export function HakedisReportView({ report, periods, currency, canEditPrices }: 
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/** Ek işin birim fiyatı; odaktan çıkınca kaydedilir. */
+function ExtraPriceInput({ itemId, unitPrice, onSaved }: { itemId: string; unitPrice: number | null; onSaved: () => void }) {
+  const [value, setValue] = useState(unitPrice === null ? "" : String(Number(unitPrice)));
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    const trimmed = value.trim().replace(",", ".");
+    const next = trimmed ? Number(trimmed) : null;
+    if (next !== null && !(next >= 0)) return void toast.error("Birim fiyat geçersiz");
+    if (next === (unitPrice === null ? null : Number(unitPrice))) return;
+    setSaving(true);
+    try {
+      await new HakedisRepository(createClient()).setExtraPrice(itemId, next);
+      toast.success(next === null ? "Fiyat kaldırıldı" : "Ek iş fiyatı kaydedildi");
+      onSaved();
+    } catch (error) {
+      toast.error("Fiyat kaydedilemedi", { description: (error as Error)?.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Input
+      value={value}
+      onChange={(event) => setValue(event.target.value)}
+      onBlur={() => void save()}
+      onKeyDown={(event) => event.key === "Enter" && (event.currentTarget as HTMLInputElement).blur()}
+      placeholder="Fiyat girin"
+      inputMode="decimal"
+      disabled={saving}
+      className={cn("h-8 w-28 text-right text-sm", unitPrice === null && "border-amber-400")}
+    />
   );
 }
 

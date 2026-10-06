@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FileDown, Loader2, MessageCircle, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Personnel } from "@/types/work-plan";
-import type { ProductionEntry, ProductionSaveJob } from "@/types/production";
+import type { ProductionEntry, ProductionItemKind, ProductionProjectOption, ProductionSaveJob, ProductionTarget } from "@/types/production";
+import type { ProjectType } from "@/types/project";
+import type { CurrencyCode } from "@/types/auth";
+import { formatMoney } from "@/lib/hakedis";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate } from "@/lib/utils";
 import { ProductionRepository } from "@/modules/productions/production-repository";
@@ -17,7 +20,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { CompanyLogo, useReportBrand } from "@/components/layout/company-brand-provider";
 
-type FormJob = { key: string; title: string; workId: string; lines: { key: string; description: string }[] };
+/** stage: projenin iş kalemi (projeye iş kaydı açar); extra: fiyatlı ek iş; note: eski serbest metin */
+type FormLine = { key: string; itemId: string | null; kind: ProductionItemKind; progressId: string; description: string; quantity: string; unit: string; unitPrice: string };
+/** projectId boşsa listede olmayan (serbest) iş */
+type FormJob = { key: string; projectId: string; title: string; workId: string; lines: FormLine[] };
 type FormTeam = { key: string; entryId: string | null; personnelId: string; jobs: FormJob[] };
 
 const accents = [
@@ -28,20 +34,42 @@ const accents = [
   { border: "border-l-cyan-600", jobBorder: "border-cyan-600", soft: "bg-cyan-50/60 dark:bg-cyan-950/20", label: "text-cyan-700 dark:text-cyan-300" },
 ];
 
+const FREE_JOB = "__free__";
 const makeKey = () => crypto.randomUUID();
-const newJob = (): FormJob => ({ key: makeKey(), title: "", workId: "", lines: [{ key: makeKey(), description: "" }] });
+const newLine = (kind: ProductionItemKind): FormLine => ({ key: makeKey(), itemId: null, kind, progressId: "", description: "", quantity: kind === "extra" ? "1" : "", unit: "", unitPrice: "" });
+const newJob = (): FormJob => ({ key: makeKey(), projectId: "", title: "", workId: "", lines: [newLine("extra")] });
+const toNumber = (value: string) => {
+  const trimmed = value.trim().replace(",", ".");
+  if (!trimmed) return null;
+  const number = Number(trimmed);
+  return Number.isFinite(number) ? number : null;
+};
 const newTeam = (): FormTeam => ({ key: makeKey(), entryId: null, personnelId: "", jobs: [newJob()] });
 
-function entriesToTeams(entries: ProductionEntry[]): FormTeam[] {
+function entriesToTeams(entries: ProductionEntry[], prices: Record<string, number>): FormTeam[] {
   return entries.map((entry) => ({
     key: entry.id,
     entryId: entry.id,
     personnelId: entry.team_leader_personnel_id,
     jobs: entry.jobs.map((job) => ({
       key: job.id,
+      projectId: job.project_id ?? "",
       title: job.project_name_snapshot,
       workId: job.project_code_snapshot || (job.source === "manual" ? "" : job.project_name_snapshot),
-      lines: job.items.map((item) => ({ key: item.id, description: legacyDescription(item.item_name_snapshot, item.quantity, item.unit_snapshot) })),
+      lines: job.items.map((item): FormLine => {
+        // Projesi silinmiş iş kalemi satırı ek iş olarak açılır.
+        const kind: ProductionItemKind = item.kind === "stage" && !(item.progress_id && job.project_id) ? "extra" : item.kind ?? "note";
+        return {
+          key: item.id,
+          itemId: item.id,
+          kind,
+          progressId: item.progress_id ?? "",
+          description: kind === "note" ? legacyDescription(item.item_name_snapshot, item.quantity, item.unit_snapshot) : item.item_name_snapshot,
+          quantity: kind === "note" ? "" : String(Number(item.quantity)),
+          unit: kind === "note" ? "" : item.unit_snapshot,
+          unitPrice: prices[item.id] !== undefined ? String(prices[item.id]) : "",
+        };
+      }),
     })),
   })).map((team) => ({ ...team, jobs: team.jobs.length ? team.jobs : [newJob()] }));
 }
@@ -51,17 +79,24 @@ function legacyDescription(name: string, quantity: number, unit: string) {
   return `${name} — ${Number(quantity).toLocaleString("tr-TR")} ${unit}`;
 }
 
-export function ProductionsManager({ initialDate, personnel, initialEntries, readOnly }: {
+export function ProductionsManager({ initialDate, personnel, initialEntries, readOnly, projects, projectTypes, canSeePrices, initialExtraPrices, currency }: {
   initialDate: string;
   personnel: Personnel[];
   initialEntries: ProductionEntry[];
   readOnly: boolean;
+  projects: ProductionProjectOption[];
+  projectTypes: ProjectType[];
+  /** Hakediş yetkisi: ek iş fiyatını görür ve girer */
+  canSeePrices: boolean;
+  initialExtraPrices: Record<string, number>;
+  currency: CurrencyCode;
 }) {
   const brand = useReportBrand();
   const initialDailyEntries = initialEntries.filter((entry) => entry.work_date === initialDate);
   const [date, setDate] = useState(initialDate);
   const [dailyEntries, setDailyEntries] = useState(initialDailyEntries);
-  const [teams, setTeams] = useState<FormTeam[]>(() => entriesToTeams(initialDailyEntries).length ? entriesToTeams(initialDailyEntries) : [newTeam()]);
+  const [teams, setTeams] = useState<FormTeam[]>(() => entriesToTeams(initialDailyEntries, initialExtraPrices).length ? entriesToTeams(initialDailyEntries, initialExtraPrices) : [newTeam()]);
+  const [targets, setTargets] = useState<Record<string, ProductionTarget[]>>({});
   const [removedEntryIds, setRemovedEntryIds] = useState<string[]>([]);
   const [reportEntries, setReportEntries] = useState(initialEntries);
   const [loading, setLoading] = useState(false);
@@ -92,13 +127,45 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
     return [...groups.entries()].sort(([dateA], [dateB]) => dateB.localeCompare(dateA));
   }, [filteredReport]);
 
+  // Seçili projelerin iş kalemlerini yükle
+  const selectedProjectIds = [...new Set(teams.flatMap((team) => team.jobs.map((job) => job.projectId).filter(Boolean)))].join(",");
+  useEffect(() => {
+    const missing = selectedProjectIds.split(",").filter((id) => id && !targets[id]);
+    if (!missing.length) return;
+    const repository = new ProductionRepository(createClient());
+    void Promise.all(missing.map(async (id) => [id, await repository.listTargets(id, projectTypes)] as const))
+      .then((loaded) => setTargets((current) => ({ ...current, ...Object.fromEntries(loaded) })))
+      .catch(() => toast.error("Projenin iş kalemleri yüklenemedi"));
+  }, [selectedProjectIds, targets, projectTypes]);
+
+  async function loadPrices(entries: ProductionEntry[]) {
+    if (!canSeePrices) return {};
+    return new ProductionRepository(createClient()).getExtraPrices(
+      entries.flatMap((entry) => entry.jobs.flatMap((job) => job.items.filter((item) => item.kind === "extra").map((item) => item.id)))
+    );
+  }
+
+  function selectProject(teamIndex: number, jobIndex: number, projectId: string) {
+    const job = teams[teamIndex].jobs[jobIndex];
+    if (job.projectId === projectId) return;
+    // Başka projeye geçince eski projenin iş kalemi satırları geçersiz olur.
+    const kept = job.lines.filter((line) => line.kind !== "stage" && (line.kind !== "extra" || line.description.trim() || line.unitPrice.trim()));
+    const project = projects.find((item) => item.id === projectId);
+    updateJob(teamIndex, jobIndex, {
+      projectId,
+      title: project ? project.name : job.projectId ? "" : job.title,
+      workId: project ? project.project_code : job.projectId ? "" : job.workId,
+      lines: kept.length ? (projectId ? [newLine("stage"), ...kept] : kept) : [newLine(projectId ? "stage" : "extra")],
+    });
+  }
+
   async function changeDate(nextDate: string) {
     setDate(nextDate);
     setLoading(true);
     try {
       const entries = await new ProductionRepository(createClient()).listEntries(nextDate, nextDate);
       setDailyEntries(entries);
-      const loadedTeams = entriesToTeams(entries);
+      const loadedTeams = entriesToTeams(entries, await loadPrices(entries));
       setTeams(loadedTeams.length ? loadedTeams : [newTeam()]);
       setRemovedEntryIds([]);
     } catch (error) {
@@ -119,14 +186,35 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
       : team));
   }
 
-  function updateLine(teamIndex: number, jobIndex: number, lineIndex: number, description: string) {
+  function updateLine(teamIndex: number, jobIndex: number, lineIndex: number, patch: Partial<FormLine>) {
     setTeams((current) => current.map((team, index) => index === teamIndex ? {
       ...team,
       jobs: team.jobs.map((job, currentJobIndex) => currentJobIndex === jobIndex ? {
         ...job,
-        lines: job.lines.map((line, currentLineIndex) => currentLineIndex === lineIndex ? { ...line, description } : line),
+        lines: job.lines.map((line, currentLineIndex) => currentLineIndex === lineIndex ? { ...line, ...patch } : line),
       } : job),
     } : team));
+  }
+
+  /** Kaydetmeden önce satırları denetler; hata varsa mesajı döndürür. */
+  function validateJob(job: FormJob): string | null {
+    if (!job.projectId && job.title.trim().length < 2) return "Her iş için proje seçin ya da başlık yazın";
+    if (!job.lines.length) return "Her işte en az bir imalat satırı olmalı";
+    for (const line of job.lines) {
+      const quantity = toNumber(line.quantity);
+      if (line.kind === "stage") {
+        if (!line.progressId) return "İş kalemi satırlarında kalem seçin";
+        if (quantity === null || quantity <= 0) return "İş kalemi satırlarında miktar girin";
+      } else if (line.kind === "extra") {
+        if (line.description.trim().length < 2) return "Ek iş açıklaması en az 2 karakter olmalı";
+        if (quantity === null || quantity <= 0) return `${line.description.trim()} için miktar girin`;
+        if (!line.unit.trim()) return `${line.description.trim()} için birim yazın`;
+        if (canSeePrices && line.unitPrice.trim() && (toNumber(line.unitPrice) ?? -1) < 0) return `${line.description.trim()} için birim fiyat geçersiz`;
+      } else if (line.description.trim().length < 2) {
+        return "İmalat açıklaması en az 2 karakter olmalı";
+      }
+    }
+    return null;
   }
 
   function removeTeam(teamIndex: number) {
@@ -136,11 +224,12 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
   }
 
   async function saveAll(finalize = false) {
-    const completedTeams = teams.filter((team) => team.personnelId || team.jobs.some((job) => job.title.trim() || job.workId.trim() || job.lines.some((line) => line.description.trim())));
+    const completedTeams = teams.filter((team) => team.personnelId || team.jobs.some((job) => job.projectId || job.title.trim() || job.workId.trim() || job.lines.some((line) => line.description.trim() || line.progressId)));
     if (!completedTeams.length) return void toast.error("En az bir ekip ekleyin");
     if (completedTeams.some((team) => !team.personnelId)) return void toast.error("Her ekip için personel seçin");
     if (new Set(completedTeams.map((team) => team.personnelId)).size !== completedTeams.length) return void toast.error("Aynı personel bir günde yalnızca bir ekipte seçilebilir");
-    if (completedTeams.some((team) => team.jobs.some((job) => !job.lines.length || job.lines.some((line) => line.description.trim().length < 2)))) return void toast.error("Her iş bloğunda en az bir imalat açıklaması bulunmalı");
+    const invalid = completedTeams.flatMap((team) => team.jobs.map(validateJob)).find(Boolean);
+    if (invalid) return void toast.error(invalid);
 
     setLoading(true);
     try {
@@ -150,18 +239,28 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
         const person = personnelById.get(team.personnelId);
         if (!person) throw new Error("Seçilen personel bulunamadı");
         const jobs: ProductionSaveJob[] = team.jobs.map((job, jobIndex) => ({
-          project_id: null,
-          project_name: job.title.trim() || `İş / Proje ${jobIndex + 1}`,
-          project_code: job.workId.trim(),
-          source: "manual",
+          project_id: job.projectId || null,
+          project_name: job.projectId ? "" : job.title.trim() || `İş / Proje ${jobIndex + 1}`,
+          project_code: job.projectId ? "" : job.workId.trim(),
           sort_order: jobIndex,
-          items: job.lines.map((line, lineIndex) => ({ item_name: line.description.trim(), quantity: 1, unit: "SATIR", sort_order: lineIndex })),
+          items: job.lines.map((line, lineIndex) => {
+            const base = { kind: line.kind, item_id: line.itemId ?? undefined, sort_order: lineIndex };
+            if (line.kind === "stage") return { ...base, progress_id: line.progressId, quantity: toNumber(line.quantity) ?? 0 };
+            if (line.kind === "extra") return {
+              ...base,
+              item_name: line.description.trim(),
+              quantity: toNumber(line.quantity) ?? 0,
+              unit: line.unit.trim(),
+              ...(canSeePrices ? { unit_price: toNumber(line.unitPrice) } : {}),
+            };
+            return { ...base, item_name: line.description.trim() };
+          }),
         }));
         await repository.saveEntry({ entry_id: team.entryId, work_date: date, leader_id: person.id, leader_name: person.full_name, work_plan_id: null, jobs });
       }
       const entries = await repository.listEntries(date, date);
       setDailyEntries(entries);
-      setTeams(entriesToTeams(entries));
+      setTeams(entriesToTeams(entries, await loadPrices(entries)));
       setReportEntries((current) => [
         ...current.filter((entry) => entry.work_date !== date),
         ...entries,
@@ -259,17 +358,57 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
           <div className="w-full max-w-md space-y-2"><Label className={accent.label}>Ekip Adı</Label><Select disabled={readOnly} value={team.personnelId || undefined} onValueChange={(value) => updateTeam(teamIndex, { personnelId: value })}><SelectTrigger><SelectValue placeholder="Personel seçin" /></SelectTrigger><SelectContent>{activePersonnel.map((person) => <SelectItem key={person.id} value={person.id} disabled={teams.some((other, index) => index !== teamIndex && other.personnelId === person.id)}>{person.full_name}</SelectItem>)}</SelectContent></Select></div>
           {!readOnly && teams.length > 1 && <Button type="button" size="icon" variant="ghost" title="Ekibi kaldır" onClick={() => removeTeam(teamIndex)}><Trash2 className="h-4 w-4" /></Button>}
         </div>
-        <div className="space-y-4 p-4">{team.jobs.map((job, jobIndex) => <div key={job.key} className={`border-2 ${accent.jobBorder} bg-background p-4`}>
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><p className={`font-semibold ${accent.label}`}>İş / Proje {jobIndex + 1}</p><div className="flex items-end gap-2"><div className="space-y-1"><Label>ID</Label><Input disabled={readOnly} value={job.workId} onChange={(event) => updateJob(teamIndex, jobIndex, { workId: event.target.value })} placeholder="-" className="w-full sm:w-52" /></div>{!readOnly && team.jobs.length > 1 && <Button type="button" size="icon" variant="ghost" title="İşi kaldır" onClick={() => updateTeam(teamIndex, { jobs: team.jobs.filter((_, index) => index !== jobIndex) })}><Trash2 className="h-4 w-4" /></Button>}</div></div>
-          <div className="mx-auto mb-4 max-w-2xl space-y-1 text-center"><Label htmlFor={`job-title-${job.key}`} className={accent.label}>Başlık</Label><Input id={`job-title-${job.key}`} disabled={readOnly} value={job.title} onChange={(event) => updateJob(teamIndex, jobIndex, { title: event.target.value })} placeholder="İş / proje başlığını yazın" className="text-center font-semibold" /></div>
-          <div className="space-y-3">{job.lines.map((line, lineIndex) => <div key={line.key} className="grid grid-cols-[28px_minmax(0,1fr)_40px] items-start gap-2"><span className="pt-2 text-right text-sm font-semibold">{lineIndex + 1}:</span><Textarea disabled={readOnly} value={line.description} onChange={(event) => updateLine(teamIndex, jobIndex, lineIndex, event.target.value)} placeholder="İmalat açıklamasını yazın" rows={2} className="min-h-16 resize-y" />{!readOnly && job.lines.length > 1 ? <Button type="button" size="icon" variant="ghost" title="Satırı kaldır" onClick={() => updateJob(teamIndex, jobIndex, { lines: job.lines.filter((_, index) => index !== lineIndex) })}><Trash2 className="h-4 w-4" /></Button> : <span />}</div>)}</div>
-          {!readOnly && <Button type="button" variant="outline" className="mt-3 w-full" onClick={() => updateJob(teamIndex, jobIndex, { lines: [...job.lines, { key: makeKey(), description: "" }] })}><Plus className="h-4 w-4" />İmalat Ekle</Button>}
-        </div>)}
+        <div className="space-y-4 p-4">{team.jobs.map((job, jobIndex) => { const jobTargets = job.projectId ? targets[job.projectId] : undefined; return <div key={job.key} className={`border-2 ${accent.jobBorder} bg-background p-4`}>
+          <div className="mb-4 flex items-end gap-2">
+            <div className="min-w-0 flex-1 space-y-1">
+              <Label className={accent.label}>İş / Proje {jobIndex + 1}</Label>
+              <Select disabled={readOnly} value={job.projectId || FREE_JOB} onValueChange={(value) => selectProject(teamIndex, jobIndex, value === FREE_JOB ? "" : value)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={FREE_JOB}>Listede olmayan iş (serbest)</SelectItem>
+                  {projects.map((project) => <SelectItem key={project.id} value={project.id}>{project.project_code} · {project.name}</SelectItem>)}
+                  {job.projectId && !projects.some((project) => project.id === job.projectId) && <SelectItem value={job.projectId}>{job.title || "Proje"} (arşivde)</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
+            {!readOnly && team.jobs.length > 1 && <Button type="button" size="icon" variant="ghost" title="İşi kaldır" onClick={() => updateTeam(teamIndex, { jobs: team.jobs.filter((_, index) => index !== jobIndex) })}><Trash2 className="h-4 w-4" /></Button>}
+          </div>
+          {!job.projectId && <div className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_200px]">
+            <div className="space-y-1"><Label htmlFor={`job-title-${job.key}`}>Başlık</Label><Input id={`job-title-${job.key}`} disabled={readOnly} value={job.title} onChange={(event) => updateJob(teamIndex, jobIndex, { title: event.target.value })} placeholder="İş / proje başlığını yazın" className="font-semibold" /></div>
+            <div className="space-y-1"><Label>ID</Label><Input disabled={readOnly} value={job.workId} onChange={(event) => updateJob(teamIndex, jobIndex, { workId: event.target.value })} placeholder="-" /></div>
+          </div>}
+          <div className="space-y-3">{job.lines.map((line, lineIndex) => <div key={line.key} className="grid grid-cols-[28px_minmax(0,1fr)_40px] items-start gap-2">
+            <span className="pt-2 text-right text-sm font-semibold">{lineIndex + 1}:</span>
+            {line.kind === "stage" ? <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_120px_70px]">
+              <Select disabled={readOnly} value={line.progressId || undefined} onValueChange={(value) => updateLine(teamIndex, jobIndex, lineIndex, { progressId: value, unit: jobTargets?.find((target) => target.progress_id === value)?.unit ?? "" })}>
+                <SelectTrigger><SelectValue placeholder={jobTargets ? (jobTargets.length ? "İş kalemi seçin" : "Metrajlı iş kalemi yok") : "Yükleniyor..."} /></SelectTrigger>
+                <SelectContent>{(jobTargets ?? []).map((target) => <SelectItem key={target.progress_id} value={target.progress_id}>{target.label}</SelectItem>)}</SelectContent>
+              </Select>
+              <Input disabled={readOnly} inputMode="decimal" value={line.quantity} onChange={(event) => updateLine(teamIndex, jobIndex, lineIndex, { quantity: event.target.value })} placeholder="Miktar" />
+              <span className="self-center text-sm text-muted-foreground">{line.unit || "—"}</span>
+              {jobTargets && !jobTargets.length && <p className="text-xs text-amber-700 sm:col-span-3">Bu projede birimi olan iş kalemi yok. Ayarlar → Proje Türleri&apos;nden aşamalara birim verin ya da &quot;Ek İş&quot; satırı kullanın.</p>}
+            </div>
+            : line.kind === "extra" ? <div className={`grid gap-2 ${canSeePrices ? "sm:grid-cols-[minmax(0,1fr)_100px_90px_120px]" : "sm:grid-cols-[minmax(0,1fr)_100px_90px]"}`}>
+              <div className="relative"><Input disabled={readOnly} value={line.description} onChange={(event) => updateLine(teamIndex, jobIndex, lineIndex, { description: event.target.value })} placeholder="Ek iş açıklaması" className="pr-14" /><span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">Ek iş</span></div>
+              <Input disabled={readOnly} inputMode="decimal" value={line.quantity} onChange={(event) => updateLine(teamIndex, jobIndex, lineIndex, { quantity: event.target.value })} placeholder="Miktar" />
+              <Input disabled={readOnly} value={line.unit} onChange={(event) => updateLine(teamIndex, jobIndex, lineIndex, { unit: event.target.value })} placeholder="Birim" list="production-units" />
+              {canSeePrices && <div><Input disabled={readOnly} inputMode="decimal" value={line.unitPrice} onChange={(event) => updateLine(teamIndex, jobIndex, lineIndex, { unitPrice: event.target.value })} placeholder="Birim fiyat" />{toNumber(line.unitPrice) !== null && toNumber(line.quantity) !== null && <p className="mt-1 text-right text-xs text-muted-foreground">{formatMoney(toNumber(line.unitPrice)! * toNumber(line.quantity)!, currency)}</p>}</div>}
+            </div>
+            : <Textarea disabled={readOnly} value={line.description} onChange={(event) => updateLine(teamIndex, jobIndex, lineIndex, { description: event.target.value })} placeholder="İmalat açıklaması" rows={2} className="min-h-16 resize-y" />}
+            {!readOnly && job.lines.length > 1 ? <Button type="button" size="icon" variant="ghost" title="Satırı kaldır" onClick={() => updateJob(teamIndex, jobIndex, { lines: job.lines.filter((_, index) => index !== lineIndex) })}><Trash2 className="h-4 w-4" /></Button> : <span />}
+          </div>)}</div>
+          {!readOnly && <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {job.projectId && <Button type="button" variant="outline" onClick={() => updateJob(teamIndex, jobIndex, { lines: [...job.lines, newLine("stage")] })}><Plus className="h-4 w-4" />İş Kalemi Ekle</Button>}
+            <Button type="button" variant="outline" className={job.projectId ? "" : "sm:col-span-2"} onClick={() => updateJob(teamIndex, jobIndex, { lines: [...job.lines, newLine("extra")] })}><Plus className="h-4 w-4" />Ek İş Ekle</Button>
+          </div>}
+        </div>; })}
           {!readOnly && <Button type="button" variant="outline" className="w-full" onClick={() => updateTeam(teamIndex, { jobs: [...team.jobs, newJob()] })}><Plus className="h-4 w-4" />İş / Proje Ekle</Button>}
         </div>
       </section>; })}
       {!readOnly && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Button type="button" variant="outline" onClick={() => setTeams((current) => [...current, newTeam()])}><Plus className="h-4 w-4" />Ekip Ekle</Button><Button type="button" variant="outline" disabled={loading || pdfLoading} onClick={() => void saveAll(false)}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Taslak Kaydet</Button><Button type="button" variant="outline" disabled={!dailyEntries.length || pdfLoading} onClick={() => void shareCurrentDay()}>{pdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}Tekrar Paylaş</Button><Button type="button" disabled={loading || pdfLoading} onClick={() => void saveAll(true)}>{loading || pdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}Kaydet ve Paylaş</Button></div>}
       {!dailyEntries.length && !loading && <p className="text-center text-sm text-muted-foreground">Bu tarih için henüz kayıt yok.</p>}
+      {!readOnly && <p className="text-center text-xs text-muted-foreground">İş kalemi satırları kaydedilince seçilen projeye iş kaydı olarak işlenir; proje ilerlemesi ve hakediş kendiliğinden güncellenir. Ek işler hakedişe ayrıca eklenir{canSeePrices ? "" : "; fiyatlarını hakediş yetkilisi girer"}.</p>}
+      <datalist id="production-units">{["Adet", "m", "m²", "m³", "kg", "ton", "saat", "gün", "sefer", "Götürü"].map((unit) => <option key={unit} value={unit} />)}</datalist>
     </div>
 
     <Card className="screen-only"><CardHeader><CardTitle className="text-base">Geçmiş Kayıtlar ve A4 Çıktı</CardTitle></CardHeader><CardContent className="space-y-4">

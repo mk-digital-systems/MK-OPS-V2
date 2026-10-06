@@ -92,8 +92,8 @@ export async function downloadHakedisPdf(brand: ReportBrand, report: HakedisRepo
 
   autoTable(pdf, {
     ...tableStyles,
-    startY: section("Aşama bazında"),
-    head: [["Tür", "Aşama", "Miktar", "Tutar"]],
+    startY: section("İş kalemi bazında"),
+    head: [["Tür", "İş kalemi", "Miktar", "Tutar"]],
     body: report.by_stage.map((row) => [row.type_name, row.stage_name, formatQuantity(row.quantity, row.unit), money(row.amount)]),
     columnStyles: { 2: { halign: "right", cellWidth: 30 }, 3: { halign: "right", cellWidth: 34 } },
   });
@@ -101,11 +101,11 @@ export async function downloadHakedisPdf(brand: ReportBrand, report: HakedisRepo
   autoTable(pdf, {
     ...tableStyles,
     startY: section("İş kayıtları"),
-    head: [["Tarih", "Proje", "Aşama", "Miktar", "Birim fiyat", "Tutar"]],
+    head: [["Tarih", "Proje", "İş kalemi", "Miktar", "Birim fiyat", "Tutar"]],
     body: report.rows.map((row) => [
       pdfDate(row.log_date),
       row.section_name ? `${row.project_name} · ${row.section_name}` : row.project_name,
-      row.stage_name,
+      row.kind === "extra" ? `${row.stage_name} (ek iş)` : row.stage_name,
       formatQuantity(row.quantity, row.unit),
       row.unit_price === null ? "Fiyat yok" : money(row.unit_price),
       money(row.amount),

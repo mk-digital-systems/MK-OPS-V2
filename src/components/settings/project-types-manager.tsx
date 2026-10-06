@@ -110,7 +110,7 @@ export function ProjectTypesManager({
         <div>
           <CardTitle>Proje Türleri</CardTitle>
           <CardDescription>
-            Firmanızın yaptığı iş türlerini ve her türün aşamalarını tanımlayın. Projeler bu aşamalara göre takip edilir.
+            Firmanızın yaptığı iş türlerini ve her türün iş kalemlerini (aşamalarını) birim ve birim fiyatıyla tanımlayın. Projeler, İmalatlar ve hakediş bu kalemlere göre işler.
           </CardDescription>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -172,7 +172,7 @@ export function ProjectTypesManager({
           <DialogHeader>
             <DialogTitle>Şablondan proje türü ekle</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">Şablonu seçin; kaydetmeden önce aşamaları dilediğiniz gibi düzenleyebilirsiniz.</p>
+          <p className="text-sm text-muted-foreground">Şablonu seçin; kaydetmeden önce iş kalemlerini dilediğiniz gibi düzenleyebilirsiniz.</p>
           <div className="grid gap-3 sm:grid-cols-2">
             {PROJECT_TYPE_TEMPLATES.map((template, index) => {
               const exists = existingNames.has(template.name.toLocaleLowerCase("tr-TR"));
@@ -301,7 +301,7 @@ function TypeEditor({ draft: initial, currency, onClose }: { draft: Draft; curre
             <span className="space-y-1">
               <span className="block text-sm font-medium">Projeler bölümlere ayrılsın</span>
               <span className="block text-xs text-muted-foreground">
-                Örn. bir sitedeki bloklar, bir hattın etapları. Aşamalar her bölüm için ayrı takip edilir.
+                Örn. bir sitedeki bloklar, bir hattın etapları. İş kalemleri her bölüm için ayrı takip edilir.
               </span>
               {draft.has_sections && (
                 <span className="flex items-center gap-2 pt-1">
@@ -320,7 +320,7 @@ function TypeEditor({ draft: initial, currency, onClose }: { draft: Draft; curre
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label>Aşamalar (sırasıyla)</Label>
+            <Label>İş kalemleri / aşamalar (sırasıyla)</Label>
             <span className="text-xs text-muted-foreground">Birim girilirse metraj ve hakediş (birim fiyat) takip edilir</span>
           </div>
           <datalist id="stage-units">
@@ -335,7 +335,7 @@ function TypeEditor({ draft: initial, currency, onClose }: { draft: Draft; curre
                 <Input
                   value={stage.name}
                   onChange={(event) => setStage(index, { name: event.target.value })}
-                  placeholder="Aşama adı"
+                  placeholder="İş kalemi adı"
                   className="flex-1"
                 />
                 <Input
@@ -352,7 +352,7 @@ function TypeEditor({ draft: initial, currency, onClose }: { draft: Draft; curre
                   disabled={!stage.unit.trim()}
                   inputMode="decimal"
                   className="w-28"
-                  title="Birim fiyat (hakediş); yalnızca birimi olan aşamalarda"
+                  title="Birim fiyat (hakediş); yalnızca birimi olan kalemlerde"
                 />
                 <Button type="button" size="icon" variant="ghost" onClick={() => moveStage(index, -1)} disabled={index === 0} aria-label="Yukarı">
                   <ArrowUp className="h-4 w-4" />
@@ -373,7 +373,7 @@ function TypeEditor({ draft: initial, currency, onClose }: { draft: Draft; curre
                   variant="ghost"
                   onClick={() => set("stages", draft.stages.filter((_, i) => i !== index))}
                   disabled={draft.stages.length === 1}
-                  aria-label="Aşamayı kaldır"
+                  aria-label="İş kalemini kaldır"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -382,11 +382,11 @@ function TypeEditor({ draft: initial, currency, onClose }: { draft: Draft; curre
           </ol>
           <Button type="button" variant="outline" size="sm" onClick={() => set("stages", [...draft.stages, { id: null, name: "", unit: "", unit_price: "" }])}>
             <Plus className="h-4 w-4" />
-            Aşama ekle
+            İş kalemi ekle
           </Button>
           {draft.id && (
             <p className="text-xs text-muted-foreground">
-              Aşama eklemek mevcut projelere de yansır. İş kaydı girilmiş bir aşama silinemez.
+              Kalem eklemek mevcut projelere de yansır. İş kaydı girilmiş bir kalem silinemez. Birimi olan kalemler İmalatlar ekranında seçilebilir.
             </p>
           )}
         </div>

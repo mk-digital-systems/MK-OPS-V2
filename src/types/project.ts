@@ -87,6 +87,8 @@ export type StageLog = {
   team_leader_personnel_id: string | null;
   team_leader_name: string | null;
   notes: string | null;
+  /** manual: proje detayından; production: İmalatlar'dan (yalnızca orada düzenlenir) */
+  source: "manual" | "production";
   created_at: string;
 };
 
