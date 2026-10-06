@@ -71,7 +71,9 @@ export default function TermsPage() {
         sunmak amacıyla işler. Kişisel verilerin işlenmesine ilişkin ayrıntılar{" "}
         <Link href="/gizlilik-politikasi">Gizlilik Politikası ve KVKK Aydınlatma Metni</Link>&apos;nde yer alır.
         Şirketler, personel verileri başta olmak üzere Hizmete girdikleri kişisel veriler için gerekli
-        bilgilendirmeleri yapmak ve hukuki dayanakları sağlamakla yükümlüdür.
+        bilgilendirmeleri yapmak ve hukuki dayanakları sağlamakla yükümlüdür. Şirketlerin girdiği kişisel veriler
+        bakımından taraflar arasındaki ilişki, bu şartların eki ve ayrılmaz parçası olan{" "}
+        <Link href="/kvkk/veri-isleme-sozlesmesi">Veri İşleme Sözleşmesi</Link> ile düzenlenir.
       </p>
 
       <h2>8. Hizmet sürekliliği ve sorumluluk</h2>

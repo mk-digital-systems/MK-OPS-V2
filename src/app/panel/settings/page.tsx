@@ -9,6 +9,7 @@ import { HakedisRepository } from "@/modules/hakedis/hakedis-repository";
 import { CompanyInfoCard } from "@/components/settings/company-info-card";
 import { CompanyLogoCard } from "@/components/settings/company-logo-card";
 import { CompanyVaultCard } from "@/components/settings/company-vault-card";
+import { KvkkCard } from "@/components/settings/kvkk-card";
 import { CompanyVaultRepository } from "@/modules/notes/company-vault-repository";
 import { HakedisSettingsCard } from "@/components/settings/hakedis-settings-card";
 import { ProjectTypesManager } from "@/components/settings/project-types-manager";
@@ -51,6 +52,7 @@ export default async function SettingsPage() {
       <CompanyLogoCard company={account.company} />
       <CompanyVaultCard configured={vaultStatus.configured} />
       <CompanyInfoCard company={account.company} />
+      <KvkkCard companyName={account.company.name} />
     </div>
   );
 }

@@ -39,6 +39,7 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 | 19 | Kullanılmayan imalat kalemi tanımları tablosu kaldırıldı | ✅ |
 | 20 | Stok Excel/PDF çıktısında elle yazılan üst başlık ve isteğe bağlı logo | ✅ |
 | 21 | İş planında proje listeden seçilir (project_id kaydedilir); İş Planından Doldur bunu kullanır | ✅ |
+| 22 | KVKK belgeleri (/kvkk), çalışan aydınlatma metni oluşturucu, Türkçe e-posta şablonları, Pazar otomatik hafta tatili (pg_cron) | ✅ |
 
 Kurulu migration'lar: `20261005000000` … `20261011000001`. Kurulacak: `20261011000002_inventory_messages.sql`.
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.
@@ -206,13 +207,26 @@ Eski projede görünürlük role göre ayrılıyordu. Bizde yalnızca ana yönet
 ## Diğer planlı işler
 
 ### Çoklu şube ve genel depo kategorileri
-- "Biga Şube" kaldırılacak, yerine `inventory_branches` gelecek: varsayılan **Merkez Depo**, ve istenildiği kadar şube.
-- Malzeme miktarı şube bazında tutulacak; sevkiyat "Merkez → seçilen şube" olacak.
-- Silme, geri alma ve yeterlilik kontrolleri yeniden yazılacak.
-- Depo kategorileri (şu an sabit ve telekoma özel: fiber kablo, bakır şebeke, fiber ek, yeraltı)
-  firmanın kendi tanımladığı kategorilere dönüşecek.
+
+> ✅ Yapıldı (adım 10): firmaya özel kategoriler, çoklu depo, depolar arası sevkiyat.
 
 ### KVKK
+
+> ✅ Yapıldı (adım 22): `/kvkk` altında aydınlatma metni (gizlilik), veri işleme sözleşmesi, saklama ve imha
+> politikası, çerez politikası, başvuru formu; panelde Ayarlar → KVKK ile çalışan aydınlatma metni (Word).
+> Firma kimlik bilgileri ve alt işleyenler: `src/lib/constants/legal.ts`.
+
+Kalan (işletme tarafı):
 - Yasal metinler bir avukata kontrol ettirilecek.
-- Personel verisi için aydınlatma metni şablonu.
-- Veri silme ve dışa aktarma talebi akışı.
+- `LEGAL_ENTITY` adres / vergi / MERSİS / KEP bilgileri doldurulacak.
+- Yurt dışı aktarım için Supabase, Vercel ve e-posta sağlayıcısıyla KVKK standart sözleşmesi imzalanıp 5 iş günü içinde Kurul'a bildirilecek.
+- VERBİS kayıt yükümlülüğü değerlendirilecek.
+- Toplu veri dışa aktarma ve firma silme talebi şu an süper admin üzerinden manuel.
+
+### Resmi tatiller
+
+- Puantajda resmi ve dini bayram günlerinin otomatik işaretlenmesi (ileride).
+
+### E-posta
+
+- Kurulum adımları: `docs/EPOSTA-AYARLARI.md`, şablonlar: `supabase/templates/`.

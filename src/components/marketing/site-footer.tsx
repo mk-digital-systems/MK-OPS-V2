@@ -12,7 +12,9 @@ import { SOLUTIONS } from "@/lib/constants/solutions";
 
 export const LEGAL_LINKS = [
   { href: "/kilavuz", label: "Kullanım Kılavuzu" },
+  { href: "/kvkk", label: "KVKK Belgeleri" },
   { href: "/gizlilik-politikasi", label: "Gizlilik Politikası ve KVKK" },
+  { href: "/kvkk/cerez-politikasi", label: "Çerez Politikası" },
   { href: "/kullanim-sartlari", label: "Kullanım Şartları" },
   { href: "/iptal-ve-iade", label: "İptal ve İade Koşulları" },
 ];

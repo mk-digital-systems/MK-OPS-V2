@@ -159,7 +159,11 @@ export function RegisterForm() {
             <Link href="/gizlilik-politikasi" className="underline" target="_blank">
               Gizlilik Politikası ve KVKK Aydınlatma Metni
             </Link>
-            &apos;ni okumuş olursunuz.
+            &apos;ni okumuş olursunuz. Şirket kuranlar için{" "}
+            <Link href="/kvkk/veri-isleme-sozlesmesi" className="underline" target="_blank">
+              Veri İşleme Sözleşmesi
+            </Link>{" "}
+            Kullanım Şartları&apos;nın ekidir.
           </p>
           <p className="text-center text-sm text-muted-foreground">
             Zaten hesabınız var mı?{" "}

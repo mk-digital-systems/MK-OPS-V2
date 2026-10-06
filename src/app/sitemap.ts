@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/constants/brand";
 import { SOLUTIONS } from "@/lib/constants/solutions";
+import { KVKK_DOCUMENTS } from "@/lib/constants/legal";
 
-const PUBLIC_PAGES = ["", "/cozumler", ...SOLUTIONS.map((item) => `/cozumler/${item.slug}`), "/kilavuz", "/register", "/login", "/gizlilik-politikasi", "/kullanim-sartlari", "/iptal-ve-iade"];
+const PUBLIC_PAGES = ["", "/cozumler", ...SOLUTIONS.map((item) => `/cozumler/${item.slug}`), "/kilavuz", "/kvkk", ...KVKK_DOCUMENTS.map((doc) => doc.href).filter((href) => href.startsWith("/kvkk/")), "/register", "/login", "/gizlilik-politikasi", "/kullanim-sartlari", "/iptal-ve-iade"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return PUBLIC_PAGES.map((path) => ({

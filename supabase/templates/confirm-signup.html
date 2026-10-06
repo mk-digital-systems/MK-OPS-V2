@@ -1,0 +1,36 @@
+<!-- Konu: MK OPS hesabınızı doğrulayın -->
+<!doctype html>
+<html lang="tr">
+  <body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:16px;padding:32px;">
+            <tr>
+              <td>
+                <p style="margin:0 0 4px;font-size:20px;font-weight:bold;">MK OPS</p>
+                <p style="margin:0 0 24px;font-size:13px;color:#64748b;">Saha ve Operasyon Yönetimi</p>
+                <p style="margin:0 0 12px;font-size:16px;font-weight:bold;">Hesabınızı doğrulayın</p>
+                <p style="margin:0 0 20px;font-size:14px;line-height:22px;">
+                  MK OPS'a <strong>{{ .Email }}</strong> adresiyle kayıt oldunuz. Hesabınızı etkinleştirmek için aşağıdaki
+                  düğmeye tıklayın.
+                </p>
+                <p style="margin:0 0 24px;">
+                  <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#1d4ed8;color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;padding:12px 22px;border-radius:10px;">E-postamı doğrula</a>
+                </p>
+                <p style="margin:0 0 8px;font-size:12px;line-height:18px;color:#64748b;">
+                  Düğme çalışmazsa bu bağlantıyı tarayıcınıza yapıştırın:<br />
+                  <a href="{{ .ConfirmationURL }}" style="color:#1d4ed8;word-break:break-all;">{{ .ConfirmationURL }}</a>
+                </p>
+                <p style="margin:16px 0 0;font-size:12px;line-height:18px;color:#64748b;">
+                  Bu kaydı siz yapmadıysanız e-postayı yok sayabilirsiniz.
+                </p>
+              </td>
+            </tr>
+          </table>
+          <p style="margin:16px 0 0;font-size:11px;color:#94a3b8;">MK Digital Systems · iletisim@mk-digitalsystems.com</p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

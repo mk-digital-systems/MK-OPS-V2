@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { APP_NAME, COMPANY_LEGAL_NAME, SUPPORT_EMAIL } from "@/lib/constants/brand";
-import { ContactBlock, LegalDocument } from "@/components/marketing/legal-document";
+import { ContactBlock, LegalDocument, ProcessorsTable } from "@/components/marketing/legal-document";
+import { LEGAL_UPDATED_AT } from "@/lib/constants/legal";
 
 export const metadata = {
   title: "Gizlilik Politikası ve KVKK Aydınlatma Metni",
@@ -9,7 +10,7 @@ export const metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <LegalDocument title="Gizlilik Politikası ve KVKK Aydınlatma Metni" updatedAt="6 Ekim 2026">
+    <LegalDocument title="Gizlilik Politikası ve KVKK Aydınlatma Metni" updatedAt={LEGAL_UPDATED_AT}>
       <p>
         {APP_NAME}, şirketlerin saha ve operasyon süreçlerini yönetmesi için sunulan bir yazılım hizmetidir (SaaS).
         Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (&quot;KVKK&quot;) kapsamında, {APP_NAME} kullanılırken
@@ -26,8 +27,11 @@ export default function PrivacyPolicyPage() {
         avans, proje ve malzeme kayıtları) veri sorumlusu, {APP_NAME}&apos;u kullanan müşteri şirkettir.{" "}
         {COMPANY_LEGAL_NAME} bu verileri yalnızca hizmeti sunmak amacıyla, müşteri şirket adına{" "}
         <strong>veri işleyen</strong> sıfatıyla işler. Personelin KVKK kapsamında bilgilendirilmesi ve gerekli
-        hukuki dayanakların sağlanması müşteri şirketin sorumluluğundadır.
+        hukuki dayanakların sağlanması müşteri şirketin sorumluluğundadır. Bu ilişki{" "}
+        <Link href="/kvkk/veri-isleme-sozlesmesi">Veri İşleme Sözleşmesi</Link> ile düzenlenir; müşteri şirketler
+        çalışanlarına verecekleri aydınlatma metnini panelde Ayarlar → KVKK bölümünden oluşturabilir.
       </p>
+      <p>Hesap ve üyelik verileri bakımından veri sorumlusu:</p>
       <ContactBlock />
 
       <h2>2. İşlenen veri kategorileri</h2>
@@ -72,14 +76,11 @@ export default function PrivacyPolicyPage() {
         Veriler yalnızca hizmetin çalışması için gerekli olduğu ölçüde, gizlilik yükümlülüğü altındaki altyapı
         sağlayıcılarıyla paylaşılır:
       </p>
-      <ul>
-        <li>Supabase — veritabanı, kimlik doğrulama ve dosya depolama</li>
-        <li>Vercel — web uygulamasının barındırılması</li>
-        <li>E-posta servis sağlayıcısı — hesap doğrulama ve şifre sıfırlama e-postaları</li>
-      </ul>
+      <ProcessorsTable />
       <p>
-        Bu sağlayıcıların sunucuları yurt dışında bulunabilir. Yurt dışına aktarım KVKK md. 9 kapsamındaki şartlara
-        uygun olarak gerçekleştirilir. Yetkili kamu kurumlarının yasal talepleri halinde veriler mevzuatın gerektirdiği
+        Bu sağlayıcıların sunucuları yurt dışındadır. Yurt dışına aktarım, KVKK md. 9 uyarınca Kişisel Verileri Koruma
+        Kurulu&apos;nca ilan edilen standart sözleşmelerin imzalanması ve Kurul&apos;a bildirilmesi yoluyla
+        gerçekleştirilir. Yetkili kamu kurum ve kuruluşlarının yasal talepleri halinde veriler mevzuatın gerektirdiği
         ölçüde paylaşılabilir.
       </p>
 
@@ -88,7 +89,8 @@ export default function PrivacyPolicyPage() {
         Veriler, hesap ve şirket aboneliği devam ettiği sürece saklanır. Deneme veya plan süresi dolan şirketlerin
         verileri, şirketin talebiyle silinene veya hizmet ilişkisi sona erene kadar korunur. Şirket kaydı silindiğinde
         operasyon verileri kalıcı olarak silinir; mevzuatın saklamayı zorunlu kıldığı kayıtlar ilgili süre boyunca
-        tutulur.
+        tutulur. Ayrıntılı süreler için{" "}
+        <Link href="/kvkk/saklama-ve-imha-politikasi">Kişisel Veri Saklama ve İmha Politikası</Link>&apos;na bakınız.
       </p>
 
       <h2>7. Güvenlik</h2>
@@ -101,7 +103,8 @@ export default function PrivacyPolicyPage() {
       <h2>8. Çerezler</h2>
       <p>
         {APP_NAME} yalnızca oturumun sürdürülmesi ve tema gibi tercihlerin hatırlanması için zorunlu çerezler ve
-        tarayıcı depolaması kullanır. Reklam veya izleme amaçlı çerez kullanılmaz.
+        tarayıcı depolaması kullanır. Reklam veya izleme amaçlı çerez kullanılmaz. Ayrıntılar:{" "}
+        <Link href="/kvkk/cerez-politikasi">Çerez Politikası</Link>.
       </p>
 
       <h2>9. KVKK kapsamındaki haklarınız</h2>
@@ -115,8 +118,10 @@ export default function PrivacyPolicyPage() {
         <li>kanuna aykırı işleme nedeniyle zarara uğramanız halinde zararın giderilmesini talep etme</li>
       </ul>
       <p>
-        haklarına sahipsiniz. Taleplerinizi <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a> adresine
-        iletebilirsiniz. Bir müşteri şirketin personeli iseniz, operasyon verilerinize ilişkin talepleri öncelikle
+        haklarına sahipsiniz. Taleplerinizi{" "}
+        <Link href="/kvkk/basvuru-formu">İlgili Kişi Başvuru Formu</Link>&apos;nda açıklanan yollarla (ör.{" "}
+        <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>) iletebilirsiniz; başvurular en geç 30 gün içinde
+        ücretsiz olarak yanıtlanır. Bir müşteri şirketin personeli iseniz, operasyon verilerinize ilişkin talepleri öncelikle
         çalıştığınız şirkete iletmeniz gerekir; {COMPANY_LEGAL_NAME} bu talepleri ilgili şirkete yönlendirir.
       </p>
 
