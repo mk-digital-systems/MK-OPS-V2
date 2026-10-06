@@ -230,14 +230,19 @@ function ExportDialog({ open, setOpen, initialCategory, catalogs, categories, lo
   const allIds = options.map((item) => item.id);
   const [selected, setSelected] = useState<(string | null)[]>(() => initialCategory === "all" ? allIds : [initialCategory === "none" ? null : initialCategory]);
   const [exporting, setExporting] = useState<"excel" | "pdf" | null>(null);
+  const [customTitle, setCustomTitle] = useState<string | null>(null);
+  const [includeLogo, setIncludeLogo] = useState(Boolean(brand.logoUrl));
   const allSelected = selected.length === allIds.length;
   const toggle = (id: string | null, checked: boolean) => setSelected((current) => checked ? allIds.filter((item) => item === id || current.includes(item)) : current.filter((item) => item !== id));
   const selectedNames = options.filter((item) => selected.includes(item.id)).map((item) => item.name);
+  // Kullanıcı başlığa dokunmadıysa seçime göre otomatik başlık önerilir.
+  const autoTitle = getInventoryExportTitle(brand.name, allSelected ? [] : selectedNames);
+  const title = customTitle ?? autoTitle;
   async function exportFile(format: "excel" | "pdf") {
     if (!selected.length) return toast.error("En az bir kategori seçin");
     setExporting(format);
     try {
-      const exportOptions = { brand, catalogs, materials, categories, locations, selectedCategoryIds: selected, fileName: `malzeme-stok-${today()}.${format === "excel" ? "xlsx" : "pdf"}` };
+      const exportOptions = { brand, catalogs, materials, categories, locations, selectedCategoryIds: selected, title, includeLogo, fileName: `malzeme-stok-${today()}.${format === "excel" ? "xlsx" : "pdf"}` };
       await (format === "excel" ? downloadInventoryStockExcel(exportOptions) : downloadInventoryStockPdf(exportOptions));
       setOpen(false);
     }
@@ -250,9 +255,22 @@ function ExportDialog({ open, setOpen, initialCategory, catalogs, categories, lo
       <label className="flex items-center gap-2 border-b pb-3 font-semibold"><input type="checkbox" checked={allSelected} onChange={(event) => setSelected(event.target.checked ? allIds : [])} className="h-4 w-4 accent-primary" />Tümünü Seç</label>
       {options.map((item) => <label key={item.id ?? "none"} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={selected.includes(item.id)} onChange={(event) => toggle(item.id, event.target.checked)} className="h-4 w-4 accent-primary" />{item.name}<span className="text-muted-foreground">({catalogs.filter((catalog) => (catalog.category_id ?? null) === item.id).length} malzeme)</span></label>)}
       {!options.length && <p className="text-sm text-muted-foreground">Henüz malzeme yok.</p>}
-      {selected.length > 0 && <p className="rounded-md bg-muted/50 p-2 text-xs font-semibold">{getInventoryExportTitle(brand.name, allSelected ? [] : selectedNames)}</p>}
     </div>
-    <div className="grid gap-2 sm:grid-cols-2"><Button disabled={Boolean(exporting) || !selected.length} onClick={() => exportFile("excel")}>{exporting === "excel" ? <Loader2 className="animate-spin" /> : <FileSpreadsheet />}Excel İndir</Button><Button variant="outline" disabled={Boolean(exporting) || !selected.length} onClick={() => exportFile("pdf")}>{exporting === "pdf" ? <Loader2 className="animate-spin" /> : <FileText />}PDF İndir</Button></div>
+    <div className="space-y-3 border-t pt-3">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="inventory-export-title">Üst başlık</Label>
+          {customTitle !== null && <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => setCustomTitle(null)}>Otomatik başlığa dön</button>}
+        </div>
+        <Input id="inventory-export-title" value={title} onChange={(event) => setCustomTitle(event.target.value)} maxLength={200} placeholder="Çıktının üstünde yazacak başlık" />
+      </div>
+      {brand.logoUrl ? (
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={includeLogo} onChange={(event) => setIncludeLogo(event.target.checked)} className="h-4 w-4 accent-primary" />Firma logosunu ekle</label>
+      ) : (
+        <p className="text-xs text-muted-foreground">Logo eklemek için Ayarlar → Firma Logosu&apos;ndan logo yükleyin.</p>
+      )}
+    </div>
+    <div className="grid gap-2 sm:grid-cols-2"><Button disabled={Boolean(exporting) || !selected.length || !title.trim()} onClick={() => exportFile("excel")}>{exporting === "excel" ? <Loader2 className="animate-spin" /> : <FileSpreadsheet />}Excel İndir</Button><Button variant="outline" disabled={Boolean(exporting) || !selected.length || !title.trim()} onClick={() => exportFile("pdf")}>{exporting === "pdf" ? <Loader2 className="animate-spin" /> : <FileText />}PDF İndir</Button></div>
   </DialogContent></Dialog>;
 }
 

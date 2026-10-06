@@ -226,7 +226,10 @@ export default function GuidePage() {
           onayıyla ana depoya alın.
         </li>
       </ol>
-      <p>Stok listesini kategori seçerek Excel veya PDF olarak alabilirsiniz; her depo ayrı sütunda görünür.</p>
+      <p>
+        Stok listesini kategori seçerek Excel veya PDF olarak alabilirsiniz; her depo ayrı sütunda görünür. Çıktı almadan önce
+        üst başlığı dilediğiniz gibi yazabilir, firma logosunu ekleyip eklememeyi seçebilirsiniz.
+      </p>
 
       <h2 id="araclar">{SECTIONS[7].title}</h2>
       <ul>

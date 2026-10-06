@@ -11,6 +11,10 @@ type InventoryExportOptions = {
   locations: InventoryLocation[];
   /** Çıktıya alınacak kategoriler; null = kategorisiz */
   selectedCategoryIds: (string | null)[];
+  /** Kullanıcının yazdığı üst başlık; boşsa otomatik başlık */
+  title?: string;
+  /** false ise firma logosu konmaz */
+  includeLogo?: boolean;
 };
 
 type Column = { header: string; width: number; numeric?: boolean };
@@ -67,6 +71,7 @@ function buildRows({ catalogs, materials, categories, locations, selectedCategor
 }
 
 function exportTitle(options: InventoryExportOptions) {
+  if (options.title?.trim()) return options.title.trim();
   const all = options.selectedCategoryIds.length === new Set([...options.categories.map((item) => item.id), ...options.catalogs.map((item) => item.category_id ?? null)]).size;
   const names = all ? [] : options.selectedCategoryIds.map((id) => (id ? getCategoryName(options.categories, id) : UNCATEGORIZED_LABEL));
   return getInventoryExportTitle(options.brand.name, names);
@@ -77,7 +82,7 @@ const formatNumber = (value: string | number) =>
   typeof value === "number" ? value.toLocaleString("tr-TR", { maximumFractionDigits: 3 }) : value;
 
 export async function downloadInventoryStockExcel(options: InventoryExportOptions & { fileName: string }) {
-  const [{ Workbook }, logo] = await Promise.all([import("exceljs"), loadLogoImage(options.brand.logoUrl)]);
+  const [{ Workbook }, logo] = await Promise.all([import("exceljs"), options.includeLogo === false ? null : loadLogoImage(options.brand.logoUrl)]);
   const columns = buildColumns(options.locations);
   const workbook = new Workbook();
   const worksheet = workbook.addWorksheet("Malzeme Stok");
@@ -158,7 +163,7 @@ export async function downloadInventoryStockPdf(options: InventoryExportOptions 
   await embedRoboto(pdf);
 
   const pageWidth = pdf.internal.pageSize.getWidth();
-  const logo = await loadLogoImage(options.brand.logoUrl);
+  const logo = options.includeLogo === false ? null : await loadLogoImage(options.brand.logoUrl);
   let titleY = 16;
   if (logo) {
     const size = fitLogo(logo, 40, 16);
