@@ -29,9 +29,15 @@ export async function applyFile(pg, file) {
   }
 }
 
-/** Klasördeki bütün .sql dosyalarını ada göre sırayla uygular; filtre verilirse yalnızca onları. */
+/**
+ * Klasördeki bütün .sql dosyalarını ada göre sırayla uygular; filtre verilirse yalnızca onları.
+ * DRAFT_MIGRATION ortam değişkeni verilirse (henüz klasöre konmamış) taslak migration en sona eklenir:
+ *   DRAFT_MIGRATION=/yol/taslak.sql npm run test:db
+ */
 export async function applyDir(pg, dir = MIGRATIONS_DIR, filter = () => true) {
   const files = fs.readdirSync(dir).filter((file) => file.endsWith(".sql") && filter(file)).sort();
   for (const file of files) await applyFile(pg, path.join(dir, file));
+  const draft = process.env.DRAFT_MIGRATION;
+  if (draft && dir === MIGRATIONS_DIR && filter(path.basename(draft))) await applyFile(pg, path.resolve(draft));
   return files.length;
 }

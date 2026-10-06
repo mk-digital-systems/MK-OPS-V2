@@ -33,6 +33,7 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 | 13 | Panel başlığında firma logosu | ✅ |
 | 14 | İmalatlar projeye bağlı: iş kalemi satırları projeye iş kaydı açar (ilerleme + hakediş); fiyatlı ek işler hakedişe dahil | ✅ |
 | 15 | Veritabanı testleri depoda: `tests/db`, `npm run test:db` (234 kontrol), GitHub Actions | ✅ |
+| 16 | Bildirimler: durumdan hesaplanan, yetkiye göre süzülen bildirim zili | ✅ |
 
 Kurulu migration'lar: `20261005000000` … `20261011000001`. Kurulacak: `20261011000002_inventory_messages.sql`.
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.
@@ -168,13 +169,8 @@ Eski projede görünürlük role göre ayrılıyordu. Bizde yalnızca ana yönet
 ## Sonra değerlendirilecekler
 
 ### Bildirimler
-Eski yapı:
-- `notifications`: `company_id, type, title_key, meta jsonb, created_at`
-- `notification_reads`: `notification_id, user_id, read_at` (benzersiz çift)
 
-Yönetici uygulamayı açınca hangi cihazdan girerse girsin okunmamış bildirimleri görür.
-Örnek olaylar: katılma isteği geldi, destek talebi yanıtlandı, proje gecikti, planlanan
-bitişe 3 gün kaldı, araç muayenesi yaklaşıyor, deneme süresi bitiyor.
+> ✅ Yapıldı: `20261014000001_notifications.sql` (durumdan hesaplanır, okundu bilgisi `notification_reads`), panelde zil.
 
 ### SEO çözüm sayfaları
 Eski projede konu sayfaları vardı; sunucu tarafında önceden üretiliyor (prerender), her biri ayrı adreste:

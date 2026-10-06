@@ -40,6 +40,7 @@ import { PrivateNotesPanel } from "@/components/notes/private-notes-panel";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants/brand";
 import { TrialBanner } from "@/components/layout/trial-banner";
 import { useReportBrand } from "@/components/layout/company-brand-provider";
+import { NotificationBell } from "@/components/layout/notification-bell";
 
 const NAV_ITEMS = [
   {
@@ -359,14 +360,15 @@ export function AppShell({
         <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border/70 bg-background/80 backdrop-blur-xl md:flex">
           <div className="flex items-center gap-3 px-5 py-6">
             <BrandLogo size={40} priority />
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold tracking-tight">
                 {APP_NAME}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="truncate text-xs text-muted-foreground">
                 {company?.name ?? APP_TAGLINE}
               </p>
             </div>
+            <NotificationBell className="-mr-2 shrink-0" />
           </div>
           {nav}
           <div className="mt-auto space-y-2 border-t border-border/70 p-3">
@@ -433,7 +435,10 @@ export function AppShell({
                 className="pointer-events-none absolute left-1/2 top-1/2 h-9 max-w-[45%] -translate-x-1/2 -translate-y-1/2 object-contain"
               />
             )}
-            <ThemeToggle />
+            <div className="flex items-center">
+              <NotificationBell />
+              <ThemeToggle />
+            </div>
           </header>
 
           {/* Firma logosu: masaüstünde üstte ortada; logo yüklenmemişse hiçbir şey gösterilmez. */}

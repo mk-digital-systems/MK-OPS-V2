@@ -18,7 +18,7 @@ const SECTIONS = [
   { id: "stok", title: "7. Malzeme stoku, depolar ve irsaliye" },
   { id: "araclar", title: "8. Araçlar, yakıt ve araç ekipmanları" },
   { id: "imalat", title: "9. Günlük imalat raporu" },
-  { id: "ayarlar", title: "10. Firma logosu, gizli notlar ve işlem geçmişi" },
+  { id: "ayarlar", title: "10. Logo, gizli notlar, bildirimler ve işlem geçmişi" },
   { id: "abonelik", title: "11. Deneme süresi, plan talebi ve destek" },
 ];
 
@@ -282,6 +282,12 @@ export default function GuidePage() {
           <strong>Ayarlar → Gizli Alan Şifresi</strong> bölümünde belirlediği firma şifresiyle açılır; şifreyi bilen her onaylı
           kullanıcı aynı notları görür. Kilit 30 dakika işlem yapılmazsa kendiliğinden kapanır; 5 hatalı denemeden sonra 15
           dakika beklenir. Şifre değiştirilince açık oturumlar kapanır, notlar silinmez.
+        </li>
+        <li>
+          <strong>Bildirimler:</strong> menünün üstündeki zil; okunmamış sayısını gösterir. Katılım isteği, destek yanıtı,
+          deneme/plan bitişi (ana yönetici), geciken ya da 3 gün içinde bitecek projeler, 15 gün içinde muayene/sigorta tarihi
+          gelen araçlar ve fiyatı girilmemiş hakediş kayıtları burada çıkar. Herkes yalnızca yetkisi olan konuları görür;
+          bildirime tıklayınca ilgili sayfa açılır.
         </li>
         <li>
           <strong>Ayarlar → İşlem Geçmişi:</strong> kim, ne zaman, hangi kayıtta neyi değiştirdi; önceki ve sonraki
