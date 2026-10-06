@@ -13,6 +13,7 @@ import {
   Settings,
   Receipt,
   LifeBuoy,
+  BookOpen,
   ShieldCheck,
   Users,
   CircleUserRound,
@@ -139,6 +140,13 @@ const NAV_ITEMS = [
     label: "Destek",
     icon: LifeBuoy,
     accounting: false,
+    group: "SİSTEM",
+  },
+  {
+    href: "/kilavuz",
+    label: "Kullanım Kılavuzu",
+    icon: BookOpen,
+    accounting: true,
     group: "SİSTEM",
   },
 ];

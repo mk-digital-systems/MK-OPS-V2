@@ -10,6 +10,7 @@ import {
 import { BrandLogo } from "@/components/layout/brand-logo";
 
 export const LEGAL_LINKS = [
+  { href: "/kilavuz", label: "Kullanım Kılavuzu" },
   { href: "/gizlilik-politikasi", label: "Gizlilik Politikası ve KVKK" },
   { href: "/kullanim-sartlari", label: "Kullanım Şartları" },
   { href: "/iptal-ve-iade", label: "İptal ve İade Koşulları" },
