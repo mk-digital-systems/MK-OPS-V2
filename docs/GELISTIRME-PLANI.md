@@ -34,6 +34,7 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 | 14 | İmalatlar projeye bağlı: iş kalemi satırları projeye iş kaydı açar (ilerleme + hakediş); fiyatlı ek işler hakedişe dahil | ✅ |
 | 15 | Veritabanı testleri depoda: `tests/db`, `npm run test:db` (234 kontrol), GitHub Actions | ✅ |
 | 16 | Bildirimler: durumdan hesaplanan, yetkiye göre süzülen bildirim zili | ✅ |
+| 17 | İmalatlar: "İş Planından Doldur" (o günün ekipleri ve projeleri forma gelir) | ✅ |
 
 Kurulu migration'lar: `20261005000000` … `20261011000001`. Kurulacak: `20261011000002_inventory_messages.sql`.
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.

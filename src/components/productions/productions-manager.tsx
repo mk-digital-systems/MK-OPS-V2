@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { FileDown, Loader2, MessageCircle, Plus, Save, Trash2 } from "lucide-react";
+import { ClipboardList, FileDown, Loader2, MessageCircle, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Personnel } from "@/types/work-plan";
 import type { ProductionEntry, ProductionItemKind, ProductionProjectOption, ProductionSaveJob, ProductionTarget } from "@/types/production";
@@ -11,6 +11,7 @@ import { formatMoney } from "@/lib/hakedis";
 import { createClient } from "@/lib/supabase/client";
 import { formatDate } from "@/lib/utils";
 import { ProductionRepository } from "@/modules/productions/production-repository";
+import { WorkPlanRepository } from "@/modules/work-plans/work-plan-repository";
 import { downloadProductionHistoryPdf, saveAndShareDailyProduction } from "@/lib/production-pdf";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +46,9 @@ const toNumber = (value: string) => {
   return Number.isFinite(number) ? number : null;
 };
 const newTeam = (): FormTeam => ({ key: makeKey(), entryId: null, personnelId: "", jobs: [newJob()] });
+const isEmptyTeam = (team: FormTeam) => !team.entryId && !team.personnelId && team.jobs.every((job) =>
+  !job.projectId && !job.title.trim() && !job.workId.trim() && job.lines.every((line) => !line.description.trim() && !line.progressId));
+const normalize = (value: string | null | undefined) => (value ?? "").trim().toLocaleLowerCase("tr-TR");
 
 function entriesToTeams(entries: ProductionEntry[], prices: Record<string, number>): FormTeam[] {
   return entries.map((entry) => ({
@@ -143,6 +147,42 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
     return new ProductionRepository(createClient()).getExtraPrices(
       entries.flatMap((entry) => entry.jobs.flatMap((job) => job.items.filter((item) => item.kind === "extra").map((item) => item.id)))
     );
+  }
+
+  /** O günün iş planındaki ekipleri (ekip şefi + proje) forma ekler; kullanıcı yalnızca miktarları girer. */
+  async function fillFromWorkPlan() {
+    setLoading(true);
+    try {
+      const plan = await new WorkPlanRepository(createClient()).getByDate(date);
+      if (!plan?.teams.length) return void toast.info(`${formatDate(date)} için kayıtlı iş planı yok`);
+      const used = new Set(teams.map((team) => team.personnelId).filter(Boolean));
+      const added: FormTeam[] = [];
+      let skipped = 0;
+      for (const planTeam of plan.teams) {
+        const chiefId = planTeam.chief_personnel_id;
+        if (!chiefId || !personnelById.has(chiefId)) { skipped++; continue; }
+        if (used.has(chiefId) && !added.some((team) => team.personnelId === chiefId)) continue;
+        const code = normalize(planTeam.project_code);
+        const project = (code && code !== "-" ? projects.find((item) => normalize(item.project_code) === code) : undefined)
+          ?? projects.find((item) => normalize(item.name) === normalize(planTeam.project_name));
+        const job: FormJob = project
+          ? { key: makeKey(), projectId: project.id, title: project.name, workId: project.project_code, lines: [newLine("stage")] }
+          : { key: makeKey(), projectId: "", title: planTeam.project_name, workId: planTeam.project_code === "-" ? "" : planTeam.project_code, lines: [newLine("extra")] };
+        const existing = added.find((team) => team.personnelId === chiefId);
+        if (existing) existing.jobs.push(job);
+        else added.push({ key: makeKey(), entryId: null, personnelId: chiefId, jobs: [job] });
+        used.add(chiefId);
+      }
+      if (!added.length) {
+        return void toast.info(skipped ? "İş planındaki ekip şefleri aktif personel listesinde bulunamadı" : "İş planındaki ekipler zaten formda");
+      }
+      setTeams((current) => [...current.filter((team) => !isEmptyTeam(team)), ...added]);
+      toast.success(`${added.length} ekip iş planından eklendi; miktarları girip kaydedin`);
+    } catch (error) {
+      toast.error("İş planı okunamadı", { description: (error as Error)?.message });
+    } finally {
+      setLoading(false);
+    }
   }
 
   function selectProject(teamIndex: number, jobIndex: number, projectId: string) {
@@ -405,7 +445,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
           {!readOnly && <Button type="button" variant="outline" className="w-full" onClick={() => updateTeam(teamIndex, { jobs: [...team.jobs, newJob()] })}><Plus className="h-4 w-4" />İş / Proje Ekle</Button>}
         </div>
       </section>; })}
-      {!readOnly && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Button type="button" variant="outline" onClick={() => setTeams((current) => [...current, newTeam()])}><Plus className="h-4 w-4" />Ekip Ekle</Button><Button type="button" variant="outline" disabled={loading || pdfLoading} onClick={() => void saveAll(false)}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Taslak Kaydet</Button><Button type="button" variant="outline" disabled={!dailyEntries.length || pdfLoading} onClick={() => void shareCurrentDay()}>{pdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}Tekrar Paylaş</Button><Button type="button" disabled={loading || pdfLoading} onClick={() => void saveAll(true)}>{loading || pdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}Kaydet ve Paylaş</Button></div>}
+      {!readOnly && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><Button type="button" variant="outline" disabled={loading} onClick={() => void fillFromWorkPlan()} title="O günün iş planındaki ekipleri ve projeleri forma ekler"><ClipboardList className="h-4 w-4" />İş Planından Doldur</Button><Button type="button" variant="outline" onClick={() => setTeams((current) => [...current, newTeam()])}><Plus className="h-4 w-4" />Ekip Ekle</Button><Button type="button" variant="outline" disabled={loading || pdfLoading} onClick={() => void saveAll(false)}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Taslak Kaydet</Button><Button type="button" variant="outline" disabled={!dailyEntries.length || pdfLoading} onClick={() => void shareCurrentDay()}>{pdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}Tekrar Paylaş</Button><Button type="button" disabled={loading || pdfLoading} onClick={() => void saveAll(true)}>{loading || pdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}Kaydet ve Paylaş</Button></div>}
       {!dailyEntries.length && !loading && <p className="text-center text-sm text-muted-foreground">Bu tarih için henüz kayıt yok.</p>}
       {!readOnly && <p className="text-center text-xs text-muted-foreground">İş kalemi satırları kaydedilince seçilen projeye iş kaydı olarak işlenir; proje ilerlemesi ve hakediş kendiliğinden güncellenir. Ek işler hakedişe ayrıca eklenir{canSeePrices ? "" : "; fiyatlarını hakediş yetkilisi girer"}.</p>}
       <datalist id="production-units">{["Adet", "m", "m²", "m³", "kg", "ton", "saat", "gün", "sefer", "Götürü"].map((unit) => <option key={unit} value={unit} />)}</datalist>

@@ -247,7 +247,8 @@ export default function GuidePage() {
       <ol>
         <li>
           <strong>İmalatlar</strong> sayfasında tarihi ve ekip başını seçin, ardından her iş için <strong>projeyi listeden</strong>{" "}
-          seçin.
+          seçin. O gün için iş planı yaptıysanız <strong>İş Planından Doldur</strong> ekipleri ve projeleri forma hazır getirir;
+          yalnızca miktarları girersiniz (proje, iş planındaki proje koduna veya adına göre eşleştirilir).
         </li>
         <li>
           <strong>İş Kalemi Ekle</strong> ile projenin iş kalemini (bölümlü projelerde bölümüyle) seçip miktarı girin; birim
