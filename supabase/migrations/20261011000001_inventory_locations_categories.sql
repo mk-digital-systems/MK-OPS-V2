@@ -305,7 +305,7 @@ begin
 
   v_new := v_current + p_delta;
   if v_new < 0 then
-    raise exception '%: % stoku yetersiz. Mevcut: %', v_location.name, v_material.material_name, trim_scale(v_current);
+    raise exception '% deposunda % stoku yetersiz. Mevcut: %', v_location.name, v_material.material_name, v_current;
   end if;
 
   if v_location.is_main then
@@ -434,11 +434,11 @@ begin
   if not found then raise exception 'Depo bulunamadı'; end if;
   if v_location.is_main then raise exception 'Ana depo silinemez; adını değiştirebilirsiniz'; end if;
   if exists (select 1 from public.inventory_location_stocks where location_id = p_id and quantity > 0) then
-    raise exception '%: depoda stok var. Önce stoğu başka depoya sevk edin.', v_location.name;
+    raise exception '% deposunda stok var. Önce stoğu başka depoya sevk edin.', v_location.name;
   end if;
   if exists (select 1 from public.inventory_movements where p_id in (source_location_id, target_location_id))
     or exists (select 1 from public.inventory_shipments where p_id in (from_location_id, to_location_id)) then
-    raise exception '%: deponun hareket geçmişi var; silinemez', v_location.name;
+    raise exception '% deposunun hareket geçmişi var; silinemez', v_location.name;
   end if;
   delete from public.inventory_location_stocks where location_id = p_id;
   delete from public.inventory_locations where id = p_id;
@@ -815,7 +815,7 @@ begin
 
   if p_from_type = 'warehouse' then
     if v_material.stock_quantity < p_quantity then
-      raise exception '%: yetersiz miktar. Mevcut: %', v_warehouse_name, trim_scale(v_material.stock_quantity);
+      raise exception '% içinde yetersiz miktar. Mevcut: %', v_warehouse_name, v_material.stock_quantity;
     end if;
     v_from_name := v_warehouse_name;
     update public.inventory_materials set stock_quantity = stock_quantity - p_quantity,
@@ -869,156 +869,6 @@ end;
 $$;
 
 -- 12. Denetim kaydı: kategori ve depolar da yazılsın ------------------------------------------------
--- Etiketler eklendi; kaldırılan biga sütunu yok sayılanlar listesinden çıkarıldı.
-create or replace function public.audit_row_change()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-set row_security = off
-as $$
-declare
-  v_old jsonb := case when tg_op in ('UPDATE', 'DELETE') then to_jsonb(old) end;
-  v_new jsonb := case when tg_op in ('INSERT', 'UPDATE') then to_jsonb(new) end;
-  v_row jsonb := coalesce(v_new, v_old);
-  v_company_id uuid;
-  v_changes jsonb := '{}'::jsonb;
-  v_key text;
-  v_label text;
-  v_actor uuid := auth.uid();
-  v_actor_name text;
-  v_actor_role text;
-  -- Kayda yazılmayan teknik / türetilmiş alanlar
-  v_ignored text[] := array[
-    'id', 'company_id', 'created_at', 'updated_at', 'created_by', 'updated_by',
-    'progress_percent', 'has_activity', 'status_sort_order', 'priority_order',
-    'waiting_at', 'in_progress_at', 'on_hold_at', 'delayed_at', 'archived_at',
-    'cancelled_at', 'cancelled_by', 'done_quantity', 'percent', 'started_at',
-    'stock_quantity', 'avatar_path', 'approved_at', 'approved_by',
-    'priced_at', 'owner_user_id'
-  ];
-  -- Değeri gösterilmeyen hassas alanlar
-  v_masked text[] := array['tc_identity_number'];
-begin
-  if pg_trigger_depth() > 1 or current_setting('mk_ops.allow_company_reset', true) = 'on' then
-    return null;
-  end if;
-
-  v_company_id := case
-    when tg_table_name = 'companies' then (v_row ->> 'id')::uuid
-    else coalesce((v_new ->> 'company_id')::uuid, (v_old ->> 'company_id')::uuid)
-  end;
-  if v_company_id is null or not exists (select 1 from public.companies c where c.id = v_company_id) then
-    return null;
-  end if;
-
-  if tg_op = 'UPDATE' then
-    for v_key in select jsonb_object_keys(v_new) loop
-      continue when v_key = any (v_ignored);
-      if (v_old -> v_key) is distinct from (v_new -> v_key) then
-        v_changes := v_changes || jsonb_build_object(v_key,
-          case when v_key = any (v_masked)
-            then jsonb_build_object('old', '***', 'new', '***')
-            else jsonb_build_object('old', v_old -> v_key, 'new', v_new -> v_key)
-          end);
-      end if;
-    end loop;
-    if v_changes = '{}'::jsonb and coalesce(tg_argv[1], '') <> 'always' then
-      return null;
-    end if;
-  else
-    for v_key in select jsonb_object_keys(v_row) loop
-      continue when v_key = any (v_ignored) or jsonb_typeof(v_row -> v_key) = 'null';
-      v_changes := v_changes || jsonb_build_object(v_key,
-        case when v_key = any (v_masked) then to_jsonb('***'::text) else v_row -> v_key end);
-    end loop;
-  end if;
-
-  v_label := case tg_table_name
-    when 'projects' then concat_ws(' · ', v_row ->> 'name', v_row ->> 'project_code')
-    when 'project_types' then v_row ->> 'name'
-    when 'project_sections' then (
-      select concat_ws(' · ', p.name, v_row ->> 'name') from public.projects p where p.id = (v_row ->> 'project_id')::uuid)
-    when 'project_stage_progress' then (
-      select concat_ws(' · ', p.name, ps.name, st.name)
-      from public.projects p
-      left join public.project_sections ps on ps.id = (v_row ->> 'section_id')::uuid
-      left join public.project_type_stages st on st.id = (v_row ->> 'stage_id')::uuid
-      where p.id = (v_row ->> 'project_id')::uuid)
-    when 'project_stage_logs' then (
-      select concat_ws(' · ', p.name, ps.name, st.name)
-      from public.project_stage_progress pr
-      join public.projects p on p.id = pr.project_id
-      left join public.project_sections ps on ps.id = pr.section_id
-      left join public.project_type_stages st on st.id = pr.stage_id
-      where pr.id = (v_row ->> 'progress_id')::uuid)
-    when 'hakedis_stage_prices' then (
-      select concat_ws(' · ', t.name, st.name)
-      from public.project_type_stages st join public.project_types t on t.id = st.project_type_id
-      where st.id = (v_row ->> 'stage_id')::uuid)
-    when 'hakedis_project_prices' then (
-      select concat_ws(' · ', p.name, ps.name, st.name)
-      from public.project_stage_progress pr
-      join public.projects p on p.id = pr.project_id
-      left join public.project_sections ps on ps.id = pr.section_id
-      left join public.project_type_stages st on st.id = pr.stage_id
-      where pr.id = (v_row ->> 'progress_id')::uuid)
-    when 'personnel' then v_row ->> 'full_name'
-    when 'personnel_advances' then (
-      select p.full_name from public.personnel p where p.id = (v_row ->> 'personnel_id')::uuid)
-    when 'vehicles' then v_row ->> 'plate'
-    when 'inventory_catalog' then v_row ->> 'material_name'
-    when 'inventory_materials' then concat_ws(' · ', v_row ->> 'material_name', v_row ->> 'material_code')
-    when 'inventory_categories' then v_row ->> 'name'
-    when 'inventory_locations' then v_row ->> 'name'
-    when 'daily_work_plans' then 'İş planı ' || to_char((v_row ->> 'plan_date')::date, 'DD.MM.YYYY')
-    when 'production_entries' then concat_ws(' · ',
-      to_char((v_row ->> 'work_date')::date, 'DD.MM.YYYY'), v_row ->> 'team_leader_name_snapshot')
-    when 'profiles' then coalesce(nullif(v_row ->> 'full_name', ''), v_row ->> 'email')
-    when 'company_manager_permissions' then (
-      select coalesce(nullif(pr.full_name, ''), pr.email) from public.profiles pr where pr.id = (v_row ->> 'user_id')::uuid)
-    when 'companies' then v_row ->> 'name'
-    else null
-  end;
-
-  -- Üst kayıt (proje / personel / aşama) silinirken zincirleme silinen alt satırlar yazılmaz;
-  -- üst kaydın silinmesi zaten kayıtta.
-  if tg_op = 'DELETE' and v_label is null and tg_table_name in (
-    'project_sections', 'project_stage_progress', 'project_stage_logs',
-    'hakedis_stage_prices', 'hakedis_project_prices', 'personnel_advances',
-    'company_manager_permissions'
-  ) then
-    return null;
-  end if;
-
-  if v_actor is not null then
-    select coalesce(nullif(p.full_name, ''), p.email), p.role
-    into v_actor_name, v_actor_role
-    from public.profiles p where p.id = v_actor;
-    if public.is_super_admin() then
-      v_actor_role := 'super_admin';
-      v_actor_name := coalesce(v_actor_name, 'MK OPS Destek');
-    end if;
-  end if;
-
-  insert into public.audit_logs
-    (company_id, actor_user_id, actor_name, actor_role, module, entity_type, entity_id, entity_label, action, changes)
-  values (
-    v_company_id,
-    v_actor,
-    coalesce(v_actor_name, case when v_actor is null then 'Sistem' end),
-    v_actor_role,
-    tg_argv[0],
-    tg_table_name,
-    coalesce(v_row ->> 'id', v_row ->> 'user_id'),
-    left(v_label, 300),
-    lower(tg_op),
-    v_changes
-  );
-  return null;
-end;
-$$;
-
 create trigger zz_audit_row_change after insert or update or delete on public.inventory_categories
   for each row execute function public.audit_row_change('inventory');
 create trigger zz_audit_row_change after insert or update or delete on public.inventory_locations
