@@ -1,5 +1,5 @@
 import type { ProductionEntry } from "@/types/production";
-import { APP_LOGO_SRC, APP_NAME, FILE_NAME_PREFIX } from "@/lib/constants/brand";
+import { brandFilePrefix, loadLogoImage, type ReportBrand } from "@/lib/report-brand";
 
 const PAGE_WIDTH_MM = 210;
 const PAGE_HEIGHT_MM = 297;
@@ -10,24 +10,24 @@ const FIRST_PAGE_GAP_MM = 6;
 const CONTINUATION_TOP_MM = 23;
 const TEAM_GAP_MM = 5;
 
-export async function downloadDailyProductionPdf(entries: ProductionEntry[], date: string) {
-  const files = await createProductionFiles(entries, formatPdfDate(date), date);
+export async function downloadDailyProductionPdf(brand: ReportBrand, entries: ProductionEntry[], date: string) {
+  const files = await createProductionFiles(brand, entries, formatPdfDate(date), date);
   downloadFile(files.pdf);
 }
 
-export async function downloadProductionHistoryPdf(entries: ProductionEntry[], from: string, to: string) {
+export async function downloadProductionHistoryPdf(brand: ReportBrand, entries: ProductionEntry[], from: string, to: string) {
   const label = from === to ? formatPdfDate(from) : `${formatPdfDate(from)} - ${formatPdfDate(to)}`;
   const suffix = from === to ? from : `${from}-${to}`;
-  const files = await createProductionFiles(entries, label, suffix);
+  const files = await createProductionFiles(brand, entries, label, suffix);
   downloadFile(files.pdf);
 }
 
-export async function saveAndShareDailyProduction(entries: ProductionEntry[], date: string) {
-  const files = await createProductionFiles(entries, formatPdfDate(date), date);
+export async function saveAndShareDailyProduction(brand: ReportBrand, entries: ProductionEntry[], date: string) {
+  const files = await createProductionFiles(brand, entries, formatPdfDate(date), date);
   const shareFiles = [files.pdf];
   if (navigator.share && (!navigator.canShare || navigator.canShare({ files: shareFiles }))) {
     await navigator.share({
-      title: `${APP_NAME} Günlük İmalat ${formatPdfDate(date)}`,
+      title: `${brand.name} Günlük İmalat ${formatPdfDate(date)}`,
       text: `${formatPdfDate(date)} tarihli günlük imalat raporu`,
       files: shareFiles,
     });
@@ -36,21 +36,22 @@ export async function saveAndShareDailyProduction(entries: ProductionEntry[], da
 
   downloadFile(files.pdf);
   window.open(
-    `https://wa.me/?text=${encodeURIComponent(`${formatPdfDate(date)} tarihli ${APP_NAME} günlük imalat raporu PDF olarak indirildi.`)}`,
+    `https://wa.me/?text=${encodeURIComponent(`${formatPdfDate(date)} tarihli ${brand.name} günlük imalat raporu PDF olarak indirildi.`)}`,
     "_blank",
     "noopener,noreferrer"
   );
   return false;
 }
 
-async function createProductionFiles(entries: ProductionEntry[], dateLabel: string, fileSuffix: string) {
+async function createProductionFiles(brand: ReportBrand, entries: ProductionEntry[], dateLabel: string, fileSuffix: string) {
   if (!entries.length) throw new Error("Rapor oluşturmak için imalat kaydı bulunamadı");
 
-  const [{ default: jsPDF }, { toPng }] = await Promise.all([
+  const [{ default: jsPDF }, { toPng }, logo] = await Promise.all([
     import("jspdf"),
     import("html-to-image"),
+    loadLogoImage(brand.logoUrl),
   ]);
-  const root = buildPdfDom(entries, dateLabel);
+  const root = buildPdfDom(brand, logo?.dataUrl ?? null, entries, dateLabel);
   document.body.appendChild(root);
 
   try {
@@ -141,7 +142,7 @@ async function createProductionFiles(entries: ProductionEntry[], dateLabel: stri
       y += TEAM_GAP_MM;
     }
 
-    const pdfFile = new File([pdf.output("blob")], `${FILE_NAME_PREFIX}-IMALAT-(${fileSuffix}).pdf`, { type: "application/pdf" });
+    const pdfFile = new File([pdf.output("blob")], `${brandFilePrefix(brand)}-IMALAT-(${fileSuffix}).pdf`, { type: "application/pdf" });
     return { pdf: pdfFile };
   } finally {
     root.remove();
@@ -187,7 +188,7 @@ function waitForImages(root: HTMLElement) {
       })));
 }
 
-function buildPdfDom(entries: ProductionEntry[], dateLabel: string) {
+function buildPdfDom(brand: ReportBrand, logoDataUrl: string | null, entries: ProductionEntry[], dateLabel: string) {
   const root = document.createElement("div");
   Object.assign(root.style, {
     position: "fixed", left: "-10000px", top: "0", width: `${RENDER_WIDTH_PX}px`,
@@ -197,13 +198,16 @@ function buildPdfDom(entries: ProductionEntry[], dateLabel: string) {
   const header = document.createElement("header");
   header.dataset.pdfHeader = "true";
   Object.assign(header.style, { display: "grid", gridTemplateColumns: "130px 1fr 160px", alignItems: "center", gap: "16px", borderBottom: "1px solid #111827", paddingBottom: "14px" });
-  const logo = document.createElement("img");
-  logo.src = APP_LOGO_SRC;
-  logo.alt = APP_NAME;
-  Object.assign(logo.style, { width: "64px", height: "64px", objectFit: "contain" });
+  // Logo yoksa sütun boş kalır; firma adı başlıkta yazılır.
+  const logo = document.createElement(logoDataUrl ? "img" : "div");
+  if (logo instanceof HTMLImageElement && logoDataUrl) {
+    logo.src = logoDataUrl;
+    logo.alt = brand.name;
+  }
+  Object.assign(logo.style, { width: "120px", height: "64px", objectFit: "contain", objectPosition: "left center" });
   const title = document.createElement("strong");
-  title.textContent = `${APP_NAME} GÜNLÜK İMALAT`;
-  Object.assign(title.style, { textAlign: "center", fontSize: "22px" });
+  title.textContent = `${brand.name}\nGÜNLÜK İMALAT`;
+  Object.assign(title.style, { textAlign: "center", fontSize: "22px", whiteSpace: "pre-line", lineHeight: "1.3" });
   const dateLabelElement = document.createElement("strong");
   dateLabelElement.textContent = `Tarih: ${dateLabel}`;
   Object.assign(dateLabelElement.style, { textAlign: "right", fontSize: "15px" });

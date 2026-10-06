@@ -33,6 +33,8 @@ export type CompanySummary = {
   user_limit: number | null;
   payroll_start_day: number;
   currency_code: CurrencyCode;
+  /** company-logos deposundaki dosya yolu; logo yoksa null. */
+  logo_path: string | null;
   /** Yalnızca onaylı ana yöneticiye döner. */
   join_code: string | null;
 };

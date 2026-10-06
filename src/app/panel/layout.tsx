@@ -6,6 +6,8 @@ import { UserRepository } from "@/modules/users/user-repository";
 import { NotesRepository } from "@/modules/notes/notes-repository";
 import { CompanyRepository } from "@/modules/company/company-repository";
 import { hasAppAccess, resolveAccountHome } from "@/lib/account-routing";
+import { CompanyBrandProvider } from "@/components/layout/company-brand-provider";
+import { companyLogoUrl, DEFAULT_REPORT_BRAND } from "@/lib/report-brand";
 
 export default async function AppLayout({
   children,
@@ -58,15 +60,21 @@ export default async function AppLayout({
     }
   }
 
+  const brand = account.company
+    ? { name: account.company.name, logoUrl: companyLogoUrl(account.company.logo_path) }
+    : DEFAULT_REPORT_BRAND;
+
   return (
-    <AppShell
-      profile={profile}
-      avatarUrl={avatarUrl}
-      notes={notes}
-      writableModules={writableModules}
-      company={account.company}
-    >
-      {children}
-    </AppShell>
+    <CompanyBrandProvider brand={brand}>
+      <AppShell
+        profile={profile}
+        avatarUrl={avatarUrl}
+        notes={notes}
+        writableModules={writableModules}
+        company={account.company}
+      >
+        {children}
+      </AppShell>
+    </CompanyBrandProvider>
   );
 }

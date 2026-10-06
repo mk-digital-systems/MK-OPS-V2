@@ -1,8 +1,10 @@
 import type { ProductionEntry } from "@/types/production";
-import { APP_NAME } from "@/lib/constants/brand";
+import { brandFilePrefix, docxBrandHeader, type ReportBrand } from "@/lib/report-brand";
 
-export async function downloadProductionWord(entries: ProductionEntry[], from: string, to: string, leaderName?: string) {
-  const { AlignmentType, Document, HeadingLevel, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType } = await import("docx");
+export async function downloadProductionWord(brand: ReportBrand, entries: ProductionEntry[], from: string, to: string, leaderName?: string) {
+  const docx = await import("docx");
+  const { AlignmentType, Document, HeadingLevel, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType } = docx;
+  const brandHeader = await docxBrandHeader(docx, brand);
   const rows = entries.flatMap((entry) => entry.jobs.flatMap((job) => job.items.map((item) => new TableRow({ children: [
     entry.work_date, entry.team_leader_name_snapshot, job.project_name_snapshot, job.project_code_snapshot || "—", item.item_name_snapshot,
     Number(item.quantity).toLocaleString("tr-TR"), item.unit_snapshot,
@@ -14,7 +16,7 @@ export async function downloadProductionWord(entries: ProductionEntry[], from: s
     return map;
   }, new Map<string, number>()).entries()];
   const doc = new Document({ sections: [{ children: [
-    new Paragraph({ text: APP_NAME, heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER }),
+    ...brandHeader,
     new Paragraph({ text: "İMALAT DÖKÜMÜ", heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER }),
     new Paragraph({ children: [new TextRun({ text: "Tarih Aralığı: ", bold: true }), new TextRun(`${from} - ${to}`)] }),
     ...(leaderName ? [new Paragraph({ children: [new TextRun({ text: "Ekip Başı: ", bold: true }), new TextRun(leaderName)] })] : []),
@@ -22,5 +24,5 @@ export async function downloadProductionWord(entries: ProductionEntry[], from: s
     new Paragraph({ text: "TOPLAM İŞ KALEMİ MİKTARLARI", heading: HeadingLevel.HEADING_2, spacing: { before: 300 } }),
     ...totals.map(([key, quantity]) => { const [name, unit] = key.split("|||"); return new Paragraph({ children: [new TextRun({ text: `${name}: `, bold: true }), new TextRun(`${quantity.toLocaleString("tr-TR")} ${unit}`)] }); }),
   ] }] });
-  const blob = await Packer.toBlob(doc); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href=url; link.download=`Imalat-Dokumu-${from}-${to}.docx`; link.click(); URL.revokeObjectURL(url);
+  const blob = await Packer.toBlob(doc); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href=url; link.download=`${brandFilePrefix(brand)}-Imalat-Dokumu-${from}-${to}.docx`; link.click(); URL.revokeObjectURL(url);
 }

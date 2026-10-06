@@ -6,7 +6,7 @@ import {
   maskTcIdentityNumber,
   toFileSlug,
 } from "@/lib/attendance-excel";
-import { APP_NAME, FILE_NAME_PREFIX } from "@/lib/constants/brand";
+import { brandFilePrefix, docxBrandHeader, type ReportBrand } from "@/lib/report-brand";
 
 type AttendanceWordPerson = {
   fullName: string;
@@ -50,11 +50,13 @@ function toFileNamePart(value: string) {
 }
 
 export async function downloadMonthlyAttendanceWord(options: {
+  brand: ReportBrand;
   personnel: AttendanceWordPerson[];
   year: number;
   month: number;
   notes?: string;
 }) {
+  const docx = await import("docx");
   const {
     AlignmentType,
     BorderStyle,
@@ -70,7 +72,8 @@ export async function downloadMonthlyAttendanceWord(options: {
     TextRun,
     VerticalAlign,
     WidthType,
-  } = await import("docx");
+  } = docx;
+  const brandHeader = await docxBrandHeader(docx, options.brand);
 
   const borders = {
     top: { style: BorderStyle.SINGLE, size: 4, color: "808080" },
@@ -177,11 +180,7 @@ export async function downloadMonthlyAttendanceWord(options: {
           },
         },
         children: [
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 100 },
-            children: [new TextRun({ text: APP_NAME, bold: true, size: 30 })],
-          }),
+          ...brandHeader,
           new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: { after: 260 },
@@ -211,15 +210,17 @@ export async function downloadMonthlyAttendanceWord(options: {
   const blob = await Packer.toBlob(document);
   downloadBlob(
     blob,
-    `${FILE_NAME_PREFIX}-Puantaj-${options.year}-${pad(options.month)}.docx`
+    `${brandFilePrefix(options.brand)}-Puantaj-${options.year}-${pad(options.month)}.docx`
   );
 }
 
 export async function downloadPersonnelAttendanceWord(options: {
+  brand: ReportBrand;
   person: AttendanceWordPerson;
   year: number;
   month: number;
 }) {
+  const docx = await import("docx");
   const {
     AlignmentType,
     BorderStyle,
@@ -233,7 +234,8 @@ export async function downloadPersonnelAttendanceWord(options: {
     TextRun,
     VerticalAlign,
     WidthType,
-  } = await import("docx");
+  } = docx;
+  const brandHeader = await docxBrandHeader(docx, options.brand);
   const border = { style: BorderStyle.SINGLE, size: 4, color: "808080" };
   const tableCell = (
     text: string,
@@ -287,7 +289,7 @@ export async function downloadPersonnelAttendanceWord(options: {
       {
         properties: { page: { margin: { top: 1000, right: 1000, bottom: 1000, left: 1000 } } },
         children: [
-          new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 100 }, children: [new TextRun({ text: APP_NAME, bold: true, size: 30 })] }),
+          ...brandHeader,
           new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 280 }, children: [new TextRun({ text: "PERSONEL PUANTAJ RAPORU", bold: true, size: 24 })] }),
           new Paragraph({ children: [new TextRun({ text: `Ad Soyad: ${options.person.fullName}`, bold: true })] }),
           new Paragraph({ children: [new TextRun({ text: `TC Kimlik No: ${maskTcIdentityNumber(options.person.tcIdentityNumber)}` })] }),
@@ -311,6 +313,6 @@ export async function downloadPersonnelAttendanceWord(options: {
   const blob = await Packer.toBlob(document);
   downloadBlob(
     blob,
-    `${FILE_NAME_PREFIX}-${toFileNamePart(options.person.fullName)}-Puantaj-${options.year}-${pad(options.month)}.docx`
+    `${brandFilePrefix(options.brand)}-${toFileNamePart(options.person.fullName)}-Puantaj-${options.year}-${pad(options.month)}.docx`
   );
 }

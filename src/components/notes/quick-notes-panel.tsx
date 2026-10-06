@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { downloadNotesPdf } from "@/lib/notes-pdf";
+import { useReportBrand } from "@/components/layout/company-brand-provider";
 
 function today() {
   const date = new Date();
@@ -29,6 +30,7 @@ export function QuickNotesPanel({
   initialNotes: SharedNote[];
   currentUserId: string;
 }) {
+  const brand = useReportBrand();
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState(initialNotes);
   const [currentDate, setCurrentDate] = useState(today());
@@ -100,7 +102,7 @@ export function QuickNotesPanel({
   async function downloadPdf() {
     setPdfLoading(true);
     try {
-      await downloadNotesPdf(notes);
+      await downloadNotesPdf(brand, notes);
       toast.success("Notlar A4 PDF olarak indirildi");
     } catch (error) {
       toast.error("PDF oluşturulamadı", { description: (error as Error)?.message });

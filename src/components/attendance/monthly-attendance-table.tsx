@@ -42,6 +42,7 @@ import { createClient } from "@/lib/supabase/client";
 import { AttendanceRepository } from "@/modules/attendance/attendance-repository";
 import { downloadAttendanceSummaryExcel } from "@/lib/attendance-excel";
 import { downloadMonthlyAttendanceWord } from "@/lib/attendance-word";
+import { useReportBrand } from "@/components/layout/company-brand-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -145,6 +146,7 @@ export function MonthlyAttendanceTable({
   archives = [],
   readOnly = false,
 }: Props) {
+  const brand = useReportBrand();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -391,6 +393,7 @@ export function MonthlyAttendanceTable({
   async function exportWord() {
     try {
       await downloadMonthlyAttendanceWord({
+        brand,
         personnel: exportPersonnel.map((personnel) => ({
           fullName: personnel.full_name,
           tcIdentityNumber: personnel.tc_identity_number,

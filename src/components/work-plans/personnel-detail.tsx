@@ -37,6 +37,7 @@ import {
   toFileSlug,
 } from "@/lib/attendance-excel";
 import { downloadPersonnelAttendanceWord } from "@/lib/attendance-word";
+import { useReportBrand } from "@/components/layout/company-brand-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,6 +81,7 @@ export function PersonnelDetail({
   canWriteAdvances,
   assignedVehiclePlate = null,
 }: Props) {
+  const brand = useReportBrand();
   const router = useRouter();
   const [advanceOpen, setAdvanceOpen] = useState(false);
   const [advanceDate, setAdvanceDate] = useState(() =>
@@ -216,6 +218,7 @@ export function PersonnelDetail({
   async function exportPersonnelWord() {
     try {
       await downloadPersonnelAttendanceWord({
+        brand,
         person: {
           fullName: personnel.full_name,
           tcIdentityNumber: personnel.tc_identity_number,

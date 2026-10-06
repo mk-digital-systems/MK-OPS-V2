@@ -5,6 +5,7 @@ import { CompanyRepository } from "@/modules/company/company-repository";
 import { ProjectRepository } from "@/modules/projects/project-repository";
 import { HakedisRepository } from "@/modules/hakedis/hakedis-repository";
 import { CompanyInfoCard } from "@/components/settings/company-info-card";
+import { CompanyLogoCard } from "@/components/settings/company-logo-card";
 import { HakedisSettingsCard } from "@/components/settings/hakedis-settings-card";
 import { ProjectTypesManager } from "@/components/settings/project-types-manager";
 
@@ -29,10 +30,11 @@ export default async function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Ayarlar</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Proje türleri, hakediş ve firma bilgileri</p>
+        <p className="mt-1 text-sm text-muted-foreground">Proje türleri, hakediş, firma logosu ve firma bilgileri</p>
       </div>
       <ProjectTypesManager types={types} stagePrices={stagePrices} currency={account.company.currency_code} />
       <HakedisSettingsCard company={account.company} />
+      <CompanyLogoCard company={account.company} />
       <CompanyInfoCard company={account.company} />
     </div>
   );

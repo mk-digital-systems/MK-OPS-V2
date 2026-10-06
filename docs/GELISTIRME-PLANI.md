@@ -24,8 +24,10 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 | 5 | Landing sayfası, panel `/panel` altında, yasal sayfalar | ✅ |
 | 6 | Sektörden bağımsız proje modülü (türler, aşamalar, bölümler, metraj) | ✅ |
 | 7 | Hakediş: aşama/proje birim fiyatı, fiyat sabitleme, dönem raporu, Excel, Genel Bakış kartı, "Hakediş" modül yetkisi | ✅ |
+| 7a | İş planında ekibe araç atamak opsiyonel | ✅ |
+| 8 | Firma logosu ve adı tüm çıktılarda; hakediş PDF'i (logo filigranlı) | ✅ |
 
-Kurulu migration'lar: `20261005000000` … `20261007000002`.
+Kurulu migration'lar: `20261005000000` … `20261008000002`. Kurulacak: `20261009000001_company_logo.sql`.
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.
 
 ---
@@ -42,7 +44,7 @@ Kurulu migration'lar: `20261005000000` … `20261007000002`.
 
 ### 1. Hakediş (iş değeri ve dönem raporu)
 
-> ✅ Yapıldı: `20261008000001_hakedis.sql` + `/panel/hakedis`. PDF çıktısı firma logosuyla birlikte (madde 2) eklenecek.
+> ✅ Yapıldı: `20261008000001_hakedis.sql` + `/panel/hakedis`. PDF çıktısı madde 2 ile eklendi.
 
 **Amaç:** Firmanın yaptığı işin parasal değerini proje, aşama ve dönem bazında
 hesaplamak. Müteahhitler için ana satış özelliği.
@@ -76,6 +78,8 @@ ofisteki yöneticiler giriyor. Bu yüzden **ekip payı / taşeron payı hesaplan
 - Fiyatları kimin göreceği: ana yönetici + yetki verilen roller (modül yetkisi olarak).
 
 ### 2. Firma logosu ve adı (raporlarda)
+
+> ✅ Yapıldı: `20261009000001_company_logo.sql`, Ayarlar → Firma Logosu. Logo PNG/JPG/WEBP, en fazla 2 MB (SVG güvenlik nedeniyle kabul edilmiyor). Logo değişikliğinin denetim kaydı madde 3 ile gelecek. İş planı tablosundaki "FİRMA" sütunu kaldırıldı (tek firmada hep aynı değerdi).
 
 **Amaç:** Bütün PDF/Word/Excel çıktılarında "MK OPS" yerine müşterinin kendi adı ve logosu.
 

@@ -7,6 +7,7 @@ import type { InventoryCatalog, InventoryLocation, InventoryMaterial, InventoryR
 import type { Personnel } from "@/types/work-plan";
 import { INVENTORY_STOCK_CATEGORIES, INVENTORY_UNITS, formatInventoryQuantity, getInventoryStockCategoryLabel } from "@/lib/constants/inventory";
 import { downloadInventoryStockExcel, downloadInventoryStockPdf, getInventoryExportTitle } from "@/lib/inventory-export";
+import { useReportBrand } from "@/components/layout/company-brand-provider";
 import { createClient } from "@/lib/supabase/client";
 import { InventoryRepository } from "@/modules/inventory/inventory-repository";
 import { Badge } from "@/components/ui/badge";
@@ -101,6 +102,7 @@ function CatalogDialog({ open, setOpen, loading, onSave }: { open: boolean; setO
 }
 
 function ExportDialog({ open, setOpen, initialCategory, catalogs, materials }: { open: boolean; setOpen: (open: boolean) => void; initialCategory: InventoryStockCategory | "all"; catalogs: InventoryCatalog[]; materials: InventoryMaterial[] }) {
+  const brand = useReportBrand();
   const allCategories = INVENTORY_STOCK_CATEGORIES.map((item) => item.value);
   const [selected, setSelected] = useState<InventoryStockCategory[]>(() => initialCategory === "all" ? allCategories : [initialCategory]);
   const [exporting, setExporting] = useState<"excel" | "pdf" | null>(null);
@@ -110,14 +112,14 @@ function ExportDialog({ open, setOpen, initialCategory, catalogs, materials }: {
     if (!selected.length) return toast.error("En az bir kategori seçin");
     setExporting(format);
     try {
-      const options = { catalogs, materials, categories: selected, fileName: `malzeme-stok-${today()}.${format === "excel" ? "xlsx" : "pdf"}` };
+      const options = { brand, catalogs, materials, categories: selected, fileName: `malzeme-stok-${today()}.${format === "excel" ? "xlsx" : "pdf"}` };
       await (format === "excel" ? downloadInventoryStockExcel(options) : downloadInventoryStockPdf(options));
       setOpen(false);
     }
     catch (error) { toast.error(`${format === "excel" ? "Excel" : "PDF"} dosyası oluşturulamadı`, { description: (error as Error)?.message }); }
     finally { setExporting(null); }
   }
-  return <Dialog open={open} onOpenChange={setOpen}><DialogContent><DialogHeader><DialogTitle>Malzeme Stok Çıktısı</DialogTitle></DialogHeader><div className="space-y-3"><p className="text-sm text-muted-foreground">Çıktıya eklenecek malzeme kategorilerini seçin.</p><label className="flex items-center gap-2 border-b pb-3 font-semibold"><input type="checkbox" checked={allSelected} onChange={(event) => setSelected(event.target.checked ? allCategories : [])} className="h-4 w-4 accent-primary" />Tümünü Seç</label>{INVENTORY_STOCK_CATEGORIES.map((item) => <label key={item.value} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={selected.includes(item.value)} onChange={(event) => toggle(item.value, event.target.checked)} className="h-4 w-4 accent-primary" />{item.label}<span className="text-muted-foreground">({catalogs.filter((catalog) => catalog.stock_category === item.value).length} malzeme)</span></label>)}{selected.length > 0 && <p className="rounded-md bg-muted/50 p-2 text-xs font-semibold">{getInventoryExportTitle(selected)}</p>}</div><div className="grid gap-2 sm:grid-cols-2"><Button disabled={Boolean(exporting) || !selected.length} onClick={() => exportFile("excel")}>{exporting === "excel" ? <Loader2 className="animate-spin" /> : <FileSpreadsheet />}Excel İndir</Button><Button variant="outline" disabled={Boolean(exporting) || !selected.length} onClick={() => exportFile("pdf")}>{exporting === "pdf" ? <Loader2 className="animate-spin" /> : <FileText />}PDF İndir</Button></div></DialogContent></Dialog>;
+  return <Dialog open={open} onOpenChange={setOpen}><DialogContent><DialogHeader><DialogTitle>Malzeme Stok Çıktısı</DialogTitle></DialogHeader><div className="space-y-3"><p className="text-sm text-muted-foreground">Çıktıya eklenecek malzeme kategorilerini seçin.</p><label className="flex items-center gap-2 border-b pb-3 font-semibold"><input type="checkbox" checked={allSelected} onChange={(event) => setSelected(event.target.checked ? allCategories : [])} className="h-4 w-4 accent-primary" />Tümünü Seç</label>{INVENTORY_STOCK_CATEGORIES.map((item) => <label key={item.value} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={selected.includes(item.value)} onChange={(event) => toggle(item.value, event.target.checked)} className="h-4 w-4 accent-primary" />{item.label}<span className="text-muted-foreground">({catalogs.filter((catalog) => catalog.stock_category === item.value).length} malzeme)</span></label>)}{selected.length > 0 && <p className="rounded-md bg-muted/50 p-2 text-xs font-semibold">{getInventoryExportTitle(brand.name, selected)}</p>}</div><div className="grid gap-2 sm:grid-cols-2"><Button disabled={Boolean(exporting) || !selected.length} onClick={() => exportFile("excel")}>{exporting === "excel" ? <Loader2 className="animate-spin" /> : <FileSpreadsheet />}Excel İndir</Button><Button variant="outline" disabled={Boolean(exporting) || !selected.length} onClick={() => exportFile("pdf")}>{exporting === "pdf" ? <Loader2 className="animate-spin" /> : <FileText />}PDF İndir</Button></div></DialogContent></Dialog>;
 }
 
 function ReceiptDialog({ open, setOpen, catalogs, loading, onSave }: { open: boolean; setOpen: (open: boolean) => void; catalogs: InventoryCatalog[]; loading: boolean; onSave: (payload: { receipt_date: string; received_by: string; dispatch_number: string; notes?: string; items: { catalog_id: string; material_code?: string; quantity: number }[] }) => Promise<void> }) {

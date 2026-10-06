@@ -1,14 +1,13 @@
 import type { WorkPlanMemberSnapshot, WorkPlanTeamSnapshot } from "@/types/work-plan";
-import { APP_NAME } from "@/lib/constants/brand";
 
 type Props =
   | { teams: WorkPlanTeamSnapshot[]; team?: never; teamIndex?: never }
   | { teams?: never; team: WorkPlanTeamSnapshot; teamIndex: number };
 
 const columns = [
-  ["EKİP", "5%"], ["SIRA", "5%"], ["FİRMA", "7%"],
-  ["PERSONEL", "23%"], ["ARAÇ PLAKASI", "12%"],
-  ["EKİP TÜRÜ", "11%"], ["PROJE ADI", "27%"], ["PROJE ID", "10%"],
+  ["EKİP", "5%"], ["SIRA", "5%"],
+  ["PERSONEL", "28%"], ["ARAÇ", "12%"],
+  ["EKİP TÜRÜ", "12%"], ["PROJE ADI", "28%"], ["PROJE ID", "10%"],
 ] as const;
 
 const cellBorderStyle = { border: "1px solid #000000" } as const;
@@ -61,7 +60,6 @@ export function WorkPlanTeamTable(props: Props) {
                 <tr key={`${team.id ?? teamIndex}-${member.personnel_id ?? member.full_name}-${memberIndex}`} className={`${background} ${edge} border-[#000000]`}>
                   {memberIndex === 0 && <td rowSpan={rowSpan} style={cellBorderStyle} className={mergedCell}>{teamIndex + 1}</td>}
                   <td style={cellBorderStyle} className="px-1 py-2 text-center align-middle font-semibold">{memberIndex + 1}</td>
-                  <td style={cellBorderStyle} className="px-1 py-2 text-center align-middle font-bold">{APP_NAME}</td>
                   <td style={cellBorderStyle} className="px-2.5 py-2 text-left align-middle">
                     <div className="break-words text-[13px] font-semibold leading-tight">{member.full_name || "—"}</div>
                     {secondary && <div className="mt-1 break-words text-[10px] font-medium leading-tight text-[#111111]">({secondary})</div>}

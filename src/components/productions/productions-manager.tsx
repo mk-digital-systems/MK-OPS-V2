@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useMemo, useState } from "react";
 import { FileDown, Loader2, MessageCircle, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -16,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { APP_LOGO_SRC, APP_NAME } from "@/lib/constants/brand";
+import { CompanyLogo, useReportBrand } from "@/components/layout/company-brand-provider";
 
 type FormJob = { key: string; title: string; workId: string; lines: { key: string; description: string }[] };
 type FormTeam = { key: string; entryId: string | null; personnelId: string; jobs: FormJob[] };
@@ -58,6 +57,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
   initialEntries: ProductionEntry[];
   readOnly: boolean;
 }) {
+  const brand = useReportBrand();
   const initialDailyEntries = initialEntries.filter((entry) => entry.work_date === initialDate);
   const [date, setDate] = useState(initialDate);
   const [dailyEntries, setDailyEntries] = useState(initialDailyEntries);
@@ -170,7 +170,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
       toast.success(finalize ? "Günlük imalatlar kaydedildi" : "Taslak kaydedildi; düzenlemeye devam edebilirsiniz");
       if (finalize) try {
         setPdfLoading(true);
-        const shared = await saveAndShareDailyProduction(entries, date);
+        const shared = await saveAndShareDailyProduction(brand, entries, date);
         toast.success(shared ? "PDF paylaşım için hazırlandı" : "PDF indirildi; WhatsApp açıldı");
       } catch (shareError) {
         if ((shareError as Error).name === "AbortError") {
@@ -211,7 +211,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
     if (!dailyEntries.length) return void toast.error("Önce günlük imalatları kaydedin");
     setPdfLoading(true);
     try {
-      const shared = await saveAndShareDailyProduction(dailyEntries, date);
+      const shared = await saveAndShareDailyProduction(brand, dailyEntries, date);
       toast.success(shared ? "PDF paylaşım için hazırlandı" : "PDF indirildi; WhatsApp açıldı");
     } catch (error) {
       if ((error as Error).name === "AbortError") toast.info("PDF paylaşımı iptal edildi");
@@ -231,7 +231,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
     try {
       const pdfFrom = selectedHistoryDate ?? appliedRange.from;
       const pdfTo = selectedHistoryDate ?? appliedRange.to;
-      await downloadProductionHistoryPdf(entries, pdfFrom, pdfTo);
+      await downloadProductionHistoryPdf(brand, entries, pdfFrom, pdfTo);
       toast.success("Geçmiş imalat PDF'i indirildi");
     } catch (error) {
       console.error(error);
@@ -243,8 +243,13 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
 
   return <div className="space-y-6 production-module">
     <header className="grid items-center gap-4 border-b pb-5 sm:grid-cols-[140px_1fr_180px]">
-      <Image src={APP_LOGO_SRC} alt={APP_NAME} width={64} height={64} className="h-16 w-16 object-contain" priority />
-      <h1 className="text-center text-xl font-bold sm:text-2xl">{APP_NAME} GÜNLÜK İMALAT</h1>
+      <div className="h-16">
+        <CompanyLogo brand={brand} className="h-16 max-w-[140px] object-contain" />
+      </div>
+      <h1 className="text-center text-xl font-bold sm:text-2xl">
+        {brand.name}
+        <span className="block text-base font-semibold text-muted-foreground sm:text-lg">GÜNLÜK İMALAT</span>
+      </h1>
       <div className="space-y-1 sm:text-right"><Label htmlFor="production-date">Tarih</Label><Input id="production-date" type="date" value={date} onChange={(event) => void changeDate(event.target.value)} className="sm:ml-auto sm:w-40" /></div>
     </header>
 
@@ -284,7 +289,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
     </CardContent></Card>
 
     <section className="production-print-root hidden bg-white text-black">
-      <div className="grid grid-cols-[100px_1fr_140px] items-center border-b-2 border-black pb-3"><Image src={APP_LOGO_SRC} alt={APP_NAME} width={56} height={56} className="h-14 w-14 object-contain" /><h2 className="text-center text-lg font-bold">{APP_NAME} GÜNLÜK İMALAT</h2><p className="text-right text-sm font-semibold">Tarih: {from === to ? formatDate(from) : `${formatDate(from)} - ${formatDate(to)}`}</p></div>
+      <div className="grid grid-cols-[100px_1fr_140px] items-center border-b-2 border-black pb-3"><div className="h-14"><CompanyLogo brand={brand} className="h-14 max-w-[100px] object-contain" /></div><h2 className="text-center text-lg font-bold">{brand.name} · GÜNLÜK İMALAT</h2><p className="text-right text-sm font-semibold">Tarih: {from === to ? formatDate(from) : `${formatDate(from)} - ${formatDate(to)}`}</p></div>
       <div className="mt-5 space-y-5">{filteredReport.map((entry, entryIndex) => { const accent = accents[entryIndex % accents.length]; return <article key={entry.id} className={`production-print-team border-2 border-l-8 border-black ${accent.border}`}><div className="border-b-2 border-black bg-slate-100 px-4 py-2 font-bold">EKİP ADI: {entry.team_leader_name_snapshot}</div><div className="space-y-3 p-3">{entry.jobs.map((job, jobIndex) => <div key={job.id} className="production-print-job border border-black p-3"><div className="mb-2 flex items-center justify-between border-b border-black pb-2"><strong>İŞ / PROJE {jobIndex + 1}</strong><strong>ID: {job.project_code_snapshot || "-"}</strong></div><div className="mb-3 text-center font-bold">{job.project_name_snapshot}</div><ol className="list-decimal space-y-2 pl-6">{job.items.map((item) => <li key={item.id}>{legacyDescription(item.item_name_snapshot, item.quantity, item.unit_snapshot)}</li>)}</ol></div>)}</div></article>; })}{!filteredReport.length && <p className="py-10 text-center">Filtreye uygun kayıt yok.</p>}</div>
     </section>
 

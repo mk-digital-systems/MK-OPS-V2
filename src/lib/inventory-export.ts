@@ -1,8 +1,10 @@
 import type { InventoryCatalog, InventoryMaterial, InventoryStockCategory } from "@/types/inventory";
 import { INVENTORY_STOCK_CATEGORIES, INVENTORY_UNITS } from "@/lib/constants/inventory";
-import { APP_NAME } from "@/lib/constants/brand";
+import { fitLogo, loadLogoImage, type ReportBrand } from "@/lib/report-brand";
+import { embedRoboto } from "@/lib/pdf-fonts";
 
 type InventoryExportOptions = {
+  brand: ReportBrand;
   catalogs: InventoryCatalog[];
   materials: InventoryMaterial[];
   categories: InventoryStockCategory[];
@@ -28,11 +30,11 @@ const COLUMNS: { header: string; key: keyof ExportRow; width: number }[] = [
   { header: "Merkez Depo Stok", key: "center", width: 18 },
 ];
 
-export function getInventoryExportTitle(categories: InventoryStockCategory[]) {
+export function getInventoryExportTitle(brandName: string, categories: InventoryStockCategory[]) {
   const names = INVENTORY_STOCK_CATEGORIES
     .filter((item) => categories.includes(item.value))
     .map((item) => item.label.replace(/ Malzeme$/, ""));
-  return `${APP_NAME} ${names.join(" / ")} MALZEME LİSTESİ`.toLocaleUpperCase("tr-TR");
+  return `${brandName} ${names.join(" / ")} MALZEME LİSTESİ`.toLocaleUpperCase("tr-TR");
 }
 
 function buildRows({ catalogs, materials, categories }: InventoryExportOptions) {
@@ -61,14 +63,18 @@ function buildRows({ catalogs, materials, categories }: InventoryExportOptions) 
 const formatToday = () => new Intl.DateTimeFormat("tr-TR").format(new Date());
 
 export async function downloadInventoryStockExcel(options: InventoryExportOptions & { fileName: string }) {
-  const { Workbook } = await import("exceljs");
+  const [{ Workbook }, logo] = await Promise.all([import("exceljs"), loadLogoImage(options.brand.logoUrl)]);
   const workbook = new Workbook();
   const worksheet = workbook.addWorksheet("Malzeme Stok");
   worksheet.columns = COLUMNS.map(({ key, width }) => ({ key, width }));
 
-  const titleRow = worksheet.addRow([getInventoryExportTitle(options.categories)]);
+  const titleRow = worksheet.addRow([getInventoryExportTitle(options.brand.name, options.categories)]);
   worksheet.mergeCells(titleRow.number, 1, titleRow.number, COLUMNS.length);
-  titleRow.height = 32;
+  titleRow.height = logo ? 48 : 32;
+  if (logo) {
+    const imageId = workbook.addImage({ base64: logo.dataUrl, extension: "png" });
+    worksheet.addImage(imageId, { tl: { col: 0.1, row: titleRow.number - 1 + 0.1 }, ext: fitLogo(logo, 110, 56) });
+  }
   titleRow.getCell(1).font = { bold: true, size: 14 };
   titleRow.getCell(1).alignment = { vertical: "middle", horizontal: "center", wrapText: true };
 
@@ -124,23 +130,24 @@ export async function downloadInventoryStockExcel(options: InventoryExportOption
 }
 
 export async function downloadInventoryStockPdf(options: InventoryExportOptions & { fileName: string }) {
-  const [{ default: jsPDF }, { default: autoTable }, regular, bold] = await Promise.all([
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
     import("jspdf"),
     import("jspdf-autotable"),
-    loadFontBase64("/fonts/Roboto-Regular.ttf"),
-    loadFontBase64("/fonts/Roboto-Bold.ttf"),
   ]);
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-  // Varsayılan PDF fontları Türkçe karakterleri (ş, ğ, İ, ı) desteklemediği için Roboto gömülür.
-  pdf.addFileToVFS("Roboto-Regular.ttf", regular);
-  pdf.addFont("Roboto-Regular.ttf", "Roboto", "normal");
-  pdf.addFileToVFS("Roboto-Bold.ttf", bold);
-  pdf.addFont("Roboto-Bold.ttf", "Roboto", "bold");
+  await embedRoboto(pdf);
 
   const pageWidth = pdf.internal.pageSize.getWidth();
-  const titleLines: string[] = pdf.setFont("Roboto", "bold").setFontSize(13).splitTextToSize(getInventoryExportTitle(options.categories), pageWidth - 28);
-  pdf.text(titleLines, pageWidth / 2, 16, { align: "center" });
-  const dateY = 16 + titleLines.length * 6;
+  const logo = await loadLogoImage(options.brand.logoUrl);
+  let titleY = 16;
+  if (logo) {
+    const size = fitLogo(logo, 40, 16);
+    pdf.addImage(logo.dataUrl, "PNG", (pageWidth - size.width) / 2, 8, size.width, size.height);
+    titleY = 8 + size.height + 7;
+  }
+  const titleLines: string[] = pdf.setFont("Roboto", "bold").setFontSize(13).splitTextToSize(getInventoryExportTitle(options.brand.name, options.categories), pageWidth - 28);
+  pdf.text(titleLines, pageWidth / 2, titleY, { align: "center" });
+  const dateY = titleY + titleLines.length * 6;
   pdf.setFont("Roboto", "normal").setFontSize(9).text(`Tarih: ${formatToday()}`, pageWidth - 14, dateY, { align: "right" });
 
   autoTable(pdf, {
@@ -156,17 +163,6 @@ export async function downloadInventoryStockPdf(options: InventoryExportOptions 
     },
   });
   pdf.save(options.fileName);
-}
-
-async function loadFontBase64(path: string) {
-  const response = await fetch(path);
-  if (!response.ok) throw new Error("PDF fontu yüklenemedi");
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  let binary = "";
-  for (let index = 0; index < bytes.length; index += 0x8000) {
-    binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000));
-  }
-  return btoa(binary);
 }
 
 function downloadBlob(blob: Blob, fileName: string) {

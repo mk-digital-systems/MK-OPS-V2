@@ -8,10 +8,10 @@ import type { DailyWorkPlanWithTeams } from "@/types/work-plan";
 import { buildWhatsAppText } from "@/modules/work-plans/whatsapp-formatter";
 import { formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { BrandLogo } from "@/components/layout/brand-logo";
+import { useLogoDataUrl, useReportBrand } from "@/components/layout/company-brand-provider";
 import { WorkPlanTeamTable } from "@/components/work-plans/work-plan-team-table";
 import { WorkPlanAbsences } from "@/components/work-plans/work-plan-absences";
-import { APP_NAME, FILE_NAME_PREFIX } from "@/lib/constants/brand";
+import { brandFilePrefix } from "@/lib/report-brand";
 
 type Props = {
   plan: DailyWorkPlanWithTeams;
@@ -24,6 +24,8 @@ type Props = {
 export function WhatsAppPreview({ plan, open, onClose, onEdit, onShared }: Props) {
   const posterRef = useRef<HTMLDivElement>(null);
   const [sharing, setSharing] = useState(false);
+  const brand = useReportBrand();
+  const logoDataUrl = useLogoDataUrl(brand);
 
   const text = useMemo(() => buildWhatsAppText(plan), [plan]);
 
@@ -132,7 +134,7 @@ export function WhatsAppPreview({ plan, open, onClose, onEdit, onShared }: Props
       const a = document.createElement("a");
 
       a.href = url;
-      a.download = `gunluk-is-plani-${plan.plan_date}.png`;
+      a.download = `${brandFilePrefix(brand)}-gunluk-is-plani-${plan.plan_date}.png`;
 
       a.click();
 
@@ -158,7 +160,7 @@ export function WhatsAppPreview({ plan, open, onClose, onEdit, onShared }: Props
 
       const file = new File(
         [blob],
-        `${FILE_NAME_PREFIX}-gunluk-is-plani-${plan.plan_date}.png`,
+        `${brandFilePrefix(brand)}-gunluk-is-plani-${plan.plan_date}.png`,
         {
           type: "image/png",
         }
@@ -167,8 +169,8 @@ export function WhatsAppPreview({ plan, open, onClose, onEdit, onShared }: Props
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({
           files: [file],
-          title: `${APP_NAME} Günlük İş Planı`,
-          text: `${APP_NAME} Günlük İş Planı — ${plan.plan_date}`,
+          title: `${brand.name} Günlük İş Planı`,
+          text: `${brand.name} Günlük İş Planı — ${plan.plan_date}`,
         });
         await onShared?.();
         return;
@@ -176,7 +178,7 @@ export function WhatsAppPreview({ plan, open, onClose, onEdit, onShared }: Props
 
       if (navigator.share) {
         await navigator.share({
-          title: `${APP_NAME} Günlük İş Planı`,
+          title: `${brand.name} Günlük İş Planı`,
           text,
         });
         await onShared?.();
@@ -229,11 +231,14 @@ export function WhatsAppPreview({ plan, open, onClose, onEdit, onShared }: Props
             className="w-full min-w-0 overflow-hidden rounded-2xl border bg-white p-3 text-[#111111] shadow-sm sm:p-5"
           >
             {/* BAŞLIK */}
-            <div className="mb-3 grid grid-cols-[56px_1fr_auto] items-center gap-3 border-2 border-b-0 border-[#000000] bg-[#999999] px-3 py-2.5 text-[#111111]">
-              <BrandLogo size={42} />
-              <div>
-                <p className="text-[15px] font-extrabold tracking-wide">
-                  {APP_NAME}
+            <div className="mb-3 flex items-center gap-3 border-2 border-b-0 border-[#000000] bg-[#999999] px-3 py-2.5 text-[#111111]">
+              {logoDataUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoDataUrl} alt={brand.name} className="h-[42px] max-w-[110px] shrink-0 rounded bg-white object-contain p-0.5" />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="break-words text-[15px] font-extrabold tracking-wide">
+                  {brand.name}
                 </p>
                 <p className="mt-0.5 text-[11px] font-semibold tracking-wide text-[#111111]">
                   GÜNLÜK İŞ PLANI

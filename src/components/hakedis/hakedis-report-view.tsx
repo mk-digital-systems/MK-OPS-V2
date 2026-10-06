@@ -3,14 +3,15 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { AlertTriangle, FileSpreadsheet, Loader2 } from "lucide-react";
+import { AlertTriangle, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { CurrencyCode } from "@/types/auth";
 import type { HakedisReport } from "@/types/hakedis";
 import type { HakedisPeriod } from "@/lib/hakedis";
 import { formatMoney } from "@/lib/hakedis";
 import { formatQuantity } from "@/lib/constants/project";
-import { FILE_NAME_PREFIX } from "@/lib/constants/brand";
+import { brandFilePrefix } from "@/lib/report-brand";
+import { useReportBrand } from "@/components/layout/company-brand-provider";
 import { cn, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,7 +34,8 @@ export function HakedisReportView({ report, periods, currency, canEditPrices }: 
   const [tab, setTab] = useState<Tab>("projects");
   const [customStart, setCustomStart] = useState(report.start);
   const [customEnd, setCustomEnd] = useState(report.end);
-  const [exporting, setExporting] = useState(false);
+  const [exporting, setExporting] = useState<"excel" | "pdf" | null>(null);
+  const brand = useReportBrand();
   const selectedPeriod = periods.find((period) => period.start === report.start && period.end === report.end);
   const money = (value: number | null) => formatMoney(value, currency);
 
@@ -41,8 +43,20 @@ export function HakedisReportView({ report, periods, currency, canEditPrices }: 
     startTransition(() => router.push(`${pathname}?start=${start}&end=${end}`));
   }
 
+  async function exportPdf() {
+    setExporting("pdf");
+    try {
+      const { downloadHakedisPdf } = await import("@/lib/hakedis-pdf");
+      await downloadHakedisPdf(brand, report, currency);
+    } catch (error) {
+      toast.error("PDF oluşturulamadı", { description: (error as Error)?.message });
+    } finally {
+      setExporting(null);
+    }
+  }
+
   async function exportExcel() {
-    setExporting(true);
+    setExporting("excel");
     try {
       const { Workbook } = await import("exceljs");
       const workbook = new Workbook();
@@ -50,12 +64,14 @@ export function HakedisReportView({ report, periods, currency, canEditPrices }: 
 
       const summary = workbook.addWorksheet("Özet");
       summary.addRows([
+        ["Firma", brand.name],
         ["Hakediş dönemi", `${formatDate(report.start)} – ${formatDate(report.end)}`],
         ["Toplam hakediş", Number(report.total_amount)],
         ["Fiyatlı kayıt", report.priced_count],
         ["Fiyatsız kayıt", report.unpriced_count],
       ]);
-      summary.getCell("B2").numFmt = moneyFormat;
+      summary.getCell("B3").numFmt = moneyFormat;
+      summary.getColumn(1).font = { bold: true };
       summary.getColumn(1).width = 22;
       summary.getColumn(2).width = 30;
 
@@ -117,13 +133,13 @@ export function HakedisReportView({ report, periods, currency, canEditPrices }: 
       const url = URL.createObjectURL(new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `${FILE_NAME_PREFIX}-hakedis-${report.start}_${report.end}.xlsx`;
+      anchor.download = `${brandFilePrefix(brand)}-hakedis-${report.start}_${report.end}.xlsx`;
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (error) {
       toast.error("Excel oluşturulamadı", { description: (error as Error)?.message });
     } finally {
-      setExporting(false);
+      setExporting(null);
     }
   }
 
@@ -141,10 +157,16 @@ export function HakedisReportView({ report, periods, currency, canEditPrices }: 
           <h1 className="text-3xl font-semibold tracking-tight">Hakediş</h1>
           <p className="mt-1 text-sm text-muted-foreground">Yapılan işin değeri: miktar × birim fiyat</p>
         </div>
-        <Button variant="outline" onClick={exportExcel} disabled={exporting || report.rows.length === 0}>
-          {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
-          Excel
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportPdf} disabled={exporting !== null || report.rows.length === 0}>
+            {exporting === "pdf" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+            PDF
+          </Button>
+          <Button variant="outline" onClick={exportExcel} disabled={exporting !== null || report.rows.length === 0}>
+            {exporting === "excel" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+            Excel
+          </Button>
+        </div>
       </div>
 
       <Card>

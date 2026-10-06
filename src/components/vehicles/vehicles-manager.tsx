@@ -9,6 +9,7 @@ import type { Vehicle, VehicleFuelLog } from "@/types/vehicle";
 import type { Personnel } from "@/types/work-plan";
 import type { InventoryCustodyBalance } from "@/types/inventory";
 import { downloadVehicleEquipmentWord } from "@/lib/vehicle-equipment-word";
+import { useReportBrand } from "@/components/layout/company-brand-provider";
 import {
   vehicleSchema,
   type VehicleFormValues,
@@ -42,6 +43,7 @@ export function VehiclesManager({
   personnel: Personnel[];
   readOnly?: boolean;
 }) {
+  const brand = useReportBrand();
   const [vehicles, setVehicles] = useState(initialVehicles);
   const [editing, setEditing] = useState<Vehicle | null>(null);
   const [open, setOpen] = useState(false);
@@ -309,7 +311,7 @@ export function VehiclesManager({
                           variant="outline"
                           size="sm"
                           disabled={vehicleEquipment.length === 0}
-                          onClick={() => downloadVehicleEquipmentWord(vehicle, vehicleEquipment)}
+                          onClick={() => downloadVehicleEquipmentWord(brand, vehicle, vehicleEquipment)}
                         >
                           <Download className="h-4 w-4" /> Word
                         </Button>

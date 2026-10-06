@@ -1,19 +1,20 @@
 import type { SharedNote } from "@/types/note";
-import { APP_NAME, FILE_NAME_PREFIX } from "@/lib/constants/brand";
+import { brandFilePrefix, loadLogoImage, type ReportBrand } from "@/lib/report-brand";
 
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
 const MARGIN_MM = 14;
 const RENDER_WIDTH_PX = 760;
 
-export async function downloadNotesPdf(notes: SharedNote[]) {
+export async function downloadNotesPdf(brand: ReportBrand, notes: SharedNote[]) {
   if (!notes.length) throw new Error("PDF oluşturmak için en az bir not bulunmalıdır");
 
-  const [{ default: jsPDF }, { toPng }] = await Promise.all([
+  const [{ default: jsPDF }, { toPng }, logo] = await Promise.all([
     import("jspdf"),
     import("html-to-image"),
+    loadLogoImage(brand.logoUrl),
   ]);
-  const root = buildNotesDom(notes);
+  const root = buildNotesDom(brand, logo?.dataUrl ?? null, notes);
   document.body.appendChild(root);
 
   try {
@@ -31,13 +32,13 @@ export async function downloadNotesPdf(notes: SharedNote[]) {
 
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
     pdf.addImage(imageUrl, "PNG", x, MARGIN_MM, width, height, undefined, "FAST");
-    pdf.save(`${FILE_NAME_PREFIX}-Notlar-${todayFileName()}.pdf`);
+    pdf.save(`${brandFilePrefix(brand)}-Notlar-${todayFileName()}.pdf`);
   } finally {
     root.remove();
   }
 }
 
-function buildNotesDom(notes: SharedNote[]) {
+function buildNotesDom(brand: ReportBrand, logoDataUrl: string | null, notes: SharedNote[]) {
   const root = document.createElement("section");
   Object.assign(root.style, {
     position: "absolute",
@@ -55,8 +56,15 @@ function buildNotesDom(notes: SharedNote[]) {
 
   const header = document.createElement("header");
   Object.assign(header.style, { borderBottom: "3px solid #111827", paddingBottom: "16px", marginBottom: "22px", textAlign: "center" });
+  if (logoDataUrl) {
+    const logo = document.createElement("img");
+    logo.src = logoDataUrl;
+    logo.alt = brand.name;
+    Object.assign(logo.style, { display: "block", margin: "0 auto 10px", maxWidth: "200px", maxHeight: "64px", objectFit: "contain" });
+    header.appendChild(logo);
+  }
   const title = document.createElement("h1");
-  title.textContent = `${APP_NAME} · NOTLAR`;
+  title.textContent = `${brand.name} · NOTLAR`;
   Object.assign(title.style, { margin: "0", fontSize: "25px", fontWeight: "700" });
   const created = document.createElement("p");
   created.textContent = `Çıktı tarihi: ${new Intl.DateTimeFormat("tr-TR").format(new Date())}`;
