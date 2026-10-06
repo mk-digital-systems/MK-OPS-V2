@@ -1,7 +1,7 @@
 import type { AuditAction, AuditModule } from "@/types/audit";
 import { USER_ROLE_LABELS, type UserRole } from "@/types/auth";
 import { PROJECT_STATUSES, STAGE_STATUSES } from "@/lib/constants/project";
-import { INVENTORY_STOCK_CATEGORIES, INVENTORY_UNITS } from "@/lib/constants/inventory";
+import { INVENTORY_UNITS } from "@/lib/constants/inventory";
 
 export const AUDIT_MODULES: { value: AuditModule; label: string }[] = [
   { value: "projects", label: "Projeler" },
@@ -39,6 +39,8 @@ export const AUDIT_ENTITY_LABELS: Record<string, string> = {
   profiles: "Kullanıcı",
   company_manager_permissions: "Modül yetkileri",
   companies: "Firma",
+  inventory_categories: "Malzeme kategorisi",
+  inventory_locations: "Depo",
 };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -97,7 +99,8 @@ const FIELD_LABELS: Record<string, string> = {
   // Stok
   material_name: "Malzeme",
   material_code: "Malzeme ID",
-  stock_category: "Kategori",
+  category_id: "Kategori",
+  is_main: "Ana depo",
   material_category: "Malzeme sınıfı",
   material_type: "Tür",
   size: "Ebat",
@@ -160,7 +163,6 @@ export function formatAuditValue(field: string, value: unknown, entityType: stri
     return statuses.find((item) => item.value === value)?.label ?? value;
   }
   if (field === "role") return USER_ROLE_LABELS[value as UserRole] ?? (value === "super_admin" ? "MK OPS Destek" : value);
-  if (field === "stock_category") return INVENTORY_STOCK_CATEGORIES.find((item) => item.value === value)?.label ?? value;
   if (field === "unit" && entityType.startsWith("inventory")) return INVENTORY_UNITS.find((item) => item.value === value)?.label ?? value;
   if (field === "logo_path" || field === "image_url") return "Dosya";
   if (UUID.test(value)) return "—";

@@ -1,14 +1,20 @@
-import type { InventoryStockCategory, InventoryUnit } from "@/types/inventory";
+import type { InventoryCategory, InventoryLocation, InventoryMaterial, InventoryUnit } from "@/types/inventory";
 
-export const INVENTORY_STOCK_CATEGORIES: { value: InventoryStockCategory; label: string }[] = [
-  { value: "fiber_cable", label: "Fiber Kablo Malzeme" },
-  { value: "copper_network", label: "Bakır Şebeke Malzeme" },
-  { value: "fiber_accessory", label: "Fiber Ek Malzeme" },
-  { value: "underground", label: "Yeraltı Malzeme" },
-];
+export const UNCATEGORIZED_LABEL = "Kategorisiz";
 
-export function getInventoryStockCategoryLabel(category: InventoryStockCategory | null) {
-  return INVENTORY_STOCK_CATEGORIES.find((item) => item.value === category)?.label ?? "Kategorisiz";
+export function getCategoryName(categories: InventoryCategory[], id: string | null | undefined) {
+  return categories.find((item) => item.id === id)?.name ?? UNCATEGORIZED_LABEL;
+}
+
+/** Malzemenin verilen depodaki stoğu. */
+export function stockAt(material: InventoryMaterial, location: InventoryLocation) {
+  if (location.is_main) return Number(material.stock_quantity);
+  return Number(material.location_stocks?.find((item) => item.location_id === location.id)?.quantity ?? 0);
+}
+
+/** Malzemenin bütün depolardaki toplam stoğu. */
+export function totalStock(material: InventoryMaterial) {
+  return Number(material.stock_quantity) + (material.location_stocks ?? []).reduce((sum, item) => sum + Number(item.quantity), 0);
 }
 
 export const INVENTORY_UNITS: {

@@ -27,8 +27,9 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 | 7a | İş planında ekibe araç atamak opsiyonel | ✅ |
 | 8 | Firma logosu ve adı tüm çıktılarda; hakediş PDF'i (logo filigranlı) | ✅ |
 | 9 | Denetim kaydı: veritabanı tetikleyicisiyle işlem geçmişi, Ayarlar → İşlem Geçmişi | ✅ |
+| 10 | Malzeme stoku: firmaya özel kategoriler, çoklu depo, depolar arası sevkiyat (telekom kategorileri ve Biga şubesi kaldırıldı) | ✅ |
 
-Kurulu migration'lar: `20261005000000` … `20261009000001`. Kurulacak: `20261010000001_audit_log.sql`.
+Kurulu migration'lar: `20261005000000` … `20261011000001`. Kurulacak: `20261011000002_inventory_messages.sql`.
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.
 
 ---

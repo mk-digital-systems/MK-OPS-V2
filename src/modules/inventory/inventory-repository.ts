@@ -10,8 +10,8 @@ import type {
   InventoryUnit,
   InventoryMaterialCategory,
   InventoryLocation,
+  InventoryCategory,
   InventoryShipment,
-  InventoryStockCategory,
   InventoryReceipt,
   InventoryCatalog,
   InventoryRequest,
@@ -23,7 +23,7 @@ export class InventoryRepository {
   async listMaterials(category?: InventoryMaterialCategory): Promise<InventoryMaterial[]> {
     let query = this.supabase
       .from("inventory_materials")
-      .select("*")
+      .select("*, location_stocks:inventory_location_stocks(location_id, quantity)")
       .order("material_name");
     if (category) query = query.eq("material_category", category);
     const { data, error } = await query;
@@ -63,40 +63,56 @@ export class InventoryRepository {
     return (data ?? []) as InventoryMovement[];
   }
 
-  async createMaterial(payload: {
-    material_name: string;
-    material_code?: string;
-    unit: InventoryUnit;
-    initial_quantity: number;
-    stock_category: InventoryStockCategory;
-    receipt_date: string;
-    received_by: string;
-    dispatch_number: string;
-    notes?: string;
-  }): Promise<InventoryMaterial> {
-    const { data, error } = await this.supabase.rpc(
-      "create_inventory_material",
-      {
-        p_material_name: payload.material_name,
-        p_material_code: payload.material_code || null,
-        p_unit: payload.unit,
-        p_initial_quantity: payload.initial_quantity,
-        p_stock_category: payload.stock_category,
-        p_receipt_date: payload.receipt_date,
-        p_received_by: payload.received_by,
-        p_dispatch_number: payload.dispatch_number,
-        p_notes: payload.notes || null,
-      }
-    );
+  async listCategories(): Promise<InventoryCategory[]> {
+    const { data, error } = await this.supabase
+      .from("inventory_categories")
+      .select("id, name, sort_order")
+      .order("sort_order")
+      .order("name");
     if (error) throw error;
-    return data as InventoryMaterial;
+    return (data ?? []) as InventoryCategory[];
+  }
+
+  async saveCategory(id: string | null, name: string): Promise<string> {
+    const { data, error } = await this.supabase.rpc("save_inventory_category", { p_id: id, p_name: name });
+    if (error) throw error;
+    return data as string;
+  }
+
+  async deleteCategory(id: string): Promise<void> {
+    const { error } = await this.supabase.rpc("delete_inventory_category", { p_id: id });
+    if (error) throw error;
+  }
+
+  /** Ana depo her zaman ilk sırada. */
+  async listLocations(): Promise<InventoryLocation[]> {
+    const { data, error } = await this.supabase
+      .from("inventory_locations")
+      .select("id, name, is_main, sort_order")
+      .order("is_main", { ascending: false })
+      .order("sort_order")
+      .order("name");
+    if (error) throw error;
+    return (data ?? []) as InventoryLocation[];
+  }
+
+  async saveLocation(id: string | null, name: string): Promise<string> {
+    const { data, error } = await this.supabase.rpc("save_inventory_location", { p_id: id, p_name: name });
+    if (error) throw error;
+    return data as string;
+  }
+
+  async deleteLocation(id: string): Promise<void> {
+    const { error } = await this.supabase.rpc("delete_inventory_location", { p_id: id });
+    if (error) throw error;
   }
 
   async recordMovement(payload: {
     material_id: string;
     movement_type: InventoryMovementType;
     quantity: number;
-    source_location?: InventoryLocation;
+    /** Boşsa ana depo */
+    location_id?: string | null;
     project_name?: string;
     project_code?: string;
     team_personnel_ids?: string[];
@@ -108,7 +124,7 @@ export class InventoryRepository {
         p_material_id: payload.material_id,
         p_movement_type: payload.movement_type,
         p_quantity: payload.quantity,
-        p_source_location: payload.source_location || "center",
+        p_location_id: payload.location_id || null,
         p_project_name: payload.project_name || null,
         p_project_code: payload.project_code || null,
         p_team_personnel_ids: payload.team_personnel_ids || [],
@@ -138,7 +154,7 @@ export class InventoryRepository {
 
   async listReceipts(limit = 100): Promise<InventoryReceipt[]> {
     const { data, error } = await this.supabase.from("inventory_receipts")
-      .select("*, items:inventory_receipt_items(*, material:inventory_materials(material_name,material_code,unit,stock_category,material_type,size))")
+      .select("*, items:inventory_receipt_items(*, material:inventory_materials(material_name,material_code,unit,category_id,material_type,size))")
       .order("receipt_date", { ascending: false }).order("created_at", { ascending: false }).limit(limit);
     if (error) throw error;
     return (data ?? []) as InventoryReceipt[];
@@ -162,7 +178,7 @@ export class InventoryRepository {
       quantity: number;
       new_catalog?: {
         material_name: string;
-        stock_category: InventoryStockCategory;
+        category_id: string | null;
         material_type?: string;
         size?: string;
         unit: InventoryUnit;
@@ -209,19 +225,20 @@ export class InventoryRepository {
     if (error) throw error;
   }
 
-  async createCatalogMaterial(payload: { material_name: string; stock_category: InventoryStockCategory; material_type?: string; size?: string; unit: InventoryUnit; has_id: boolean; notes?: string }): Promise<void> {
+  async createCatalogMaterial(payload: { material_name: string; category_id: string | null; material_type?: string; size?: string; unit: InventoryUnit; has_id: boolean; notes?: string }): Promise<void> {
     const { error } = await this.supabase.rpc("create_inventory_catalog_material", {
       p_material_name: payload.material_name,
-      p_stock_category: payload.stock_category, p_material_type: payload.material_type || null,
+      p_category_id: payload.category_id, p_material_type: payload.material_type || null,
       p_size: payload.size || null, p_unit: payload.unit, p_has_id: payload.has_id, p_notes: payload.notes || null,
     });
     if (error) throw error;
   }
 
-  async createReceipt(payload: { receipt_date: string; received_by: string; dispatch_number: string; notes?: string; items: { catalog_id: string; material_code?: string; quantity: number }[] }): Promise<void> {
+  async createReceipt(payload: { receipt_date: string; received_by: string; dispatch_number: string; notes?: string; location_id: string | null; items: { catalog_id: string; material_code?: string; quantity: number }[] }): Promise<void> {
     const { error } = await this.supabase.rpc("create_inventory_receipt", {
       p_receipt_date: payload.receipt_date, p_received_by: payload.received_by,
       p_dispatch_number: payload.dispatch_number, p_notes: payload.notes || null, p_items: payload.items,
+      p_location_id: payload.location_id,
     });
     if (error) throw error;
   }
@@ -236,41 +253,33 @@ export class InventoryRepository {
     if (error) throw error;
   }
 
-  async transferToBiga(payload: {
-    material_id: string;
-    quantity: number;
-    description?: string;
-  }): Promise<InventoryMaterial> {
-    const { data, error } = await this.supabase.rpc("transfer_inventory_to_biga", {
-      p_material_id: payload.material_id,
-      p_quantity: payload.quantity,
-      p_description: payload.description || null,
-    });
-    if (error) throw error;
-    return data as InventoryMaterial;
-  }
-
-  async createBigaShipment(payload: {
+  /** Depolar arası sevkiyat */
+  async createTransfer(payload: {
     shipment_date: string;
+    from_location_id: string;
+    to_location_id: string;
     delivered_by: string;
     received_by: string;
-    vehicle_plate: string;
+    vehicle_plate?: string;
     notes?: string;
     items: { material_id: string; quantity: number }[];
   }): Promise<void> {
-    const { error } = await this.supabase.rpc("create_biga_inventory_shipment", {
+    const { error } = await this.supabase.rpc("create_inventory_transfer", {
       p_shipment_date: payload.shipment_date,
+      p_from_location_id: payload.from_location_id,
+      p_to_location_id: payload.to_location_id,
       p_delivered_by: payload.delivered_by,
       p_received_by: payload.received_by,
-      p_vehicle_plate: payload.vehicle_plate,
+      p_vehicle_plate: payload.vehicle_plate || null,
       p_notes: payload.notes || null,
       p_items: payload.items,
     });
     if (error) throw error;
   }
 
-  async deleteShipment(id: string): Promise<void> {
-    const { error } = await this.supabase.rpc("delete_biga_inventory_shipment", { p_shipment_id: id });
+  /** Sevkiyatı geri alır (varış deposundaki stok kullanılmamışsa). */
+  async deleteTransfer(id: string): Promise<void> {
+    const { error } = await this.supabase.rpc("delete_inventory_transfer", { p_shipment_id: id });
     if (error) throw error;
   }
 

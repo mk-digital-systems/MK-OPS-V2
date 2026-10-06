@@ -23,7 +23,7 @@ const MODES: { value: SignupMode; label: string; hint: string; icon: typeof Buil
   {
     value: "join",
     label: "Şirkete katıl",
-    hint: "Şantiye şefinizden aldığınız 4 haneli kodu girin; şef onaylayınca erişirsiniz.",
+    hint: "Firma yöneticinizden aldığınız 4 haneli kodu girin; yönetici onaylayınca erişirsiniz.",
     icon: UserPlus,
   },
 ];

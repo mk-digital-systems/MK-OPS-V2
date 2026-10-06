@@ -9,7 +9,7 @@ export const inventoryMaterialSchema = z
   .object({
     material_name: z.string().trim().min(2, "Malzeme cinsi zorunlu").max(150),
     material_code: z.string().trim().max(80).optional().or(z.literal("")),
-    stock_category: z.enum(["fiber_accessory", "fiber_cable", "copper_network", "underground"]),
+    category_id: z.string().uuid().nullable(),
     unit: z.enum(["piece", "meter", "kilogram"]),
     initial_quantity: quantity,
     receipt_date: z.string().date("Giriş tarihi zorunlu"),
@@ -29,7 +29,7 @@ export const inventoryMaterialSchema = z
 
 export const inventoryMovementSchema = z.object({
   quantity,
-  source_location: z.enum(["center", "biga"]),
+  location_id: z.string().uuid().nullable(),
   project_name: z.string().trim().max(250).optional().or(z.literal("")),
   project_code: z.string().trim().max(100).optional().or(z.literal("")),
   team_personnel_ids: z.array(z.string().uuid()),

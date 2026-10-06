@@ -11,10 +11,11 @@ export const metadata = {
 export default async function InventoryPage() {
   const supabase = await createClient();
   const repository = new InventoryRepository(supabase);
-  const [materials, catalogs, movements, shipments, receipts, requests, personnel, canWrite] = await Promise.all([
+  const [materials, catalogs, categories, locations, shipments, receipts, requests, personnel, canWrite] = await Promise.all([
     repository.listMaterials("stock"),
     repository.listCatalogs(),
-    repository.listMovements(),
+    repository.listCategories(),
+    repository.listLocations(),
     repository.listShipments(),
     repository.listReceipts(),
     repository.listRequests(),
@@ -26,7 +27,8 @@ export default async function InventoryPage() {
     <InventoryManager
       initialMaterials={materials}
       initialCatalogs={catalogs}
-      initialMovements={movements}
+      initialCategories={categories}
+      initialLocations={locations}
       initialShipments={shipments}
       initialReceipts={receipts}
       initialRequests={requests}

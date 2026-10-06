@@ -64,7 +64,7 @@ export function PendingApproval({
             ) : (
               <>
                 <strong>{companyName}</strong> şirketine katılma isteğiniz
-                alındı. Şantiye şefi hesabınızı onaylayıp görevinizi
+                alındı. Firma yöneticiniz hesabınızı onaylayıp görevinizi
                 belirledikten sonra sisteme erişebilirsiniz.
               </>
             )}

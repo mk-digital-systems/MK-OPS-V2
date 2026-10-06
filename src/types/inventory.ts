@@ -1,19 +1,39 @@
 export type InventoryUnit = "piece" | "meter" | "kilogram";
 export type InventoryMovementType = "in" | "out";
-export type InventoryLocation = "center" | "biga";
 export type InventoryMovementAction = "in" | "usage" | "transfer";
 export type InventoryMaterialCategory = "stock" | "equipment";
-export type InventoryStockCategory = "fiber_accessory" | "fiber_cable" | "copper_network" | "underground";
+
+/** Firmanın tanımladığı malzeme kategorisi */
+export type InventoryCategory = {
+  id: string;
+  name: string;
+  sort_order: number;
+};
+
+/** Depo / şube; is_main = ana depo (stoğu inventory_materials.stock_quantity) */
+export type InventoryLocation = {
+  id: string;
+  name: string;
+  is_main: boolean;
+  sort_order: number;
+};
+
+export type InventoryLocationStock = {
+  location_id: string;
+  quantity: number;
+};
 
 export type InventoryMaterial = {
   id: string;
   material_code: string | null;
   material_name: string;
   unit: InventoryUnit;
+  /** Ana depodaki stok */
   stock_quantity: number;
-  biga_stock_quantity: number;
+  /** Ana depo dışındaki depoların stoğu */
+  location_stocks?: InventoryLocationStock[];
   material_category: InventoryMaterialCategory;
-  stock_category: InventoryStockCategory | null;
+  category_id: string | null;
   material_type: string | null;
   size: string | null;
   catalog_id: string | null;
@@ -25,7 +45,7 @@ export type InventoryMaterial = {
 export type InventoryCatalog = {
   id: string;
   material_name: string;
-  stock_category: InventoryStockCategory;
+  category_id: string | null;
   material_type: string | null;
   size: string | null;
   unit: InventoryUnit;
@@ -41,8 +61,8 @@ export type InventoryMovement = {
   quantity: number;
   usage_location: string | null;
   action_type: InventoryMovementAction;
-  source_location: InventoryLocation | null;
-  target_location: InventoryLocation | null;
+  source_location_id: string | null;
+  target_location_id: string | null;
   project_name: string | null;
   project_code: string | null;
   team_personnel_ids: string[];
@@ -75,7 +95,9 @@ export type InventoryShipment = {
   delivered_by: string;
   received_by: string;
   vehicle_id: string | null;
-  vehicle_plate: string;
+  vehicle_plate: string | null;
+  from_location_id: string;
+  to_location_id: string;
   notes: string | null;
   created_at: string;
   items: InventoryShipmentItem[];
@@ -86,7 +108,7 @@ export type InventoryReceiptItem = {
   receipt_id: string;
   material_id: string;
   quantity: number;
-  material?: Pick<InventoryMaterial, "material_name" | "material_code" | "unit" | "stock_category" | "material_type" | "size"> | null;
+  material?: Pick<InventoryMaterial, "material_name" | "material_code" | "unit" | "category_id" | "material_type" | "size"> | null;
 };
 
 export type InventoryReceipt = {

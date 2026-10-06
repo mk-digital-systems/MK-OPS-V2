@@ -1,5 +1,5 @@
-import type { InventoryCatalog, InventoryMaterial, InventoryStockCategory } from "@/types/inventory";
-import { INVENTORY_STOCK_CATEGORIES, INVENTORY_UNITS } from "@/lib/constants/inventory";
+import type { InventoryCatalog, InventoryCategory, InventoryLocation, InventoryMaterial } from "@/types/inventory";
+import { INVENTORY_UNITS, UNCATEGORIZED_LABEL, getCategoryName, stockAt, totalStock } from "@/lib/constants/inventory";
 import { fitLogo, loadLogoImage, type ReportBrand } from "@/lib/report-brand";
 import { embedRoboto } from "@/lib/pdf-fonts";
 
@@ -7,69 +7,84 @@ type InventoryExportOptions = {
   brand: ReportBrand;
   catalogs: InventoryCatalog[];
   materials: InventoryMaterial[];
-  categories: InventoryStockCategory[];
+  categories: InventoryCategory[];
+  locations: InventoryLocation[];
+  /** Çıktıya alınacak kategoriler; null = kategorisiz */
+  selectedCategoryIds: (string | null)[];
 };
 
-type ExportRow = {
-  sequence: number;
-  category: string;
-  materialName: string;
-  materialType: string;
-  materialCode: string;
-  unit: string;
-  center: number;
-};
+type Column = { header: string; width: number; numeric?: boolean };
 
-const COLUMNS: { header: string; key: keyof ExportRow; width: number }[] = [
-  { header: "Sıra", key: "sequence", width: 7 },
-  { header: "Kategori", key: "category", width: 22 },
-  { header: "Malzeme Adı", key: "materialName", width: 32 },
-  { header: "Tür", key: "materialType", width: 18 },
-  { header: "Malzeme ID", key: "materialCode", width: 18 },
-  { header: "Birim", key: "unit", width: 10 },
-  { header: "Merkez Depo Stok", key: "center", width: 18 },
-];
-
-export function getInventoryExportTitle(brandName: string, categories: InventoryStockCategory[]) {
-  const names = INVENTORY_STOCK_CATEGORIES
-    .filter((item) => categories.includes(item.value))
-    .map((item) => item.label.replace(/ Malzeme$/, ""));
-  return `${brandName} ${names.join(" / ")} MALZEME LİSTESİ`.toLocaleUpperCase("tr-TR");
+/** Kategori adı listesi boşsa tüm malzemeler. */
+export function getInventoryExportTitle(brandName: string, categoryNames: string[]) {
+  const scope = categoryNames.length ? `${categoryNames.join(" / ")} ` : "";
+  return `${brandName} ${scope}MALZEME LİSTESİ`.toLocaleUpperCase("tr-TR");
 }
 
-function buildRows({ catalogs, materials, categories }: InventoryExportOptions) {
+function buildColumns(locations: InventoryLocation[]): Column[] {
+  return [
+    { header: "Sıra", width: 7, numeric: true },
+    { header: "Kategori", width: 20 },
+    { header: "Malzeme Adı", width: 30 },
+    { header: "Tür / Ebat", width: 18 },
+    { header: "Malzeme ID", width: 16 },
+    { header: "Birim", width: 9 },
+    ...locations.map((location) => ({ header: location.name, width: 14, numeric: true })),
+    ...(locations.length > 1 ? [{ header: "Toplam", width: 12, numeric: true }] : []),
+  ];
+}
+
+function buildRows({ catalogs, materials, categories, locations, selectedCategoryIds }: InventoryExportOptions) {
   const unitLabel = (unit: InventoryCatalog["unit"]) => INVENTORY_UNITS.find((item) => item.value === unit)?.label ?? unit;
-  const rows: ExportRow[] = [];
-  for (const category of INVENTORY_STOCK_CATEGORIES.filter((item) => categories.includes(item.value))) {
-    const categoryCatalogs = catalogs
-      .filter((catalog) => catalog.stock_category === category.value)
-      .sort((a, b) => a.material_name.localeCompare(b.material_name, "tr"));
-    for (const catalog of categoryCatalogs) {
-      const base = { category: category.label, materialName: catalog.material_name, materialType: catalog.material_type ?? "" };
-      // Yalnızca Merkez Depo stoğu raporlanır; Biga'ya tamamen sevk edilmiş ID'ler listelenmez.
-      const lots = materials.filter((item) => item.catalog_id === catalog.id && Number(item.stock_quantity) > 0);
-      if (!lots.length) {
-        rows.push({ sequence: rows.length + 1, ...base, materialCode: "", unit: unitLabel(catalog.unit), center: 0 });
-        continue;
-      }
-      for (const lot of lots) {
-        rows.push({ sequence: rows.length + 1, ...base, materialCode: lot.material_code ?? "", unit: unitLabel(lot.unit), center: Math.round(Number(lot.stock_quantity)) });
-      }
+  const order = new Map(categories.map((item, index) => [item.id, index]));
+  const rows: (string | number)[][] = [];
+  const selected = catalogs
+    .filter((catalog) => selectedCategoryIds.includes(catalog.category_id ?? null))
+    .sort((a, b) =>
+      ((order.get(a.category_id ?? "") ?? 999) - (order.get(b.category_id ?? "") ?? 999)) ||
+      a.material_name.localeCompare(b.material_name, "tr"));
+  for (const catalog of selected) {
+    const base = [
+      getCategoryName(categories, catalog.category_id),
+      catalog.material_name,
+      [catalog.material_type, catalog.size].filter(Boolean).join(" · "),
+    ];
+    // Stoğu tamamen tükenmiş ID'ler listelenmez.
+    const lots = materials.filter((item) => item.catalog_id === catalog.id && totalStock(item) > 0);
+    if (!lots.length) {
+      rows.push([rows.length + 1, ...base, "", unitLabel(catalog.unit), ...locations.map(() => 0), ...(locations.length > 1 ? [0] : [])]);
+      continue;
+    }
+    for (const lot of lots) {
+      rows.push([
+        rows.length + 1, ...base, lot.material_code ?? "", unitLabel(lot.unit),
+        ...locations.map((location) => stockAt(lot, location)),
+        ...(locations.length > 1 ? [totalStock(lot)] : []),
+      ]);
     }
   }
   return rows;
 }
 
+function exportTitle(options: InventoryExportOptions) {
+  const all = options.selectedCategoryIds.length === new Set([...options.categories.map((item) => item.id), ...options.catalogs.map((item) => item.category_id ?? null)]).size;
+  const names = all ? [] : options.selectedCategoryIds.map((id) => (id ? getCategoryName(options.categories, id) : UNCATEGORIZED_LABEL));
+  return getInventoryExportTitle(options.brand.name, names);
+}
+
 const formatToday = () => new Intl.DateTimeFormat("tr-TR").format(new Date());
+const formatNumber = (value: string | number) =>
+  typeof value === "number" ? value.toLocaleString("tr-TR", { maximumFractionDigits: 3 }) : value;
 
 export async function downloadInventoryStockExcel(options: InventoryExportOptions & { fileName: string }) {
   const [{ Workbook }, logo] = await Promise.all([import("exceljs"), loadLogoImage(options.brand.logoUrl)]);
+  const columns = buildColumns(options.locations);
   const workbook = new Workbook();
   const worksheet = workbook.addWorksheet("Malzeme Stok");
-  worksheet.columns = COLUMNS.map(({ key, width }) => ({ key, width }));
+  worksheet.columns = columns.map(({ width }) => ({ width }));
 
-  const titleRow = worksheet.addRow([getInventoryExportTitle(options.brand.name, options.categories)]);
-  worksheet.mergeCells(titleRow.number, 1, titleRow.number, COLUMNS.length);
+  const titleRow = worksheet.addRow([exportTitle(options)]);
+  worksheet.mergeCells(titleRow.number, 1, titleRow.number, columns.length);
   titleRow.height = logo ? 48 : 32;
   if (logo) {
     const imageId = workbook.addImage({ base64: logo.dataUrl, extension: "png" });
@@ -79,22 +94,29 @@ export async function downloadInventoryStockExcel(options: InventoryExportOption
   titleRow.getCell(1).alignment = { vertical: "middle", horizontal: "center", wrapText: true };
 
   const dateRow = worksheet.addRow([`Tarih: ${formatToday()}`]);
-  worksheet.mergeCells(dateRow.number, 1, dateRow.number, COLUMNS.length);
+  worksheet.mergeCells(dateRow.number, 1, dateRow.number, columns.length);
   dateRow.getCell(1).alignment = { vertical: "middle", horizontal: "right" };
   dateRow.getCell(1).font = { italic: true, size: 10 };
 
-  const headerRow = worksheet.addRow(COLUMNS.map((column) => column.header));
+  const headerRow = worksheet.addRow(columns.map((column) => column.header));
   headerRow.font = { bold: true };
   headerRow.height = 28;
   buildRows(options).forEach((row) => worksheet.addRow(row));
 
-  worksheet.getColumn("materialCode").numFmt = "@";
-  worksheet.getColumn("center").numFmt = "0";
+  columns.forEach((column, index) => {
+    if (column.numeric && index > 0) worksheet.getColumn(index + 1).numFmt = "#,##0.###";
+  });
+  worksheet.getColumn(5).numFmt = "@";
   worksheet.eachRow((row, rowNumber) => {
     if (rowNumber < headerRow.number) return;
     if (rowNumber > headerRow.number) row.height = 20;
-    row.eachCell({ includeEmpty: true }, (cell) => {
-      cell.alignment = { vertical: "middle", horizontal: rowNumber === headerRow.number ? "center" : "left" };
+    row.eachCell({ includeEmpty: true }, (cell, columnNumber) => {
+      const numeric = columns[columnNumber - 1]?.numeric;
+      cell.alignment = {
+        vertical: "middle",
+        horizontal: rowNumber === headerRow.number ? "center" : numeric ? "right" : "left",
+        wrapText: rowNumber === headerRow.number,
+      };
       cell.border = {
         top: { style: "thin" },
         left: { style: "thin" },
@@ -102,14 +124,11 @@ export async function downloadInventoryStockExcel(options: InventoryExportOption
         right: { style: "thin" },
       };
     });
-    if (rowNumber > headerRow.number) {
-      for (const key of ["sequence", "center"]) row.getCell(key).alignment = { vertical: "middle", horizontal: "right" };
-    }
   });
   worksheet.views = [{ state: "frozen", ySplit: headerRow.number }];
   worksheet.autoFilter = {
     from: { row: headerRow.number, column: 1 },
-    to: { row: headerRow.number, column: COLUMNS.length },
+    to: { row: headerRow.number, column: columns.length },
   };
   worksheet.pageSetup = {
     orientation: "landscape",
@@ -134,7 +153,8 @@ export async function downloadInventoryStockPdf(options: InventoryExportOptions 
     import("jspdf"),
     import("jspdf-autotable"),
   ]);
-  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const columns = buildColumns(options.locations);
+  const pdf = new jsPDF({ orientation: columns.length > 8 ? "landscape" : "portrait", unit: "mm", format: "a4" });
   await embedRoboto(pdf);
 
   const pageWidth = pdf.internal.pageSize.getWidth();
@@ -145,18 +165,21 @@ export async function downloadInventoryStockPdf(options: InventoryExportOptions 
     pdf.addImage(logo.dataUrl, "PNG", (pageWidth - size.width) / 2, 8, size.width, size.height);
     titleY = 8 + size.height + 7;
   }
-  const titleLines: string[] = pdf.setFont("Roboto", "bold").setFontSize(13).splitTextToSize(getInventoryExportTitle(options.brand.name, options.categories), pageWidth - 28);
+  const titleLines: string[] = pdf.setFont("Roboto", "bold").setFontSize(13).splitTextToSize(exportTitle(options), pageWidth - 28);
   pdf.text(titleLines, pageWidth / 2, titleY, { align: "center" });
   const dateY = titleY + titleLines.length * 6;
   pdf.setFont("Roboto", "normal").setFontSize(9).text(`Tarih: ${formatToday()}`, pageWidth - 14, dateY, { align: "right" });
 
+  const numericColumns = Object.fromEntries(
+    columns.flatMap((column, index) => (column.numeric ? [[index, { halign: "right" as const }]] : []))
+  );
   autoTable(pdf, {
-    head: [COLUMNS.map((column) => column.header)],
-    body: buildRows(options).map((row) => COLUMNS.map((column) => row[column.key])),
+    head: [columns.map((column) => column.header)],
+    body: buildRows(options).map((row) => row.map(formatNumber)),
     startY: dateY + 4,
-    styles: { font: "Roboto", fontSize: 8.5, cellPadding: 1.8, valign: "middle" },
+    styles: { font: "Roboto", fontSize: 8, cellPadding: 1.6, valign: "middle" },
     headStyles: { font: "Roboto", fontStyle: "bold", fillColor: [30, 64, 175], halign: "center" },
-    columnStyles: { 0: { halign: "right", cellWidth: 11 }, 6: { halign: "right", cellWidth: 22 } },
+    columnStyles: { ...numericColumns, 0: { halign: "right", cellWidth: 10 } },
     didDrawPage: () => {
       const page = pdf.getCurrentPageInfo().pageNumber;
       pdf.setFont("Roboto", "normal").setFontSize(8).text(`Sayfa ${page}`, pageWidth / 2, pdf.internal.pageSize.getHeight() - 8, { align: "center" });
