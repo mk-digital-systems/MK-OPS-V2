@@ -26,7 +26,7 @@ export function buildWhatsAppText(plan: DailyWorkPlanWithTeams): string {
       )}`
     );
     lines.push(`Telefon: ${chief?.phone || team.chief_phone || "-"}`);
-    lines.push(`Araç: ${team.vehicle_plate || "-"}`);
+    if (team.vehicle_plate?.trim()) lines.push(`Araç: ${team.vehicle_plate}`);
     lines.push(`Ekip Türü: ${team.team_type || "-"}`);
     lines.push(`Proje Adı: ${team.project_name || "-"}`);
     lines.push(`Proje ID: ${team.project_code?.trim() || "-"}`);

@@ -146,7 +146,7 @@ export function WorkPlansHome({ todayPlan, pastPlans, drafts, readOnly = false }
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {hit.team_type} · {hit.vehicle_plate} · {hit.chief_name}
+                      {[hit.team_type, hit.vehicle_plate, hit.chief_name].filter(Boolean).join(" · ")}
                       {hit.member_names.length
                         ? ` · ${hit.member_names.join(", ")}`
                         : ""}

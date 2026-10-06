@@ -16,7 +16,7 @@ type TeamRow = {
   project_code: string;
   project_name: string;
   team_type: string;
-  vehicle_plate: string;
+  vehicle_plate: string | null;
   chief_personnel_id: string | null;
   chief_name: string;
   chief_phone: string;
@@ -80,7 +80,7 @@ function mapTeam(row: TeamRow): WorkPlanTeamSnapshot {
     project_code: row.project_code,
     project_name: row.project_name,
     team_type: row.team_type,
-    vehicle_plate: row.vehicle_plate,
+    vehicle_plate: row.vehicle_plate ?? "",
     chief_personnel_id: row.chief_personnel_id,
     chief_name: row.chief_name,
     chief_phone: row.chief_phone,
@@ -326,9 +326,11 @@ export class WorkPlanRepository {
         assignedPersonnel.add(member.personnel_id);
       }
 
+      // Araç opsiyonel; yalnızca girilmiş plakalar çakışma için kontrol edilir.
       const normalizedPlate = team.vehicle_plate
         .trim()
         .toLocaleUpperCase("tr-TR");
+      if (!normalizedPlate) continue;
       if (assignedVehicles.has(normalizedPlate)) {
         throw new Error(
           `${team.vehicle_plate.trim()} plakalı araç bu tarihte başka bir ekipte kullanılıyor.`
@@ -370,7 +372,7 @@ export class WorkPlanRepository {
         const normalizedPlate = team.vehicle_plate
           .trim()
           .toLocaleUpperCase("tr-TR");
-        if (assignedVehicles.has(normalizedPlate)) {
+        if (normalizedPlate && assignedVehicles.has(normalizedPlate)) {
           throw new Error(
             `${team.vehicle_plate} plakalı araç bu tarihte başka bir ekipte kullanılıyor.`
           );
@@ -439,7 +441,7 @@ export class WorkPlanRepository {
           project_code: team.project_code.trim() || "-",
           project_name: team.project_name.trim(),
           team_type: team.team_type.trim(),
-          vehicle_plate: team.vehicle_plate.trim(),
+          vehicle_plate: team.vehicle_plate.trim() || null,
           chief_personnel_id: team.chief_personnel_id,
           chief_name: team.chief_name.trim(),
           chief_phone: team.chief_phone.trim(),
@@ -561,7 +563,7 @@ export class WorkPlanRepository {
       project_code: string;
       project_name: string;
       team_type: string;
-      vehicle_plate: string;
+      vehicle_plate: string | null;
       chief_name: string;
       plan_id: string;
       daily_work_plans: { id: string; plan_date: string } | { id: string; plan_date: string }[];
@@ -583,7 +585,7 @@ export class WorkPlanRepository {
         project_code: team.project_code,
         project_name: team.project_name,
         team_type: team.team_type,
-        vehicle_plate: team.vehicle_plate,
+        vehicle_plate: team.vehicle_plate ?? "",
         chief_name: team.chief_name,
         member_names: members,
       });

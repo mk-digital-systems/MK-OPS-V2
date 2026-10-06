@@ -65,7 +65,7 @@ export const workPlanTeamSchema = z
     project_code: z.string().trim().max(80),
     project_name: z.string().trim().min(2, "Proje adı zorunlu").max(200),
     team_type: z.string().trim().min(1, "Ekip türü zorunlu").max(80),
-    vehicle_plate: z.string().trim().min(1, "Araç plakası zorunlu").max(40),
+    vehicle_plate: z.string().trim().max(40),
     chief_personnel_id: z.string().min(1, "Ekip şefi seçilmeli"),
     chief_name: z.string().trim().min(2, "Ekip şefi adı zorunlu"),
     chief_phone: z

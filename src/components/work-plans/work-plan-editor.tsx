@@ -87,6 +87,9 @@ type Props = {
   draftId?: string;
 };
 
+/** Select bileşeni boş değer kabul etmediği için "araç yok" seçeneğinin değeri. */
+const NO_VEHICLE = "__no_vehicle__";
+
 function newClientId() {
   return typeof crypto !== "undefined" && crypto.randomUUID
     ? crypto.randomUUID()
@@ -195,6 +198,10 @@ export function WorkPlanEditor({
   }
 
   function setVehicle(clientId: string, vehiclePlate: string) {
+    if (vehiclePlate === NO_VEHICLE) {
+      updateTeam(clientId, { vehicle_plate: "" });
+      return;
+    }
     const normalizedPlate = vehiclePlate.trim().toLocaleUpperCase("tr-TR");
     if (vehiclePlatesUsedByOtherTeams(clientId).has(normalizedPlate)) {
       toast.error(
@@ -503,8 +510,8 @@ export function WorkPlanEditor({
         toast.error(`Ekip ${idx + 1}: Proje adı zorunlu`);
         return;
       }
-      if (!team.team_type.trim() || !team.vehicle_plate.trim()) {
-        toast.error(`Ekip ${idx + 1}: Ekip türü ve plaka zorunlu`);
+      if (!team.team_type.trim()) {
+        toast.error(`Ekip ${idx + 1}: Ekip türü zorunlu`);
         return;
       }
       if (!team.chief_personnel_id || !team.chief_name.trim()) {
@@ -538,6 +545,7 @@ export function WorkPlanEditor({
       const normalizedPlate = team.vehicle_plate
         .trim()
         .toLocaleUpperCase("tr-TR");
+      if (!normalizedPlate) continue;
       if (assignedVehicles.has(normalizedPlate)) {
         toast.error(
           `${team.vehicle_plate} plakalı araç bu tarihte başka bir ekipte kullanılıyor.`
@@ -741,15 +749,18 @@ export function WorkPlanEditor({
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Araç Plakası</Label>
+                  <Label>
+                    Araç <span className="font-normal text-muted-foreground">(opsiyonel)</span>
+                  </Label>
                   <Select
-                    value={team.vehicle_plate || undefined}
+                    value={team.vehicle_plate || NO_VEHICLE}
                     onValueChange={(value) => setVehicle(team.client_id, value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Şirket aracı seçin" />
+                      <SelectValue placeholder="Araç yok" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value={NO_VEHICLE}>Araç yok</SelectItem>
                       {team.vehicle_plate &&
                         !vehicles.some(
                           (vehicle) => vehicle.plate === team.vehicle_plate
@@ -774,8 +785,8 @@ export function WorkPlanEditor({
                     </SelectContent>
                   </Select>
                   {vehicles.length === 0 && (
-                    <p className="text-xs text-amber-700 dark:text-amber-300">
-                      Önce Araçlar menüsünden şirket aracı ekleyin.
+                    <p className="text-xs text-muted-foreground">
+                      Araç seçmek için Araçlar menüsünden şirket aracı ekleyebilirsiniz.
                     </p>
                   )}
                 </div>
