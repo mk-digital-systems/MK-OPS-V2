@@ -62,6 +62,7 @@ export const workPlanMemberSchema = z.object({
 export const workPlanTeamSchema = z
   .object({
     client_id: z.string(),
+    project_id: z.string().uuid().nullable().optional(),
     project_code: z.string().trim().max(80),
     project_name: z.string().trim().min(2, "Proje adı zorunlu").max(200),
     team_type: z.string().trim().min(1, "Ekip türü zorunlu").max(80),

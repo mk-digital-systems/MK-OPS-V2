@@ -111,7 +111,7 @@ export const SOLUTIONS: Solution[] = [
     sections: [
       {
         title: "Günlük iş planı",
-        text: "Tarihi seçin, ekipleri proje, ekip türü, ekip şefi ve personelle oluşturun.",
+        text: "Tarihi seçin, ekipleri projeler listesinden seçilen proje, ekip türü, ekip şefi ve personelle oluşturun.",
         bullets: [
           "Aynı kişi veya araç aynı gün iki ekibe yazılamaz",
           "İzinli ve raporlu personel ayrıca işaretlenir",

@@ -163,6 +163,18 @@ export class ProjectRepository {
   }
 
   // ---------------------------------------------------------------- türler
+  /** Seçim listeleri için aktif projeler (iptal ve arşiv dışı). */
+  async listActiveOptions(): Promise<{ id: string; project_code: string; name: string; project_type_id: string | null }[]> {
+    const { data, error } = await this.supabase
+      .from("projects")
+      .select("id, project_code, name, project_type_id")
+      .eq("is_cancelled", false)
+      .eq("is_archived", false)
+      .order("project_code");
+    if (error) throw error;
+    return data ?? [];
+  }
+
   async listTypes(includeArchived = false): Promise<ProjectType[]> {
     let query = this.supabase
       .from("project_types")

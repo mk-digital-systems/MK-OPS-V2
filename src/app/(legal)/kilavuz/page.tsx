@@ -162,6 +162,7 @@ export default function GuidePage() {
       <ol>
         <li>
           <strong>İş Planı → Yeni İş Planı</strong> ile tarihi seçin ve ekipleri ekleyin: proje, ekip türü, ekip şefi ve personel.
+          Proje, açık projeler listesinden seçilir; projesi olmayan işler için &quot;Listede olmayan iş&quot; seçilip ad yazılır.
           Araç atamak isteğe bağlıdır.
         </li>
         <li>O gün izinli veya raporlu olan personeli ayrıca işaretleyin.</li>
@@ -251,7 +252,7 @@ export default function GuidePage() {
         <li>
           <strong>İmalatlar</strong> sayfasında tarihi ve ekip başını seçin, ardından her iş için <strong>projeyi listeden</strong>{" "}
           seçin. O gün için iş planı yaptıysanız <strong>İş Planından Doldur</strong> ekipleri ve projeleri forma hazır getirir;
-          yalnızca miktarları girersiniz (proje, iş planındaki proje koduna veya adına göre eşleştirilir).
+          yalnızca miktarları girersiniz (iş planında listeden seçilen proje doğrudan gelir).
         </li>
         <li>
           <strong>İş Kalemi Ekle</strong> ile projenin iş kalemini (bölümlü projelerde bölümüyle) seçip miktarı girin; birim

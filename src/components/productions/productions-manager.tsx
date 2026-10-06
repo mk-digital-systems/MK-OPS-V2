@@ -163,7 +163,9 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
         if (!chiefId || !personnelById.has(chiefId)) { skipped++; continue; }
         if (used.has(chiefId) && !added.some((team) => team.personnelId === chiefId)) continue;
         const code = normalize(planTeam.project_code);
-        const project = (code && code !== "-" ? projects.find((item) => normalize(item.project_code) === code) : undefined)
+        // Planda listeden seçilmiş proje varsa o; yoksa (eski planlar) kod, sonra ad eşleşmesi.
+        const project = (planTeam.project_id ? projects.find((item) => item.id === planTeam.project_id) : undefined)
+          ?? (code && code !== "-" ? projects.find((item) => normalize(item.project_code) === code) : undefined)
           ?? projects.find((item) => normalize(item.name) === normalize(planTeam.project_name));
         const job: FormJob = project
           ? { key: makeKey(), projectId: project.id, title: project.name, workId: project.project_code, lines: [newLine("stage")] }

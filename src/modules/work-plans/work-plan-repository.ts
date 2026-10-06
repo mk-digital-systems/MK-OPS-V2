@@ -13,6 +13,7 @@ type TeamRow = {
   id: string;
   plan_id: string;
   sort_order: number;
+  project_id: string | null;
   project_code: string;
   project_name: string;
   team_type: string;
@@ -77,6 +78,7 @@ function mapTeam(row: TeamRow): WorkPlanTeamSnapshot {
   return {
     id: row.id,
     sort_order: row.sort_order,
+    project_id: row.project_id ?? null,
     project_code: row.project_code,
     project_name: row.project_name,
     team_type: row.team_type,
@@ -438,6 +440,7 @@ export class WorkPlanRepository {
         .insert({
           plan_id: planId,
           sort_order: i,
+          project_id: team.project_id || null,
           project_code: team.project_code.trim() || "-",
           project_name: team.project_name.trim(),
           team_type: team.team_type.trim(),

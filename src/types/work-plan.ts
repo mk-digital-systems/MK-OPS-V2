@@ -55,6 +55,8 @@ export type WorkPlanMemberSnapshot = {
 export type WorkPlanTeamSnapshot = {
   id?: string;
   sort_order: number;
+  /** Listeden seçilen proje; listede olmayan işte null */
+  project_id?: string | null;
   project_code: string;
   project_name: string;
   team_type: string;

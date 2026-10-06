@@ -59,6 +59,8 @@ import { WhatsAppPreview } from "@/components/work-plans/whatsapp-preview";
 
 type TeamDraft = {
   client_id: string;
+  /** Boşsa listede olmayan iş (proje adı ve kodu elle yazılır) */
+  project_id: string;
   project_code: string;
   project_name: string;
   team_type: string;
@@ -76,9 +78,13 @@ type TeamDraft = {
   }[];
 };
 
+type ProjectOption = { id: string; project_code: string; name: string };
+
 type Props = {
   personnel: Personnel[];
   vehicles: Vehicle[];
+  /** Seçilebilir aktif projeler */
+  projects: ProjectOption[];
   initialDate?: string;
   existingPlanId?: string;
   initialTeams?: WorkPlanTeamSnapshot[];
@@ -89,6 +95,18 @@ type Props = {
 
 /** Select bileşeni boş değer kabul etmediği için "araç yok" seçeneğinin değeri. */
 const NO_VEHICLE = "__no_vehicle__";
+/** "Listede olmayan iş" seçeneğinin değeri */
+const FREE_PROJECT = "__free_project__";
+
+const normalizeCode = (value: string | null | undefined) => (value ?? "").trim().toLocaleLowerCase("tr-TR");
+
+/** Kayıtlı proje bağlantısı yoksa (eski planlar) proje koduyla eşleştirir. */
+function resolveProjectId(team: { project_id?: string | null; project_code: string }, projects: ProjectOption[]) {
+  if (team.project_id) return team.project_id;
+  const code = normalizeCode(team.project_code);
+  if (!code || code === "-") return "";
+  return projects.find((project) => normalizeCode(project.project_code) === code)?.id ?? "";
+}
 
 function newClientId() {
   return typeof crypto !== "undefined" && crypto.randomUUID
@@ -99,6 +117,7 @@ function newClientId() {
 function emptyTeam(): TeamDraft {
   return {
     client_id: newClientId(),
+    project_id: "",
     project_code: "",
     project_name: "",
     team_type: "",
@@ -113,6 +132,7 @@ function emptyTeam(): TeamDraft {
 export function WorkPlanEditor({
   personnel,
   vehicles,
+  projects,
   initialDate,
   existingPlanId,
   initialTeams,
@@ -127,6 +147,7 @@ export function WorkPlanEditor({
     if (initialTeams?.length) {
       return initialTeams.map((t) => ({
         client_id: t.id ?? newClientId(),
+        project_id: resolveProjectId(t, projects),
         project_code: t.project_code === "-" ? "" : t.project_code,
         project_name: t.project_name,
         team_type: t.team_type,
@@ -420,6 +441,7 @@ export function WorkPlanEditor({
           );
           return {
           client_id: newClientId(),
+          project_id: resolveProjectId(team, projects),
           project_code: team.project_code === "-" ? "" : team.project_code,
           project_name: team.project_name,
           team_type: team.team_type,
@@ -453,9 +475,21 @@ export function WorkPlanEditor({
     }
   }
 
+  function selectProject(clientId: string, value: string) {
+    if (value === FREE_PROJECT) {
+      const team = teams.find((item) => item.client_id === clientId);
+      // Listeden seçilmiş projeden serbest işe geçince alanlar boşalır.
+      updateTeam(clientId, team?.project_id ? { project_id: "", project_code: "", project_name: "" } : { project_id: "" });
+      return;
+    }
+    const project = projects.find((item) => item.id === value);
+    if (project) updateTeam(clientId, { project_id: project.id, project_code: project.project_code, project_name: project.name });
+  }
+
   function planTeams() {
     return teams.map((team, index) => ({
       sort_order: index,
+      project_id: team.project_id || null,
       project_code: team.project_code,
       project_name: team.project_name,
       team_type: team.team_type,
@@ -507,7 +541,7 @@ export function WorkPlanEditor({
 
     for (const [idx, team] of teams.entries()) {
       if (!team.project_name.trim()) {
-        toast.error(`Ekip ${idx + 1}: Proje adı zorunlu`);
+        toast.error(`Ekip ${idx + 1}: Proje seçin ya da iş adını yazın`);
         return;
       }
       if (!team.team_type.trim()) {
@@ -806,31 +840,63 @@ export function WorkPlanEditor({
                     ))}
                   </datalist>
                 </div>
-                <div className="space-y-2">
-                  <Label>Proje Adı</Label>
-                  <Input
-                    value={team.project_name}
-                    onChange={(e) =>
-                      updateTeam(team.client_id, {
-                        project_name: e.target.value,
-                      })
-                    }
-                    placeholder="Barbaros FTTH"
-                  />
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Proje</Label>
+                  <Select
+                    value={team.project_id || FREE_PROJECT}
+                    onValueChange={(value) => selectProject(team.client_id, value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={FREE_PROJECT}>Listede olmayan iş (elle yaz)</SelectItem>
+                      {projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.project_code} · {project.name}
+                        </SelectItem>
+                      ))}
+                      {team.project_id && !projects.some((project) => project.id === team.project_id) && (
+                        <SelectItem value={team.project_id}>
+                          {team.project_code} · {team.project_name} (arşivde)
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {projects.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Listeden seçmek için Projeler menüsünden proje açın.
+                    </p>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label>Proje ID</Label>
-                  <Input
-                    value={team.project_code}
-                    onChange={(e) =>
-                      updateTeam(team.client_id, {
-                        project_code: e.target.value,
-                      })
-                    }
-                    placeholder="GF-102"
-                  />
-                  <p className="text-xs text-muted-foreground">Opsiyonel</p>
-                </div>
+                {!team.project_id && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Proje / İş Adı</Label>
+                      <Input
+                        value={team.project_name}
+                        onChange={(e) =>
+                          updateTeam(team.client_id, {
+                            project_name: e.target.value,
+                          })
+                        }
+                        placeholder="İşin adı"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Proje ID</Label>
+                      <Input
+                        value={team.project_code}
+                        onChange={(e) =>
+                          updateTeam(team.client_id, {
+                            project_code: e.target.value,
+                          })
+                        }
+                        placeholder="Opsiyonel"
+                      />
+                    </div>
+                  </>
+                )}
                 <div className="space-y-2">
                   <Label>Ekip Şefi</Label>
                   <Select
