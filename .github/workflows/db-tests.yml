@@ -1,0 +1,27 @@
+name: Veritabanı testleri
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "supabase/migrations/**"
+      - "tests/db/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/db-tests.yml"
+  pull_request:
+
+jobs:
+  db-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Bütün migration'ları PGlite üzerinde kurar; firma ayrımı, yetki, hakediş, stok,
+      # gizli alan ve imalat testlerini çalıştırır.
+      - run: npm run test:db

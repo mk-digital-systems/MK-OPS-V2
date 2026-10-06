@@ -32,6 +32,7 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 | 12 | Firma gizli alanı: Ayarlar'da firma şifresi, şifreyle açılan ortak gizli notlar (sunucu korumalı); küçük işler | ✅ |
 | 13 | Panel başlığında firma logosu | ✅ |
 | 14 | İmalatlar projeye bağlı: iş kalemi satırları projeye iş kaydı açar (ilerleme + hakediş); fiyatlı ek işler hakedişe dahil | ✅ |
+| 15 | Veritabanı testleri depoda: `tests/db`, `npm run test:db` (234 kontrol), GitHub Actions | ✅ |
 
 Kurulu migration'lar: `20261005000000` … `20261011000001`. Kurulacak: `20261011000002_inventory_messages.sql`.
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.
@@ -193,17 +194,8 @@ Yalnızca gerçekten var olan özellikler anlatılmalı.
 `Intl.NumberFormat("tr-TR", { style: "currency" })`. Hakedişle birlikte.
 
 ### Otomatik testler
-Eski projede `security.test.mjs`, `security-db.test.mjs` (PGlite) ve `seo.test.mjs` vardı.
 
-MK OPS'ta da PGlite tabanlı bir test düzeneği kullanıldı, ama şu an yalnızca geçici klasörde duruyor. İçeriği:
-- Supabase taklidi: `auth.users`, `auth.uid()`, `storage`, roller, varsayılan yetkiler
-- Migration'ları sırayla kuran `replay`
-- Şirketler arası testler (47)
-- Kayıt ve katılım testleri (35)
-- Proje modeli testleri (15)
-
-Bunlar depoya `tests/db/` olarak alınmalı ve `npm run test:db` ile çalıştırılmalı.
-İleride GitHub Actions'ta her PR'da çalışması sağlanmalı.
+> ✅ Yapıldı: `tests/db/` (PGlite), `npm run test:db`, `.github/workflows/db-tests.yml`. Ayrıntı: `tests/db/README.md`.
 
 ---
 
