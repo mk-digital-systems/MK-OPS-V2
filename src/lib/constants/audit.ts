@@ -41,6 +41,8 @@ export const AUDIT_ENTITY_LABELS: Record<string, string> = {
   companies: "Firma",
   inventory_categories: "Malzeme kategorisi",
   inventory_locations: "Depo",
+  company_vault_notes: "Gizli not",
+  company_vaults: "Gizli alan",
 };
 
 const FIELD_LABELS: Record<string, string> = {

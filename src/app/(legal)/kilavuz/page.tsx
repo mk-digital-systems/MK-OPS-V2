@@ -18,7 +18,7 @@ const SECTIONS = [
   { id: "stok", title: "7. Malzeme stoku, depolar ve irsaliye" },
   { id: "araclar", title: "8. Araçlar, yakıt ve araç ekipmanları" },
   { id: "imalat", title: "9. Günlük imalat raporu" },
-  { id: "ayarlar", title: "10. Firma logosu, raporlar ve işlem geçmişi" },
+  { id: "ayarlar", title: "10. Firma logosu, gizli notlar ve işlem geçmişi" },
   { id: "abonelik", title: "11. Deneme süresi, plan talebi ve destek" },
 ];
 
@@ -243,6 +243,13 @@ export default function GuidePage() {
         <li>
           <strong>Ayarlar → Firma Logosu:</strong> PNG, JPG veya WEBP (en fazla 2 MB) logo yükleyin. Bütün PDF, Word ve Excel
           çıktılarında ve iş planı görselinde {APP_NAME} yerine firmanızın adı ve logosu görünür.
+        </li>
+        <li>
+          <strong>Önemli ve Gizli Notlar:</strong> panelin sağ altındaki kilit düğmesi firmanın ortak gizli alanını açar (banka
+          bilgileri, kapı ve alarm şifreleri, önemli yazışmalar gibi). Alan, ana yöneticinin{" "}
+          <strong>Ayarlar → Gizli Alan Şifresi</strong> bölümünde belirlediği firma şifresiyle açılır; şifreyi bilen her onaylı
+          kullanıcı aynı notları görür. Kilit 30 dakika işlem yapılmazsa kendiliğinden kapanır; 5 hatalı denemeden sonra 15
+          dakika beklenir. Şifre değiştirilince açık oturumlar kapanır, notlar silinmez.
         </li>
         <li>
           <strong>Ayarlar → İşlem Geçmişi:</strong> kim, ne zaman, hangi kayıtta neyi değiştirdi; önceki ve sonraki

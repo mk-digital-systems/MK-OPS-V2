@@ -8,6 +8,8 @@ import { ProjectRepository } from "@/modules/projects/project-repository";
 import { HakedisRepository } from "@/modules/hakedis/hakedis-repository";
 import { CompanyInfoCard } from "@/components/settings/company-info-card";
 import { CompanyLogoCard } from "@/components/settings/company-logo-card";
+import { CompanyVaultCard } from "@/components/settings/company-vault-card";
+import { CompanyVaultRepository } from "@/modules/notes/company-vault-repository";
 import { HakedisSettingsCard } from "@/components/settings/hakedis-settings-card";
 import { ProjectTypesManager } from "@/components/settings/project-types-manager";
 import { Button } from "@/components/ui/button";
@@ -25,16 +27,17 @@ export default async function SettingsPage() {
   ]);
   if (profile?.role !== "site_chief" || !account.company) notFound();
 
-  const stagePrices = await new HakedisRepository(supabase).getStagePrices(
-    types.flatMap((type) => type.stages.map((stage) => stage.id))
-  );
+  const [stagePrices, vaultStatus] = await Promise.all([
+    new HakedisRepository(supabase).getStagePrices(types.flatMap((type) => type.stages.map((stage) => stage.id))),
+    new CompanyVaultRepository(supabase).status(),
+  ]);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Ayarlar</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Proje türleri, hakediş, firma logosu ve firma bilgileri</p>
+          <p className="mt-1 text-sm text-muted-foreground">Proje türleri, hakediş, firma logosu, gizli alan şifresi ve firma bilgileri</p>
         </div>
         <Button asChild variant="outline">
           <Link href="/panel/settings/islem-gecmisi">
@@ -46,6 +49,7 @@ export default async function SettingsPage() {
       <ProjectTypesManager types={types} stagePrices={stagePrices} currency={account.company.currency_code} />
       <HakedisSettingsCard company={account.company} />
       <CompanyLogoCard company={account.company} />
+      <CompanyVaultCard configured={vaultStatus.configured} />
       <CompanyInfoCard company={account.company} />
     </div>
   );

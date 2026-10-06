@@ -29,6 +29,7 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 | 9 | Denetim kaydı: veritabanı tetikleyicisiyle işlem geçmişi, Ayarlar → İşlem Geçmişi | ✅ |
 | 10 | Malzeme stoku: firmaya özel kategoriler, çoklu depo, depolar arası sevkiyat (telekom kategorileri ve Biga şubesi kaldırıldı) | ✅ |
 | 11 | Kullanım kılavuzu `/kilavuz` (herkese açık; panel menüsünden ve site alt bilgisinden bağlantı) | ✅ |
+| 12 | Firma gizli alanı: Ayarlar'da firma şifresi, şifreyle açılan ortak gizli notlar (sunucu korumalı); küçük işler | ✅ |
 
 Kurulu migration'lar: `20261005000000` … `20261011000001`. Kurulacak: `20261011000002_inventory_messages.sql`.
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.
@@ -37,9 +38,9 @@ Kurulu migration'lar: `20261005000000` … `20261011000001`. Kurulacak: `2026101
 
 ## Bekleyen küçük işler
 
-- [ ] Veritabanı hata mesajlarındaki "şantiye şefi" ifadelerini "ana yönetici" yap (yeni migration).
-- [ ] `sync_project_stage_rows` ve `refresh_project_rollup` iç fonksiyonlarında `authenticated` çalıştırma yetkisini kaldır (yazmalar zaten korumalı; gereksiz kapı).
-- [ ] `src/app/(app)` boş klasörünü sil (geliştirme sunucusu kapalıyken).
+- [x] Veritabanı hata mesajlarındaki "şantiye şefi" ifadelerini "ana yönetici" yap (`20261012000001`).
+- [x] `sync_project_stage_rows` ve `refresh_project_rollup` iç fonksiyonlarında `authenticated` çalıştırma yetkisini kaldır (`20261012000001`).
+- [x] `src/app/(app)` boş klasörü silindi.
 
 ---
 
