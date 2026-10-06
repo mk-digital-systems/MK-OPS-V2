@@ -26,8 +26,9 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 | 7 | Hakediş: aşama/proje birim fiyatı, fiyat sabitleme, dönem raporu, Excel, Genel Bakış kartı, "Hakediş" modül yetkisi | ✅ |
 | 7a | İş planında ekibe araç atamak opsiyonel | ✅ |
 | 8 | Firma logosu ve adı tüm çıktılarda; hakediş PDF'i (logo filigranlı) | ✅ |
+| 9 | Denetim kaydı: veritabanı tetikleyicisiyle işlem geçmişi, Ayarlar → İşlem Geçmişi | ✅ |
 
-Kurulu migration'lar: `20261005000000` … `20261008000002`. Kurulacak: `20261009000001_company_logo.sql`.
+Kurulu migration'lar: `20261005000000` … `20261009000001`. Kurulacak: `20261010000001_audit_log.sql`.
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.
 
 ---
@@ -105,6 +106,8 @@ ofisteki yöneticiler giriyor. Bu yüzden **ekip payı / taşeron payı hesaplan
 - Logo yoksa şirket adı yazılır.
 
 ### 3. Denetim kaydı (Audit Log)
+
+> ✅ Yapıldı: `20261010000001_audit_log.sql` + `/panel/settings/islem-gecmisi`. Kayda girenler: projeler, proje türleri, bölümler, aşamalar, iş kayıtları, hakediş fiyatları, personel, avans, araçlar, malzeme tanımları, iş planı, imalat, kullanıcı rolleri, modül yetkileri, firma ayarları. Puantajın kendi denetim kaydı ayrı. Stok hareketleri ve zimmet zaten kendi hareket tablolarında kim/ne zaman bilgisiyle tutuluyor. Yalnızca doğrudan değişiklikler yazılır (türetilmiş/zincirleme güncellemeler yazılmaz); TC kimlik no maskelenir.
 
 **Amaç:** "Kim, ne zaman, neyi değiştirdi" kaydı. Landing'de bu iddia var; şu an yalnızca
 puantajda tam karşılığı bulunuyor.
