@@ -39,6 +39,7 @@ import { QuickNotesPanel } from "@/components/notes/quick-notes-panel";
 import { PrivateNotesPanel } from "@/components/notes/private-notes-panel";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants/brand";
 import { TrialBanner } from "@/components/layout/trial-banner";
+import { useReportBrand } from "@/components/layout/company-brand-provider";
 
 const NAV_ITEMS = [
   {
@@ -167,6 +168,7 @@ export function AppShell({
   company: CompanySummary | null;
 }) {
   const pathname = usePathname();
+  const brand = useReportBrand();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -420,11 +422,27 @@ export function AppShell({
               >
                 {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
-              <BrandLogo size={28} />
-              <span className="text-sm font-semibold">{APP_NAME}</span>
+              {!brand.logoUrl && <BrandLogo size={28} />}
+              {!brand.logoUrl && <span className="text-sm font-semibold">{APP_NAME}</span>}
             </div>
+            {brand.logoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={brand.logoUrl}
+                alt={brand.name}
+                className="pointer-events-none absolute left-1/2 top-1/2 h-9 max-w-[45%] -translate-x-1/2 -translate-y-1/2 object-contain"
+              />
+            )}
             <ThemeToggle />
           </header>
+
+          {/* Firma logosu: masaüstünde üstte ortada; logo yüklenmemişse hiçbir şey gösterilmez. */}
+          {brand.logoUrl && (
+            <header className="hidden items-center justify-center border-b border-border/70 bg-background/60 px-8 py-3 backdrop-blur-xl md:flex">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={brand.logoUrl} alt={brand.name} className="h-14 max-w-[320px] object-contain" />
+            </header>
+          )}
 
           <AnimatePresence>
             {mobileOpen && (
