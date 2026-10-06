@@ -23,6 +23,7 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 | 4 | Süper admin paneli, destek talepleri, plan atama | ✅ |
 | 5 | Landing sayfası, panel `/panel` altında, yasal sayfalar | ✅ |
 | 6 | Sektörden bağımsız proje modülü (türler, aşamalar, bölümler, metraj) | ✅ |
+| 7 | Hakediş: aşama/proje birim fiyatı, fiyat sabitleme, dönem raporu, Excel, Genel Bakış kartı, "Hakediş" modül yetkisi | ✅ |
 
 Kurulu migration'lar: `20261005000000` … `20261007000002`.
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.
@@ -40,6 +41,8 @@ Kurulu migration'lar: `20261005000000` … `20261007000002`.
 ## Öncelikli geliştirmeler
 
 ### 1. Hakediş (iş değeri ve dönem raporu)
+
+> ✅ Yapıldı: `20261008000001_hakedis.sql` + `/panel/hakedis`. PDF çıktısı firma logosuyla birlikte (madde 2) eklenecek.
 
 **Amaç:** Firmanın yaptığı işin parasal değerini proje, aşama ve dönem bazında
 hesaplamak. Müteahhitler için ana satış özelliği.

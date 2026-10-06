@@ -28,7 +28,8 @@ export default async function AppLayout({
     : pathname.startsWith("/panel/imalatlar") ? "productions"
     : pathname.startsWith("/panel/vehicles") ? "vehicles"
     : pathname.startsWith("/panel/inventory") ? "inventory"
-    : pathname.startsWith("/panel/custody") ? "custody" : null;
+    : pathname.startsWith("/panel/custody") ? "custody"
+    : pathname.startsWith("/panel/hakedis") ? "hakedis" : null;
 
   if (
     profile.role === "accounting" &&

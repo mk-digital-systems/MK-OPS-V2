@@ -19,6 +19,8 @@ import {
 import { toast } from "sonner";
 import type { Project, ProjectProgressData, ProjectStatus, ProjectType } from "@/types/project";
 import type { Personnel } from "@/types/work-plan";
+import type { CurrencyCode } from "@/types/auth";
+import type { ProjectPricing } from "@/types/hakedis";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { getDisplayImageUrl } from "@/lib/project-image-url";
 import { createClient } from "@/lib/supabase/client";
@@ -37,11 +39,13 @@ type Props = {
   progress: ProjectProgressData;
   personnel: Personnel[];
   readOnly: boolean;
+  pricing: ProjectPricing | null;
+  currency: CurrencyCode;
 };
 
 type Busy = "status" | "archive" | "cancel" | "reactivate" | "delete" | null;
 
-export function ProjectDetail({ project, type, progress, personnel, readOnly }: Props) {
+export function ProjectDetail({ project, type, progress, personnel, readOnly, pricing, currency }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<Busy>(null);
   const [reasonDialog, setReasonDialog] = useState<"hold" | "cancel" | null>(null);
@@ -249,7 +253,15 @@ export function ProjectDetail({ project, type, progress, personnel, readOnly }: 
         </Card>
       )}
 
-      <StageBoard projectId={project.id} type={type} data={progress} personnel={personnel} readOnly={!editable} />
+      <StageBoard
+        projectId={project.id}
+        type={type}
+        data={progress}
+        personnel={personnel}
+        readOnly={!editable}
+        pricing={pricing}
+        currency={currency}
+      />
 
       <Dialog open={reasonDialog !== null} onOpenChange={(open) => !open && setReasonDialog(null)}>
         <DialogContent>

@@ -6,6 +6,10 @@ import { ChevronDown, Loader2, MapPin, Pencil, Plus, Trash2 } from "lucide-react
 import { toast } from "sonner";
 import type { ProjectProgressData, ProjectSection, ProjectType, StageLog, StageProgress } from "@/types/project";
 import type { Personnel } from "@/types/work-plan";
+import type { CurrencyCode } from "@/types/auth";
+import type { ProjectPricing } from "@/types/hakedis";
+import { formatMoney } from "@/lib/hakedis";
+import { HakedisRepository } from "@/modules/hakedis/hakedis-repository";
 import { STAGE_STATUSES, formatQuantity, todayISODate, type StageStatus } from "@/lib/constants/project";
 import { cn, formatDate } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -25,12 +29,15 @@ type Props = {
   data: ProjectProgressData;
   personnel: Personnel[];
   readOnly: boolean;
+  /** Yalnızca hakediş yetkisi olanlara gelir. */
+  pricing: ProjectPricing | null;
+  currency: CurrencyCode;
 };
 
 const repository = () => new ProjectRepository(createClient());
 const toNumber = (value: string) => Number(value.replace(",", "."));
 
-export function StageBoard({ projectId, type, data, personnel, readOnly }: Props) {
+export function StageBoard({ projectId, type, data, personnel, readOnly, pricing, currency }: Props) {
   const router = useRouter();
   const [sectionDialog, setSectionDialog] = useState<ProjectSection | "new" | null>(null);
   const [logTarget, setLogTarget] = useState<{ progress: StageProgress; title: string; unit: string | null } | null>(null);
@@ -123,6 +130,8 @@ export function StageBoard({ projectId, type, data, personnel, readOnly }: Props
                     rows={rows}
                     logsByProgress={logsByProgress}
                     readOnly={readOnly}
+                    pricing={pricing}
+                    currency={currency}
                     onAddLog={(progress, stageName, unit) => setLogTarget({ progress, title: `${section.name} · ${stageName}`, unit })}
                   />
                 </CardContent>
@@ -138,6 +147,8 @@ export function StageBoard({ projectId, type, data, personnel, readOnly }: Props
                 rows={rowsFor(null)}
                 logsByProgress={logsByProgress}
                 readOnly={readOnly}
+                pricing={pricing}
+                currency={currency}
                 onAddLog={(progress, stageName, unit) => setLogTarget({ progress, title: stageName, unit })}
               />
             </CardContent>
@@ -162,11 +173,15 @@ function StageTable({
   rows,
   logsByProgress,
   readOnly,
+  pricing,
+  currency,
   onAddLog,
 }: {
   rows: { stage: ProjectType["stages"][number]; progress: StageProgress }[];
   logsByProgress: Map<string, StageLog[]>;
   readOnly: boolean;
+  pricing: ProjectPricing | null;
+  currency: CurrencyCode;
   onAddLog: (progress: StageProgress, stageName: string, unit: string | null) => void;
 }) {
   return (
@@ -180,6 +195,9 @@ function StageTable({
           progress={progress}
           logs={logsByProgress.get(progress.id) ?? []}
           readOnly={readOnly}
+          pricing={pricing}
+          currency={currency}
+          stageId={stage.id}
           onAddLog={() => onAddLog(progress, stage.name, stage.unit)}
         />
       ))}
@@ -194,6 +212,9 @@ function StageRow({
   progress,
   logs,
   readOnly,
+  pricing,
+  currency,
+  stageId,
   onAddLog,
 }: {
   index: number;
@@ -202,12 +223,36 @@ function StageRow({
   progress: StageProgress;
   logs: StageLog[];
   readOnly: boolean;
+  pricing: ProjectPricing | null;
+  currency: CurrencyCode;
+  stageId: string;
   onAddLog: () => void;
 }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
   const [target, setTarget] = useState(progress.target_quantity?.toString() ?? "");
+  const defaultPrice = pricing?.stagePrices[stageId];
+  const projectPrice = pricing?.projectPrices[progress.id];
+  const [price, setPrice] = useState(projectPrice !== undefined ? String(projectPrice) : "");
+  const stageAmount = pricing ? logs.reduce((sum, log) => sum + (pricing.logValues[log.id]?.amount ?? 0), 0) : 0;
+  const unpricedLogs = pricing ? logs.filter((log) => log.quantity !== null && !pricing.logValues[log.id]).length : 0;
+
+  async function savePrice() {
+    const value = price.trim() ? toNumber(price) : null;
+    if (value !== null && !(value >= 0)) {
+      toast.error("Birim fiyat geçersiz");
+      return;
+    }
+    if (value === (projectPrice ?? null)) return;
+    try {
+      await new HakedisRepository(createClient()).setProjectStagePrice(progress.id, value);
+      toast.success(value === null ? "Projeye özel fiyat kaldırıldı" : "Birim fiyat kaydedildi");
+      router.refresh();
+    } catch (error) {
+      toast.error("Fiyat kaydedilemedi", { description: (error as Error)?.message });
+    }
+  }
 
   async function save(payload: { status?: StageStatus; target_quantity?: number | null }) {
     setSaving(true);
@@ -314,12 +359,38 @@ function StageRow({
           )}
         </div>
       </div>
+      {pricing && unit && (
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground md:ml-10">
+          <span className="flex items-center gap-2">
+            Birim fiyat
+            <Input
+              value={price}
+              onChange={(event) => setPrice(event.target.value)}
+              onBlur={savePrice}
+              onKeyDown={(event) => event.key === "Enter" && (event.currentTarget as HTMLInputElement).blur()}
+              placeholder={defaultPrice !== undefined ? String(defaultPrice) : "Fiyat yok"}
+              disabled={readOnly}
+              inputMode="decimal"
+              className="h-7 w-24 text-xs"
+            />
+            / {unit}
+            {projectPrice === undefined && defaultPrice !== undefined && <span>(varsayılan)</span>}
+          </span>
+          <span>
+            Hakediş: <strong className="text-foreground">{formatMoney(stageAmount, currency)}</strong>
+          </span>
+          {unpricedLogs > 0 && <span className="text-amber-700">{unpricedLogs} kayıt fiyatsız</span>}
+        </div>
+      )}
       {open && logs.length > 0 && (
         <ul className="mt-3 space-y-1 rounded-lg bg-muted/40 p-2 text-sm md:ml-10">
           {logs.map((log) => (
             <li key={log.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md px-2 py-1">
               <span className="w-24 shrink-0 text-muted-foreground">{formatDate(log.log_date)}</span>
               {log.quantity !== null && <span className="font-medium tabular-nums">{formatQuantity(log.quantity, unit)}</span>}
+              {pricing?.logValues[log.id] && (
+                <span className="tabular-nums text-muted-foreground">{formatMoney(pricing.logValues[log.id].amount, currency)}</span>
+              )}
               {log.team_leader_name && <span>{log.team_leader_name}</span>}
               {log.notes && <span className="text-muted-foreground">{log.notes}</span>}
               {!readOnly && (

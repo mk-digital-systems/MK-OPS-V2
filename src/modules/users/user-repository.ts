@@ -60,7 +60,7 @@ export class UserRepository {
   }
 
   async getWritableModules(): Promise<PermissionModule[]> {
-    const modules: PermissionModule[] = ["projects","work_plans","personnel","attendance","vehicles","inventory","custody","productions"];
+    const modules: PermissionModule[] = ["projects","work_plans","personnel","attendance","vehicles","inventory","custody","productions","hakedis"];
     const results = await Promise.all(modules.map(async (module) => ({ module, allowed: await this.canWrite(module) })));
     return results.filter((item) => item.allowed).map((item) => item.module);
   }

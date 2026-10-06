@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { Archive, ArchiveRestore, ArrowDown, ArrowUp, LayoutTemplate, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import type { ProjectType } from "@/types/project";
+import type { CurrencyCode } from "@/types/auth";
+import { formatMoney } from "@/lib/hakedis";
+import { HakedisRepository } from "@/modules/hakedis/hakedis-repository";
 import { PROJECT_TYPE_COLORS, PROJECT_TYPE_TEMPLATES, UNIT_SUGGESTIONS, type ProjectTypeTemplate } from "@/lib/constants/project";
 import { projectTypeSchema, type ProjectTypeFormValues } from "@/lib/validations/project";
 import { cn } from "@/lib/utils";
@@ -17,7 +20,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TypeDot } from "@/components/projects/project-status-indicators";
 
-type Draft = ProjectTypeFormValues & { id: string | null };
+type Draft = Omit<ProjectTypeFormValues, "stages"> & {
+  id: string | null;
+  stages: { id: string | null; name: string; unit: string; unit_price: string }[];
+};
 
 const emptyDraft = (index: number): Draft => ({
   id: null,
@@ -26,7 +32,7 @@ const emptyDraft = (index: number): Draft => ({
   has_sections: false,
   section_label: "Bölüm",
   color: PROJECT_TYPE_COLORS[index % PROJECT_TYPE_COLORS.length],
-  stages: [{ id: null, name: "", unit: "" }],
+  stages: [{ id: null, name: "", unit: "", unit_price: "" }],
 });
 
 const fromTemplate = (template: ProjectTypeTemplate, index: number): Draft => ({
@@ -36,20 +42,33 @@ const fromTemplate = (template: ProjectTypeTemplate, index: number): Draft => ({
   has_sections: template.has_sections,
   section_label: template.section_label,
   color: PROJECT_TYPE_COLORS[index % PROJECT_TYPE_COLORS.length],
-  stages: template.stages.map((stage) => ({ id: null, name: stage.name, unit: stage.unit ?? "" })),
+  stages: template.stages.map((stage) => ({ id: null, name: stage.name, unit: stage.unit ?? "", unit_price: "" })),
 });
 
-const fromType = (type: ProjectType): Draft => ({
+const fromType = (type: ProjectType, prices: Record<string, number>): Draft => ({
   id: type.id,
   name: type.name,
   description: type.description ?? "",
   has_sections: type.has_sections,
   section_label: type.section_label,
   color: type.color ?? "",
-  stages: type.stages.map((stage) => ({ id: stage.id, name: stage.name, unit: stage.unit ?? "" })),
+  stages: type.stages.map((stage) => ({
+    id: stage.id,
+    name: stage.name,
+    unit: stage.unit ?? "",
+    unit_price: prices[stage.id] !== undefined ? String(prices[stage.id]) : "",
+  })),
 });
 
-export function ProjectTypesManager({ types }: { types: ProjectType[] }) {
+export function ProjectTypesManager({
+  types,
+  stagePrices,
+  currency,
+}: {
+  types: ProjectType[];
+  stagePrices: Record<string, number>;
+  currency: CurrencyCode;
+}) {
   const router = useRouter();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
@@ -121,7 +140,7 @@ export function ProjectTypesManager({ types }: { types: ProjectType[] }) {
               )}
               {type.is_archived && <span className="rounded-md bg-muted px-2 py-0.5 text-xs">Arşivde</span>}
               <div className="ml-auto flex gap-1">
-                <Button size="icon" variant="ghost" onClick={() => setDraft(fromType(type))} aria-label="Düzenle">
+                <Button size="icon" variant="ghost" onClick={() => setDraft(fromType(type, stagePrices))} aria-label="Düzenle">
                   <Pencil className="h-4 w-4" />
                 </Button>
                 <Button size="icon" variant="ghost" onClick={() => toggleArchive(type)} disabled={busyId === type.id} aria-label="Arşivle">
@@ -138,6 +157,9 @@ export function ProjectTypesManager({ types }: { types: ProjectType[] }) {
                 <li key={stage.id} className="rounded-full border bg-background px-2.5 py-1">
                   {index + 1}. {stage.name}
                   {stage.unit && <span className="text-muted-foreground"> ({stage.unit})</span>}
+                  {stagePrices[stage.id] !== undefined && (
+                    <span className="text-muted-foreground"> · {formatMoney(stagePrices[stage.id], currency)}/{stage.unit}</span>
+                  )}
                 </li>
               ))}
             </ol>
@@ -176,12 +198,12 @@ export function ProjectTypesManager({ types }: { types: ProjectType[] }) {
         </DialogContent>
       </Dialog>
 
-      {draft && <TypeEditor draft={draft} onClose={() => setDraft(null)} />}
+      {draft && <TypeEditor draft={draft} currency={currency} onClose={() => setDraft(null)} />}
     </Card>
   );
 }
 
-function TypeEditor({ draft: initial, onClose }: { draft: Draft; onClose: () => void }) {
+function TypeEditor({ draft: initial, currency, onClose }: { draft: Draft; currency: CurrencyCode; onClose: () => void }) {
   const router = useRouter();
   const [draft, setDraft] = useState<Draft>(initial);
   const [saving, setSaving] = useState(false);
@@ -202,9 +224,32 @@ function TypeEditor({ draft: initial, onClose }: { draft: Draft; onClose: () => 
       toast.error(parsed.error.issues[0]?.message ?? "Bilgileri kontrol edin");
       return;
     }
+    const badPrice = draft.stages.find((stage) => stage.unit_price.trim() && !(Number(stage.unit_price.replace(",", ".")) >= 0));
+    if (badPrice) {
+      toast.error(`${badPrice.name} için birim fiyat geçersiz`);
+      return;
+    }
     setSaving(true);
     try {
-      await new ProjectRepository(createClient()).saveType({ ...parsed.data, id: draft.id });
+      const supabase = createClient();
+      const typeId = await new ProjectRepository(supabase).saveType({ ...parsed.data, id: draft.id });
+      // Fiyatlar aşama adıyla eşleştirilir (aşama adları tür içinde benzersizdir).
+      const { data: savedStages, error: stagesError } = await supabase
+        .from("project_type_stages")
+        .select("id, name")
+        .eq("project_type_id", typeId);
+      if (stagesError) throw stagesError;
+      const idByName = new Map(
+        (savedStages ?? []).map((stage) => [String(stage.name).trim().toLocaleLowerCase("tr-TR"), stage.id as string])
+      );
+      await new HakedisRepository(supabase).saveStagePrices(
+        draft.stages
+          .map((stage) => ({
+            stage_id: idByName.get(stage.name.trim().toLocaleLowerCase("tr-TR")) ?? "",
+            unit_price: stage.unit.trim() && stage.unit_price.trim() ? Number(stage.unit_price.replace(",", ".")) : null,
+          }))
+          .filter((price) => price.stage_id)
+      );
       toast.success(draft.id ? "Proje türü güncellendi" : "Proje türü eklendi");
       onClose();
       router.refresh();
@@ -276,7 +321,7 @@ function TypeEditor({ draft: initial, onClose }: { draft: Draft; onClose: () => 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label>Aşamalar (sırasıyla)</Label>
-            <span className="text-xs text-muted-foreground">Birim girilirse metraj takip edilir</span>
+            <span className="text-xs text-muted-foreground">Birim girilirse metraj ve hakediş (birim fiyat) takip edilir</span>
           </div>
           <datalist id="stage-units">
             {UNIT_SUGGESTIONS.map((unit) => (
@@ -298,7 +343,16 @@ function TypeEditor({ draft: initial, onClose }: { draft: Draft; onClose: () => 
                   onChange={(event) => setStage(index, { unit: event.target.value })}
                   placeholder="Birim"
                   list="stage-units"
-                  className="w-24"
+                  className="w-20"
+                />
+                <Input
+                  value={stage.unit_price}
+                  onChange={(event) => setStage(index, { unit_price: event.target.value })}
+                  placeholder={stage.unit.trim() ? `Fiyat (${currency})` : "—"}
+                  disabled={!stage.unit.trim()}
+                  inputMode="decimal"
+                  className="w-28"
+                  title="Birim fiyat (hakediş); yalnızca birimi olan aşamalarda"
                 />
                 <Button type="button" size="icon" variant="ghost" onClick={() => moveStage(index, -1)} disabled={index === 0} aria-label="Yukarı">
                   <ArrowUp className="h-4 w-4" />
@@ -326,7 +380,7 @@ function TypeEditor({ draft: initial, onClose }: { draft: Draft; onClose: () => 
               </li>
             ))}
           </ol>
-          <Button type="button" variant="outline" size="sm" onClick={() => set("stages", [...draft.stages, { id: null, name: "", unit: "" }])}>
+          <Button type="button" variant="outline" size="sm" onClick={() => set("stages", [...draft.stages, { id: null, name: "", unit: "", unit_price: "" }])}>
             <Plus className="h-4 w-4" />
             Aşama ekle
           </Button>

@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   LogOut,
   Settings,
+  Receipt,
   LifeBuoy,
   ShieldCheck,
   Users,
@@ -64,6 +65,13 @@ const NAV_ITEMS = [
     href: "/panel/work-plans",
     label: "İş Planı",
     icon: ClipboardList,
+    accounting: false,
+    group: "OPERASYON",
+  },
+  {
+    href: "/panel/hakedis",
+    label: "Hakediş",
+    icon: Receipt,
     accounting: false,
     group: "OPERASYON",
   },
@@ -174,6 +182,10 @@ export function AppShell({
   ];
 
   const visibleNavItems = NAV_ITEMS.filter((item) => {
+    if (item.href === "/panel/hakedis") {
+      return writableModules.includes("hakedis");
+    }
+
     if (item.href === "/panel/settings" || item.href === "/panel/support") {
       return profile.role === "site_chief";
     }
@@ -462,5 +474,6 @@ function moduleForPath(pathname: string): PermissionModule | null {
   if (pathname.startsWith("/panel/inventory")) return "inventory";
   if (pathname.startsWith("/panel/custody")) return "custody";
   if (pathname.startsWith("/panel/imalatlar")) return "productions";
+  if (pathname.startsWith("/panel/hakedis")) return "hakedis";
   return null;
 }

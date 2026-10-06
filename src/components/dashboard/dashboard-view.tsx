@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { CalendarClock, CarFront, ClipboardList, FolderKanban, Settings } from "lucide-react";
+import { AlertTriangle, CalendarClock, CarFront, ClipboardList, FolderKanban, Receipt, Settings } from "lucide-react";
 import type { DashboardOverview, DashboardStats, DashboardTypeSummary } from "@/types/project";
 import type { VehicleDeadlineAlert } from "@/types/vehicle";
+import type { HakedisSummary } from "@/types/hakedis";
+import { formatMoney } from "@/lib/hakedis";
 import { formatQuantity } from "@/lib/constants/project";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +16,7 @@ type Props = {
   overview: DashboardOverview;
   vehicleAlerts: VehicleDeadlineAlert[];
   canManageTypes: boolean;
+  hakedis: HakedisSummary | null;
 };
 
 const STAT_CARDS = [
@@ -25,7 +28,7 @@ const STAT_CARDS = [
   { key: "completed", label: "Tamamlandı", href: "/panel/projects?status=completed&scope=all", tone: "text-emerald-600" },
 ] as const;
 
-export function DashboardView({ stats, overview, vehicleAlerts, canManageTypes }: Props) {
+export function DashboardView({ stats, overview, vehicleAlerts, canManageTypes, hakedis }: Props) {
   return (
     <div className="space-y-6">
       <div>
@@ -41,6 +44,8 @@ export function DashboardView({ stats, overview, vehicleAlerts, canManageTypes }
           </Link>
         ))}
       </div>
+
+      {hakedis && <HakedisCard summary={hakedis} />}
 
       <VehicleDeadlineAlerts alerts={vehicleAlerts} />
 
@@ -200,6 +205,41 @@ function TypeCard({ type }: { type: DashboardTypeSummary }) {
             </span>
           </div>
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function HakedisCard({ summary }: { summary: HakedisSummary }) {
+  const items = [
+    { label: "Bugün", value: summary.today },
+    { label: "Bu hafta", value: summary.week },
+    { label: `Bu dönem (${formatDate(summary.period_start)} – ${formatDate(summary.period_end)})`, value: summary.period },
+  ];
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center gap-2 space-y-0">
+        <Receipt className="h-5 w-5 text-primary" />
+        <CardTitle className="flex-1 text-base">Hakediş</CardTitle>
+        <Link href="/panel/hakedis" className="text-sm text-primary hover:underline">
+          Rapor →
+        </Link>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="grid gap-3 sm:grid-cols-3">
+          {items.map((item) => (
+            <div key={item.label} className="rounded-xl bg-muted/50 p-3">
+              <p className="text-xs text-muted-foreground">{item.label}</p>
+              <p className="mt-1 text-xl font-semibold tabular-nums">{formatMoney(item.value, summary.currency_code)}</p>
+            </div>
+          ))}
+        </div>
+        {summary.unpriced_in_period > 0 && (
+          <p className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-300">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Bu dönemde fiyatı girilmemiş {summary.unpriced_in_period} iş kaydı var; toplamlara dahil değil.
+          </p>
+        )}
       </CardContent>
     </Card>
   );

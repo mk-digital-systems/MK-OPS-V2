@@ -19,6 +19,8 @@ export type UserProfile = {
   updated_at: string;
 };
 
+export type CurrencyCode = "TRY" | "USD" | "EUR";
+
 export type CompanyAccessStatus = "trial" | "active" | "expired" | "suspended";
 
 export type CompanySummary = {
@@ -29,6 +31,8 @@ export type CompanySummary = {
   plan: string | null;
   plan_ends_at: string | null;
   user_limit: number | null;
+  payroll_start_day: number;
+  currency_code: CurrencyCode;
   /** Yalnızca onaylı ana yöneticiye döner. */
   join_code: string | null;
 };
@@ -55,7 +59,8 @@ export type PermissionModule =
   | "vehicles"
   | "inventory"
   | "custody"
-  | "productions";
+  | "productions"
+  | "hakedis";
 
 export type CompanyManagerPermissions = {
   user_id: string;
@@ -67,6 +72,7 @@ export type CompanyManagerPermissions = {
   inventory_write: boolean;
   custody_write: boolean;
   productions_write: boolean;
+  hakedis_write: boolean;
   updated_by: string | null;
   updated_at: string;
 };
