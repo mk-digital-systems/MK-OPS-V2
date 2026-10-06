@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 
 const LINKS = [
   { href: "/#ozellikler", label: "Özellikler" },
+  { href: "/cozumler", label: "Çözümler" },
   { href: "/#nasil-calisir", label: "Nasıl Çalışır" },
   { href: "/#fiyatlandirma", label: "Fiyatlandırma" },
   { href: "/#sss", label: "SSS" },

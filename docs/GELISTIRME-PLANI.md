@@ -35,6 +35,7 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 | 15 | Veritabanı testleri depoda: `tests/db`, `npm run test:db` (234 kontrol), GitHub Actions | ✅ |
 | 16 | Bildirimler: durumdan hesaplanan, yetkiye göre süzülen bildirim zili | ✅ |
 | 17 | İmalatlar: "İş Planından Doldur" (o günün ekipleri ve projeleri forma gelir) | ✅ |
+| 18 | SEO çözüm sayfaları `/cozumler` (6 konu, SSS yapılandırılmış verisi, site haritası) | ✅ |
 
 Kurulu migration'lar: `20261005000000` … `20261011000001`. Kurulacak: `20261011000002_inventory_messages.sql`.
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.
@@ -174,17 +175,8 @@ Eski projede görünürlük role göre ayrılıyordu. Bizde yalnızca ana yönet
 > ✅ Yapıldı: `20261014000001_notifications.sql` (durumdan hesaplanır, okundu bilgisi `notification_reads`), panelde zil.
 
 ### SEO çözüm sayfaları
-Eski projede konu sayfaları vardı; sunucu tarafında önceden üretiliyor (prerender), her biri ayrı adreste:
-- `gunluk-is-takibi` — Günlük saha işi takip sistemi
-- `hakedis-takibi` — Saha hakediş takip sistemi
-- `irsaliye-malzeme-takibi` — İrsaliye ve saha malzeme takibi
-- `operasyon-raporlama` — Saha operasyon ve hakediş raporlama
-- `denetim-gunlugu` — Saha operasyonları denetim günlüğü
-- `telekom-saha-takibi` ve `saha-onay-surecleri` — sektöre özgü / bizde onay akışı olmadığı için **alınmayacak**
 
-Sayfa yapısı: giriş, sorun, 3 bölüm, adımlar, kimler için, SSS, ilgili sayfalar.
-Next.js'te `src/app/(marketing)/cozumler/[slug]` olarak, sektörden bağımsız içerikle yazılabilir.
-Yalnızca gerçekten var olan özellikler anlatılmalı.
+> ✅ Yapıldı: `src/lib/constants/solutions.ts` + `/cozumler/[slug]`: hakediş, günlük iş, malzeme/depo, proje/metraj, puantaj, araç/ekipman. Yeni özellik eklendikçe ilgili sayfa güncellenmeli.
 
 ### Para birimi ve ondalık
 `companies.currency_code` (TRY varsayılan), tüm tutarlar `numeric(12,2)`, gösterimde
