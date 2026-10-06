@@ -1,6 +1,6 @@
 # MK OPS — Geliştirme Planı
 
-Son güncelleme: 6 Ekim 2026
+Son güncelleme: 6 Ekim 2026 (onay akışı ve ekip payı kapsam dışı bırakıldı)
 
 Bu dosya, üzerinde çalışılacak geliştirmelerin listesidir. Eski MK-OPS projesi
 (`PORTFÖY/PANEL/MK-OPS`) silindiği için oradan alınacak fikirlerin iş mantığı
@@ -41,24 +41,23 @@ Kurulu migration'lar: `20261005000000` … `20261007000002`.
 
 ### 1. Hakediş (iş değeri ve dönem raporu)
 
-**Amaç:** Yapılan işten firmanın kazandığı tutarı ve ekip/taşeron payını dönem
-bazında hesaplamak. Müteahhitler için ana satış özelliği.
+**Amaç:** Firmanın yaptığı işin parasal değerini proje, aşama ve dönem bazında
+hesaplamak. Müteahhitler için ana satış özelliği.
 
-**Eski MK-OPS'taki mantık:**
-- İş kalemi kataloğu (`work_items`): ad, birim, **birim fiyat** (`numeric(12,2)`).
-- Her ekibin bir **ekip yüzdesi** (`teams.percentage`).
-- Yalnızca **onaylı** işler hesaba girer.
-- Hesap (kuruşa yuvarlanır):
-  - `toplam_iş_değeri = miktar × birim_fiyat`
-  - `ekip_kazancı = toplam_iş_değeri × ekip_yüzdesi / 100`
-  - `firma_payı = toplam_iş_değeri − ekip_kazancı`
+**Kapsam kararı:** MK OPS'ta sahada sabit ekip/taşeron hesabı yok; iş kayıtlarını
+ofisteki yöneticiler giriyor. Bu yüzden **ekip payı / taşeron payı hesaplanmaz** ve
+**onay adımı yoktur** — iş kaydı girildiği anda hakedişe sayılır.
+
+**Eski MK-OPS'tan alınan mantık:**
+- İş kalemi birim fiyatı (`numeric(12,2)`), hesap kuruşa yuvarlanır:
+  `iş_değeri = miktar × birim_fiyat`.
 - **Hakediş dönemi:** firma ayarında `dönem_başlangıç_günü` (1–28). Dönem o günden başlar,
   bir sonraki ayın aynı gününden bir gün önce biter.
   - Örnek: başlangıç günü 20 → 20 Şubat – 19 Mart.
   - Bugünü içeren dönem "aktif dönem"dir; geçmiş dönemler listelenir.
 - Dashboard: günlük / haftalık / aktif dönem toplamları.
-- Rapor: dönem seçilir, ekip bazında özet ve iş listesi; Excel ve PDF çıktısı
-  (PDF'te firma logosu filigranı, bkz. madde 3).
+- Rapor: dönem seçilir; proje ve aşama bazında özet ve iş listesi; Excel ve PDF çıktısı
+  (PDF'te firma logosu filigranı, bkz. madde 2).
 
 **MK OPS'a uyarlama önerisi:**
 - Aşamalarda zaten `birim` ve iş kayıtlarında `miktar` var (`project_stage_logs.quantity`).
@@ -67,38 +66,13 @@ bazında hesaplamak. Müteahhitler için ana satış özelliği.
   - Projeye özel fiyat ile ezilebilmesi (`project_stage_progress.unit_price`).
 - İş kaydına hesap anındaki fiyat **sabitlenmeli** (`project_stage_logs.unit_price_snapshot`),
   böylece sonradan fiyat değişse de geçmiş hakediş değişmez.
-- Ekip payı: iş planı ekiplerine veya personele (ekip şefi) yüzde tanımı; iş kaydında
-  ekip şefi zaten var (`team_leader_personnel_id`).
+- İş kaydındaki ekip şefi (`team_leader_personnel_id`) yalnızca **bilgi amaçlı döküm** için
+  kullanılabilir (ör. "bu dönem kim ne kadar iş yaptı"); pay hesabı yapılmaz.
 - Dönem başlangıç günü: `companies.payroll_start_day`.
 - Para birimi: `companies.currency_code` (varsayılan TRY), tutarlar `numeric(12,2)`.
-- Fiyatları kimin göreceği: ana yönetici + yetki verilen roller (eski projede
-  "fiyatları görebilir" profil ayarı vardı).
+- Fiyatları kimin göreceği: ana yönetici + yetki verilen roller (modül yetkisi olarak).
 
-### 2. İş onay akışı
-
-**Amaç:** Sahadan girilen iş, yönetici onaylayana kadar ilerlemeye ve hakedişe sayılmaz.
-
-**Eski MK-OPS'taki mantık:**
-- İş durumları: `draft` (taslak) → `submitted` (onaya gönderildi) → `approved` / `rejected`.
-- Onaylar ekranında `submitted` işler listelenir; şirket ve proje yöneticisi onaylar
-  ya da reddeder.
-- İşte ekip zimmetinden malzeme kullanıldıysa:
-  - **Onay anında** zimmetten düşülür.
-  - Zimmet yetersizse onay engellenir ("yetersiz zimmet").
-  - İş üzerindeki `stock_deducted` işareti aynı malzemenin iki kez düşülmesini önler.
-  - Kayıt başarısız olursa zimmet eski haline geri alınır.
-- Her adım denetim kaydı üretir (`JOB_CREATED`, `JOB_SUBMITTED`, `JOB_APPROVED`, `JOB_REJECTED`).
-
-**MK OPS'a uyarlama önerisi:**
-- `project_stage_logs.status`: `submitted | approved | rejected` (+ `approved_by`, `approved_at`,
-  `rejection_reason`).
-- `compute_stage_progress` yalnızca `approved` kayıtları toplasın.
-- Firma ayarı: "iş kayıtları onay gerektirsin mi" (küçük firmalar için kapatılabilir).
-- Yöneticinin girdiği kayıt otomatik onaylı olabilir.
-- Malzeme kullanımı (zimmetten düşme) istenirse onayla birlikte; bizde zimmet
-  `inventory_custody_balances` tablosunda.
-
-### 3. Firma logosu ve adı (raporlarda)
+### 2. Firma logosu ve adı (raporlarda)
 
 **Amaç:** Bütün PDF/Word/Excel çıktılarında "MK OPS" yerine müşterinin kendi adı ve logosu.
 
@@ -123,7 +97,7 @@ bazında hesaplamak. Müteahhitler için ana satış özelliği.
   `inventory-export.ts`, iş planı WhatsApp görseli.
 - Logo yoksa şirket adı yazılır.
 
-### 4. Denetim kaydı (Audit Log)
+### 3. Denetim kaydı (Audit Log)
 
 **Amaç:** "Kim, ne zaman, neyi değiştirdi" kaydı. Landing'de bu iddia var; şu an yalnızca
 puantajda tam karşılığı bulunuyor.
@@ -139,7 +113,7 @@ Kayıt üretilen işlemler:
 - `MATERIAL_DISTRIBUTE_TO_TEAM`, `MATERIAL_RETURN_TO_STOCK`, `MATERIAL_TRANSFER_BETWEEN_TEAMS`
 - `USER_UPDATED`, `COMPANY_LOGO_CHANGED`
 
-Görünürlük: yönetici herkesi görür, ekip lideri yalnızca kendi kayıtlarını görür.
+Eski projede görünürlük role göre ayrılıyordu. Bizde yalnızca ana yönetici (ve yetki verilenler) görür.
 
 **MK OPS'a uyarlama önerisi:**
 - Eski projedeki uygulama içi `writeAudit(...)` çağrıları yerine **veritabanı tetikleyicileri**
@@ -150,7 +124,7 @@ Görünürlük: yönetici herkesi görür, ekip lideri yalnızca kendi kayıtlar
 - Kayıtlar değiştirilemez ve silinemez (yalnızca ekleme).
 - Ayarlar'da "İşlem Geçmişi" ekranı: tarih, kullanıcı ve modül filtresi.
 
-### 5. Kullanım kılavuzu
+### 4. Kullanım kılavuzu
 
 **Eski kılavuzun bölümleri:**
 1. Giriş ve Üyelik Kuralları
@@ -181,22 +155,17 @@ Eski yapı:
 - `notification_reads`: `notification_id, user_id, read_at` (benzersiz çift)
 
 Yönetici uygulamayı açınca hangi cihazdan girerse girsin okunmamış bildirimleri görür.
-Örnek olaylar: yeni iş kaydı onay bekliyor, katılma isteği geldi, destek talebi yanıtlandı,
-proje gecikti. İş onay akışıyla birlikte anlamlı.
-
-### Ekipler ve ekip payı
-Eski projede ekip: lider, üyeler, araç ve **ekip yüzdesi**. Bizde personel ve iş planı ekipleri
-var. Ekip payı yalnızca hakedişle birlikte gerekli (bkz. madde 1).
+Örnek olaylar: katılma isteği geldi, destek talebi yanıtlandı, proje gecikti, planlanan
+bitişe 3 gün kaldı, araç muayenesi yaklaşıyor, deneme süresi bitiyor.
 
 ### SEO çözüm sayfaları
 Eski projede konu sayfaları vardı; sunucu tarafında önceden üretiliyor (prerender), her biri ayrı adreste:
 - `gunluk-is-takibi` — Günlük saha işi takip sistemi
-- `saha-onay-surecleri` — Saha işleri onay süreçleri
 - `hakedis-takibi` — Saha hakediş takip sistemi
 - `irsaliye-malzeme-takibi` — İrsaliye ve saha malzeme takibi
 - `operasyon-raporlama` — Saha operasyon ve hakediş raporlama
 - `denetim-gunlugu` — Saha operasyonları denetim günlüğü
-- `telekom-saha-takibi` — sektöre özgü olduğu için **alınmayacak**
+- `telekom-saha-takibi` ve `saha-onay-surecleri` — sektöre özgü / bizde onay akışı olmadığı için **alınmayacak**
 
 Sayfa yapısı: giriş, sorun, 3 bölüm, adımlar, kimler için, SSS, ilgili sayfalar.
 Next.js'te `src/app/(marketing)/cozumler/[slug]` olarak, sektörden bağımsız içerikle yazılabilir.
@@ -218,6 +187,18 @@ MK OPS'ta da PGlite tabanlı bir test düzeneği kullanıldı, ama şu an yalnı
 
 Bunlar depoya `tests/db/` olarak alınmalı ve `npm run test:db` ile çalıştırılmalı.
 İleride GitHub Actions'ta her PR'da çalışması sağlanmalı.
+
+---
+
+## Bilerek alınmayanlar
+
+| Eski MK-OPS özelliği | Neden alınmıyor |
+|---|---|
+| **İş onay akışı** (taslak → onaya gönder → onayla/reddet) | Kayıtları ofisteki yöneticiler giriyor; sahada kayıt giren sabit ekip yok. Ek onay adımı gereksiz iş yükü olur. |
+| **Ekipler, ekip lideri hesabı, ekip/taşeron payı (%)** | Sistemde sabit ekip yok; ekipler günlük iş planında her gün yeniden kuruluyor. Pay hesabı bu yapıya ters düşer. |
+| **Onay anında zimmetten malzeme düşme** | Onay akışına bağlıydı; bizde zimmet ve stok hareketleri depo modülünde ayrı yönetiliyor. |
+| **5 dil desteği** | Şimdilik yalnızca Türkiye pazarı. |
+| **Ödeme sağlayıcısı ile plan değişimi** | EFT + süper admin plan ataması kullanılıyor. |
 
 ---
 
