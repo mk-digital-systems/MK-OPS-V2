@@ -1,19 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ProductionDefinition, ProductionEntry, ProductionProjectOption, ProductionSaveJob, ProductionTarget } from "@/types/production";
+import type { ProductionEntry, ProductionProjectOption, ProductionSaveJob, ProductionTarget } from "@/types/production";
 import type { ProjectType } from "@/types/project";
 
 export class ProductionRepository {
   constructor(private readonly supabase: SupabaseClient) {}
-  async listDefinitions(): Promise<ProductionDefinition[]> {
-    const { data, error } = await this.supabase.from("production_item_definitions").select("*").order("name");
-    if (error) throw error; return (data ?? []) as ProductionDefinition[];
-  }
-  async saveDefinition(input: { id?: string; name: string; unit: string; is_active: boolean }): Promise<ProductionDefinition> {
-    const query = input.id
-      ? this.supabase.from("production_item_definitions").update({ name: input.name.trim(), unit: input.unit.trim().toLocaleUpperCase("tr-TR"), is_active: input.is_active }).eq("id", input.id)
-      : this.supabase.from("production_item_definitions").insert({ name: input.name.trim(), unit: input.unit.trim().toLocaleUpperCase("tr-TR"), is_active: input.is_active });
-    const { data, error } = await query.select("*").single(); if (error) throw error; return data as ProductionDefinition;
-  }
   async listEntries(from: string, to: string): Promise<ProductionEntry[]> {
     const { data, error } = await this.supabase.from("production_entries").select(`*, production_jobs(*, production_items(*))`).gte("work_date", from).lte("work_date", to).order("work_date", { ascending: false });
     if (error) throw error;

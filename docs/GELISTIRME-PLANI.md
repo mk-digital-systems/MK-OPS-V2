@@ -36,6 +36,7 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 | 16 | Bildirimler: durumdan hesaplanan, yetkiye göre süzülen bildirim zili | ✅ |
 | 17 | İmalatlar: "İş Planından Doldur" (o günün ekipleri ve projeleri forma gelir) | ✅ |
 | 18 | SEO çözüm sayfaları `/cozumler` (6 konu, SSS yapılandırılmış verisi, site haritası) | ✅ |
+| 19 | Kullanılmayan imalat kalemi tanımları tablosu kaldırıldı | ✅ |
 
 Kurulu migration'lar: `20261005000000` … `20261011000001`. Kurulacak: `20261011000002_inventory_messages.sql`.
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.

@@ -107,5 +107,6 @@ entry = (await save(manager, null, [{ kind: "stage", progress_id: prog, quantity
 e = await asErr(chief, `delete from public.projects where id = $1`, [project]);
 check("project delete still works (cascade)", !e, e);
 check("imalat keeps snapshot after project delete", (await sys(`select project_name_snapshot n from public.production_jobs where production_entry_id = $1`, [entry])).rows[0].n === "Hat 1");
+check("old item definitions table removed", (await sys(`select to_regclass('public.production_item_definitions') r`)).rows[0].r === null);
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");
 process.exit(failures ? 1 : 0);

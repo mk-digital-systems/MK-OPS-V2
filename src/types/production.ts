@@ -1,11 +1,8 @@
-export type ProductionDefinition = { id: string; name: string; unit: string; is_active: boolean; created_at: string; updated_at: string };
-
 /** stage: projenin iş kalemi (projeye iş kaydı açar); extra: ek iş (fiyatlı, hakedişe dahil); note: eski serbest metin */
 export type ProductionItemKind = "stage" | "extra" | "note";
 
 export type ProductionItem = {
   id: string;
-  production_item_definition_id: string | null;
   item_name_snapshot: string;
   quantity: number;
   unit_snapshot: string;
