@@ -114,7 +114,7 @@ export function SupportCenter({
           onChange={(event) => setMessage(event.target.value)}
           placeholder={
             topic === "plan"
-              ? "Kullanıcı sayınızı ve ödeme dönemini (aylık/yıllık) yazın. EFT bilgilerini size ileteceğiz."
+              ? "Kullanıcı sayınızı ve ödeme dönemini (1, 3 veya 6 ay) yazın. EFT bilgilerini size ileteceğiz."
               : "Yaşadığınız sorunu veya sorunuzu yazın."
           }
         />

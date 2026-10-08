@@ -3,11 +3,12 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { addMonths } from "date-fns";
 import { Ban, Loader2, Play, Search, Settings2, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import type { AdminCompany, AdminCompanyUser } from "@/types/admin";
 import { USER_ROLE_LABELS, type CompanyAccessStatus } from "@/types/auth";
-import { ACCESS_STATUS_CLASSES, ACCESS_STATUS_LABELS, PLAN_PRESETS } from "@/lib/constants/plans";
+import { ACCESS_STATUS_CLASSES, ACCESS_STATUS_LABELS, PLAN_DURATION_MONTHS, PLAN_PRESETS } from "@/lib/constants/plans";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { AdminRepository } from "@/modules/admin/admin-repository";
@@ -191,10 +192,10 @@ function ManageCompanyDialog({
   const [confirmName, setConfirmName] = useState("");
   const repository = () => new AdminRepository(createClient());
 
-  function addMonths(months: number) {
+  function extendPlan(months: number) {
+    // date-fns ay sonunu taşırmaz: 31 Ağustos + 6 ay = 28/29 Şubat (setMonth 3 Mart verir).
     const base = new Date(laterOf(planEndsAt ? `${planEndsAt}T23:59:59` : company.plan_ends_at));
-    base.setMonth(base.getMonth() + months);
-    setPlanEndsAt(toDateInput(base.toISOString()));
+    setPlanEndsAt(toDateInput(addMonths(base, months).toISOString()));
     if (!plan) setPlan(PLAN_PRESETS[0]);
   }
 
@@ -308,9 +309,9 @@ function ManageCompanyDialog({
                 onChange={(event) => setPlanEndsAt(event.target.value)}
               />
               <div className="flex flex-wrap gap-1">
-                {[1, 3, 6, 12].map((months) => (
-                  <Button key={months} type="button" size="sm" variant="outline" onClick={() => addMonths(months)}>
-                    +{months === 12 ? "1 yıl" : `${months} ay`}
+                {PLAN_DURATION_MONTHS.map((months) => (
+                  <Button key={months} type="button" size="sm" variant="outline" onClick={() => extendPlan(months)}>
+                    +{months} ay
                   </Button>
                 ))}
                 {planEndsAt && (

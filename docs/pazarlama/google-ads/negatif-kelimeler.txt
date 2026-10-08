@@ -1,0 +1,81 @@
+# İş arayanlar
+"iş ilanı"
+"iş ilanları"
+"eleman"
+"maaşı"
+"maaşları"
+"kariyer"
+"staj"
+"kadrolu"
+"cv"
+
+# Bilgi / eğitim arayanlar
+"nedir"
+"ne demek"
+"nasıl yapılır"
+"nasıl hesaplanır"
+"örneği"
+"örnekleri"
+"ders"
+"kurs"
+"eğitimi"
+"sertifika"
+"tez"
+"ödev"
+"pdf"
+
+# Bedava / korsan
+"bedava"
+"crack"
+"full indir"
+"indir"
+"şablonu"
+"excel şablon"
+"apk"
+
+# Kamu hakedişi ve keşif (MK OPS'ta yok)
+"fiyat farkı"
+"ekap"
+"yaklaşık maliyet"
+"keşif özeti"
+"poz no"
+"poz numarası"
+"birim fiyat listesi"
+"çevre şehircilik birim fiyat"
+"kesin hesap"
+
+# Çizimden metraj / CAD (MK OPS'ta yok)
+"autocad"
+"revit"
+"çizim"
+"dwg"
+"metraj hesaplama"
+"metraj cetveli"
+
+# GPS araç takip (MK OPS'ta yok)
+"gps"
+"uydu"
+"takip cihazı"
+"anlık konum"
+"canlı takip"
+"konum takibi"
+"araç takip cihazı"
+
+# Bordro ve PDKS (MK OPS'ta yok)
+"bordro"
+"maaş hesaplama"
+"sgk"
+"pdks"
+"parmak izi"
+"kartlı geçiş"
+"yüz tanıma"
+"turnike"
+
+# Perakende stok (hedef dışı)
+"e-ticaret"
+"market"
+"mağaza"
+"barkod"
+"pos"
+"kasa programı"
+"restoran"

@@ -3,6 +3,9 @@ import type { CompanyAccessStatus } from "@/types/auth";
 /** Önerilen plan adları; süper admin farklı bir ad da yazabilir. */
 export const PLAN_PRESETS = ["Başlangıç", "Profesyonel", "Kurumsal"] as const;
 
+/** Sunulan abonelik süreleri (ay). 12 aylık abonelik yok. */
+export const PLAN_DURATION_MONTHS = [1, 3, 6] as const;
+
 export const ACCESS_STATUS_LABELS: Record<CompanyAccessStatus, string> = {
   trial: "Deneme",
   active: "Aktif",
