@@ -299,7 +299,7 @@ export const SOLUTIONS: Solution[] = [
         a: "Hayır. Birimi olmayan iş kalemleri yalnızca durumla (başladı / bitti) izlenir.",
       },
     ],
-    related: ["gunluk-is-takibi", "hakedis-takibi", "puantaj-personel-takibi"],
+    related: ["gunluk-is-takibi", "hakedis-takibi", "denetim-gunlugu"],
   },
   {
     slug: "puantaj-personel-takibi",
@@ -422,6 +422,81 @@ export const SOLUTIONS: Solution[] = [
       },
     ],
     related: ["irsaliye-malzeme-takibi", "gunluk-is-takibi", "puantaj-personel-takibi"],
+  },
+  {
+    // Eski MK-OPS'taki /cozumler/denetim-gunlugu adresi korunur (Google indeksinde vardı).
+    slug: "denetim-gunlugu",
+    shortTitle: "Denetim günlüğü",
+    title: "Denetim Günlüğü ve İşlem Geçmişi",
+    description:
+      "Projede, hakediş fiyatında, personelde, stokta ve yetkilerde kim, ne zaman, neyi değiştirdi? Önceki ve sonraki değerleriyle, silinemeyen işlem geçmişi.",
+    intro:
+      "Ekip büyüdükçe aynı kayda birden çok kişi dokunur. Bir fiyat, miktar ya da yetki değiştiğinde bunu kimin, ne zaman yaptığını bilmek gerekir. MK OPS'ta önemli her değişiklik, önceki ve sonraki değeriyle işlem geçmişine kendiliğinden yazılır.",
+    problem: {
+      title: "Değişiklik takibi neden zorlaşır?",
+      points: [
+        "Excel dosyasında bir hücre değiştiğinde eski değer de değiştiren kişi de kaybolur.",
+        "Birim fiyat ya da metraj sonradan değişince hakedişteki farkın nedeni bulunamaz.",
+        "Hangi kullanıcıya kimin hangi yetkiyi verdiği bilinmez.",
+        "Silinen bir kaydın daha önce var olduğu gösterilemez.",
+      ],
+    },
+    sections: [
+      {
+        title: "Değişiklikler kendiliğinden kaydedilir",
+        text: "Kimsenin ayrıca not tutması gerekmez; değişiklik veritabanı düzeyinde yakalanır.",
+        bullets: [
+          "Ekleme, güncelleme ve silme işlemleri ayrı ayrı kaydedilir",
+          "Güncellemelerde her alanın önceki ve sonraki değeri görünür",
+          "İşlemi yapan kullanıcı, tarih ve saatiyle",
+        ],
+      },
+      {
+        title: "Hangi kayıtlar izlenir?",
+        text: "Operasyonun ve paranın döndüğü modüllerin hepsi kapsanır.",
+        bullets: [
+          "Projeler, proje türleri, bölümler, aşamalar ve iş kayıtları",
+          "Hakediş birim fiyatları, iş planları ve imalat kayıtları",
+          "Personel, avans, araçlar, malzeme tanımları, depolar ve kategoriler",
+          "Kullanıcı rolleri, modül yetkileri ve firma ayarları",
+        ],
+      },
+      {
+        title: "Güvenilir ve gizli",
+        text: "İşlem geçmişi bir kanıt kaydıdır; bu yüzden korunur.",
+        bullets: [
+          "Kayıtlar değiştirilemez ve silinemez",
+          "Yalnızca firmanın ana yöneticisi görür",
+          "TC kimlik numarası kayıtta maskelenir",
+          "Puantaj değişikliklerinin ayrıca kendi geçmişi tutulur",
+        ],
+      },
+    ],
+    steps: [
+      "Firmanızı kurun; işlem geçmişi ilk kayıttan itibaren kendiliğinden tutulur.",
+      "Ayarlar → İşlem Geçmişi ekranını açın.",
+      "Tarih aralığı, modül ve kullanıcı seçerek süzün; her değişikliğin önceki ve sonraki değerini görün.",
+    ],
+    audience: [
+      "Birden çok yöneticinin aynı kayıtlarla çalıştığı firmalar",
+      "Hakediş fiyatlarını ve metrajları kontrol altında tutmak isteyen müteahhit ve taşeronlar",
+      "Personel, stok ve yetki değişikliklerinde hesap verebilirlik isteyen firma sahipleri",
+    ],
+    faq: [
+      {
+        q: "İşlem geçmişini kimler görebilir?",
+        a: "Yalnızca firmanın ana yöneticisi. Yönetici ve muhasebe kullanıcıları bu ekranı göremez.",
+      },
+      {
+        q: "Bir kayıt silinirse geçmişi de silinir mi?",
+        a: "Hayır. Silme işlemi, silinen kaydın son hâliyle birlikte işlem geçmişine yazılır. İşlem geçmişindeki kayıtlar değiştirilemez ve silinemez.",
+      },
+      {
+        q: "Her değişiklik kaydedilir mi?",
+        a: "Kullanıcıların doğrudan yaptığı değişiklikler kaydedilir; sistemin kendiliğinden hesapladığı değerler (ör. ilerleme yüzdesi) ayrıca yazılmaz. Stok hareketleri ve zimmet kendi hareket listelerinde kim ve ne zaman bilgisiyle tutulur.",
+      },
+    ],
+    related: ["hakedis-takibi", "proje-metraj-takibi", "puantaj-personel-takibi"],
   },
 ];
 

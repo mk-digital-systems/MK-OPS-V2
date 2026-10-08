@@ -24,6 +24,9 @@ export const metadata: Metadata = {
   },
   description:
     `${APP_NAME} — ${APP_TAGLINE}. Projeler, personel, puantaj, depo ve araçlar tek panelde.`,
+  applicationName: APP_NAME,
+  openGraph: { siteName: APP_NAME, locale: "tr_TR", type: "website" },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({

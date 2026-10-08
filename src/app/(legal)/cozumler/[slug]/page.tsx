@@ -19,7 +19,16 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     title: solution.title,
     description: solution.description,
     alternates: { canonical: `/cozumler/${solution.slug}` },
-    openGraph: { title: `${solution.title} — ${APP_NAME}`, description: solution.description, url: `/cozumler/${solution.slug}` },
+    // Sayfa openGraph tanımlayınca kökteki ayarlar ve paylaşım görseli devralınmaz; burada yeniden verilir.
+    openGraph: {
+      title: `${solution.title} — ${APP_NAME}`,
+      description: solution.description,
+      url: `/cozumler/${solution.slug}`,
+      siteName: APP_NAME,
+      locale: "tr_TR",
+      type: "website",
+      images: "/opengraph-image",
+    },
   };
 }
 

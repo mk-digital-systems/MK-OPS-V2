@@ -21,7 +21,15 @@ import {
   Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { APP_NAME, APP_TAGLINE, SITE_URL, SUPPORT_EMAIL, whatsappUrl } from "@/lib/constants/brand";
+import {
+  APP_LOGO_SRC,
+  APP_NAME,
+  APP_TAGLINE,
+  COMPANY_LEGAL_NAME,
+  SITE_URL,
+  SUPPORT_EMAIL,
+  whatsappUrl,
+} from "@/lib/constants/brand";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { SiteFooter } from "@/components/marketing/site-footer";
 import {
@@ -32,21 +40,52 @@ import {
 } from "@/components/marketing/mockups";
 import { Button } from "@/components/ui/button";
 
+// Arama sonucunda görünen başlık; aranan ifadeyi ("şantiye/saha yönetim programı") içerir.
+const SEO_TITLE = `${APP_NAME} — Şantiye ve Saha Yönetim Programı`;
 const DESCRIPTION =
-  "Ekiplerinizi, işlerinizi ve kaynaklarınızı tek panelden yönetin: iş ve proje takibi, günlük iş planı, personel puantajı, malzeme stoku, araç ve ekipman zimmeti. 48 saat ücretsiz deneyin.";
+  "Şantiye ve saha yönetim programı: hakediş, günlük iş planı, imalat, puantaj, malzeme stoku, araç ve ekipman takibi tek panelde. 48 saat ücretsiz deneyin.";
 
 export const metadata: Metadata = {
-  title: { absolute: `${APP_NAME} — ${APP_TAGLINE}` },
+  title: { absolute: SEO_TITLE },
   description: DESCRIPTION,
   alternates: { canonical: SITE_URL },
   openGraph: {
-    title: `${APP_NAME} — ${APP_TAGLINE}`,
+    title: SEO_TITLE,
     description: DESCRIPTION,
     url: SITE_URL,
     siteName: APP_NAME,
     locale: "tr_TR",
     type: "website",
   },
+};
+
+const STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: COMPANY_LEGAL_NAME,
+      url: SITE_URL,
+      logo: `${SITE_URL}${APP_LOGO_SRC}`,
+      email: SUPPORT_EMAIL,
+      contactPoint: {
+        "@type": "ContactPoint",
+        contactType: "customer support",
+        email: SUPPORT_EMAIL,
+        availableLanguage: "Turkish",
+      },
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      name: APP_NAME,
+      alternateName: `${APP_NAME} — ${APP_TAGLINE}`,
+      url: SITE_URL,
+      inLanguage: "tr-TR",
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+  ],
 };
 
 const PAINS = [
@@ -147,7 +186,7 @@ const FAQ = [
   {
     question: "Fiyatlar nasıl belirleniyor?",
     answer:
-      "Kullanıcı sayınıza ve ihtiyaç duyduğunuz kapsama göre firmanıza özel teklif hazırlıyoruz. Aylık veya yıllık ödeme seçebilirsiniz.",
+      "Kullanıcı sayınıza ve ihtiyaç duyduğunuz kapsama göre firmanıza özel teklif hazırlıyoruz. 1, 3 veya 6 aylık ödeme seçebilirsiniz.",
   },
   {
     question: "Başka firmalar verilerimi görebilir mi?",
@@ -181,6 +220,7 @@ export default async function LandingPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }} />
       <SiteHeader signedIn={signedIn} />
 
       <main className="flex-1">
@@ -388,7 +428,7 @@ export default async function LandingPage() {
                 </ul>
               </div>
               <div className="flex flex-col justify-center gap-3 border-t bg-muted/40 p-8 md:border-l md:border-t-0">
-                <p className="text-sm text-muted-foreground">Ödeme EFT/havale ile. Aylık veya yıllık. Otomatik yenileme yok.</p>
+                <p className="text-sm text-muted-foreground">Ödeme EFT/havale ile. 1, 3 veya 6 aylık. Otomatik yenileme yok.</p>
                 <Button asChild size="lg">
                   <a href={whatsappUrl("MK OPS için fiyat teklifi almak istiyorum.")} target="_blank" rel="noopener noreferrer">
                     <MessageCircle className="h-4 w-4" />

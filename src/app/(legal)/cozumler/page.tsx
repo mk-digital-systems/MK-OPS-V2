@@ -6,7 +6,7 @@ import { SOLUTIONS } from "@/lib/constants/solutions";
 
 export const metadata: Metadata = {
   title: "Çözümler",
-  description: `${APP_NAME} ile hakediş, günlük iş planı ve imalat, proje ve metraj, malzeme stoku ve depo, puantaj, araç ve ekipman takibi.`,
+  description: `${APP_NAME} ile hakediş, günlük iş planı ve imalat, proje ve metraj, malzeme stoku ve depo, puantaj, araç ve ekipman takibi, denetim günlüğü.`,
   alternates: { canonical: "/cozumler" },
 };
 
