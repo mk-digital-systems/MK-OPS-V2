@@ -1,6 +1,6 @@
 # MK OPS — Geliştirme Planı
 
-Son güncelleme: 9 Ekim 2026 (yeni rol yapısı; ekip başı, onay akışı ve şubeler plana alındı)
+Son güncelleme: 10 Ekim 2026 (taşeron personel kartından; C aşaması ertelendi; sıradaki işler listelendi)
 
 Bu dosya, üzerinde çalışılacak geliştirmelerin listesidir. Eski MK-OPS projesi
 (`PORTFÖY/PANEL/MK-OPS`) silindiği için oradan alınacak fikirlerin iş mantığı
@@ -10,6 +10,66 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 > tarayıcıda (localStorage) tutuyordu. Bu yüzden kod kopyalanmayacak; iş mantığı
 > MK OPS'un veritabanı merkezli yapısına (RLS, şirket ayrımı, SECURITY DEFINER
 > fonksiyonlar) yeniden yazılacak.
+
+---
+
+## ▶ Sıradaki çalışma — bir sonraki oturumda buradan devam edilecek
+
+10 Ekim 2026 itibarıyla. Yeni oturumda önce bu bölüm okunur, kullanıcıyla hangi başlıktan
+devam edileceği kararlaştırılır. Her adım kullanıcının onayıyla ilerler; migration önce
+`tests/db` ile denenir, sonra `supabase/migrations` klasörüne konur.
+
+### Satış ve pazarlama (kullanıcı kararı: ilk müşteri gelene kadar beklemede)
+
+- [ ] **FATİH Projesi taşeron ilanı:** ilan sahibine tek WhatsApp mesajı (kullanıcı atacak). Mesaj
+  "ekip başvurusu için yazmıyorum" diye başlar; uç başı çalışan 10 ilde ekip takibini nasıl
+  yapacaklarını sorar; 15 dakikalık demo önerir; fiyat ve henüz olmayan özellik söylenmez.
+  Kişi adı ve telefonu bu depoya yazılmaz.
+- [ ] **Demo firması:** canlıda demo verisiyle bir firma; "Okul Elektrik ve Data Altyapısı" proje türü
+  (sac tava m, PVC kanal m, data/elektrik/topraklama uç adet, sistem odası adet), 3–4 okul, 2–3 ekip,
+  bir taşeron. Uç girişinden hakediş ve taşeron ekstresine kadar akış denenir.
+- [ ] **Fiyat dosyası:** liste fiyatları kararlaştırıldığı gibi güncellenecek (yalnızca
+  `docs/dahili/fiyatlandirma.md`; rakam başka hiçbir dosyaya yazılmaz).
+- [ ] **Landing:** WhatsApp "Bilgi Al" düğmesi öne çıkar (mobilde sabit); "saha personeli sınırsız"
+  mesajı; kanıt cümlesi "Aktif bir telekom şantiyesinde 3 aydır, 40 kişiye ve 9 ekibe kadar
+  kullanılıyor" + diğer sektörlere (inşaat, elektrik…) uygunluk notu. Sayfa telekoma çevrilmez.
+  Deneme süresi 48 saat kalır.
+- [ ] **Teklif Al formu:** veritabanına kaydetmez, WhatsApp'ı hazır mesajla açar; KVKK onay kutusu.
+- [ ] **Çerez onayı + Google etiketi (GA4/Ads):** WhatsApp tıklaması, Teklif Al ve deneme kaydı ayrı
+  dönüşüm. Etiket kimliği kullanıcıdan alınacak. Google Ads bundan önce açılmaz.
+- [ ] Kurucu teklifi (A: %30 indirim / B: bir üst paket) ve KDV kararı kullanıcıda bekliyor.
+
+### Ürün geliştirme
+
+- [ ] **D — Şubeler** (en büyük iş): şube tablosu; personel, proje, araç ve depo şubeye bağlı; şefe
+  ve muhasebeye şube atama (bir şef birden fazla şube, firma yöneticisi atar); şef yalnızca kendi
+  şubesini görür (veritabanında kısıt); şubeler arası malzeme gönderme / teslim alma. Netleşecek:
+  personel aynı ay iki şubede çalışırsa ne olur (öneri: tek şube, gerekirse şube değiştirilir).
+- [ ] **E — "Bugün" özeti** (firma yöneticisinin açılış ekranı): hangi ekip nerede, ne yaptı,
+  bekleyen onaylar, şube bazında kısa özet.
+- [ ] **C — Ekip başı ve saha paneli** (ertelendi). Taslak: ekip başı kullanıcısı personel kaydına
+  bağlanır; giriş yapınca `/saha` açılır (Bugün · İmalat Gir · Kayıtlarım · Projeler); yalnızca kendi
+  ekibi ve kendi imalatı; fiyat görmez; imalat "onay bekliyor" gider, şef/firma yöneticisi onaylar
+  ya da gerekçeyle reddeder; onaylanana kadar ilerlemeye, hakedişe ve taşeron hesabına işlenmez.
+  Açık sorular: geçmiş günlere giriş (öneri: son 3 gün), fotoğraf (öneri: sonra).
+- [ ] **İş kalemi notu:** kullanıcıya sorulacak — (a) proje türünde olmayan bir iş kalemi imalatta
+  listeden seçilip projeye eklensin mi, yoksa (b) bölümlü projede bölüm açılmadan iş kalemi
+  seçilebilsin mi? (Bugün türdeki bütün kalemler projede otomatik hazır; türde olmayan iş "Ek İş" ile girilir.)
+- [ ] Taşeron detayındaki "Pay %" rozeti kaldırılsın mı? (Kullanıcıya sorulacak; Excel'de yüzde yok.)
+- [ ] Taşeronun kendi girişi (ayrı rol): yalnızca kendi hakedişi, ödemeleri ve ekibi; işveren fiyatı
+  veritabanında da gizlenir.
+
+### Küçük teknik işler
+
+- [ ] **`MK-OPS/` klasörü:** eski proje v2 deposunun içinde, izlenmiyor ama içinde `.env` var;
+  yanlışlıkla commit edilmesin diye depo dışına taşınmalı (ya da `.git/info/exclude`). Kullanıcıya sorulacak.
+- [ ] **`src/app/favicon.ico`:** paletli PNG içeriyor; `npm run dev` (Turbopack) bütün sayfalarda 500
+  veriyor (canlı etkilenmiyor). RGBA olarak yeniden üretilecek.
+- [ ] **`delete-user` Edge Function:** mesajı hâlâ "şantiye şefi"; "firma yöneticisi" yapılıp deploy edilecek.
+- [ ] Kullanılmayan `teams` tablosu (ekip tanımı; taşeron artık personel kartından) — C aşamasında
+  ekip başı için kullanılmazsa kaldırılabilir. `personnel.sgk_paid_by_main` kolonu da kullanılmıyor.
+- [ ] Ekranlar tarayıcıda uçtan uca denenmedi (rol bandı, yeni menü, onaylar, taşeron, puantaj grupları);
+  kullanıcı canlıda deniyor, gelen geri bildirime göre düzeltilecek.
 
 ---
 
@@ -43,9 +103,10 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 | 23 | Rol yapısı: Firma Yöneticisi (birden fazla, kurucu korumalı), Şantiye Şefi, Muhasebe; yeni yan menü, her sayfada ad/rol/yetki bandı (`20261017000001_roles.sql`) | ✅ |
 | 24 | Onaylar: muhasebenin eklediği personel/araç onayı, ay sonu puantaj onayı (onaylı ay kilitli); proje türleri Projeler sayfasına taşındı (`20261018000001_approvals.sql`) | ✅ |
 | 25 | Ekipler (ekip başı + isteğe bağlı taşeron) ve taşeronlar: taşerona göre pay yüzdesi, taşeron hakedişi, harcama/ödeme ve bakiye, taşeron personeli ve ayrı maaş dökümü (`20261019000001_teams_subcontractors.sql`) | ✅ |
-| 26 | Taşeron personel kartından tanımlanır ("Kime çalışıyor"); firmanın ödediği maaşlar taşeron alacağından düşer; puantaj ve çıktılarda firma/taşeron ayrı; taşeronluk biterse ekibi firmaya geçer; Ekipler sayfası kaldırıldı (`20261020000001_subcontractor_personnel.sql`) | 🚧 dalda |
+| 26 | Taşeron personel kartından tanımlanır ("Kime çalışıyor"); firmanın ödediği maaşlar taşeron alacağından düşer; puantaj ve çıktılarda firma/taşeron ayrı; taşeronluk biterse ekibi firmaya geçer; Ekipler sayfası kaldırıldı (`20261020000001_subcontractor_personnel.sql`) | ✅ |
+| 27 | Taşeron ekranında ve Excel'inde işveren fiyatı/tutarı gösterilmez, yalnızca taşeronun kendi payı; veritabanı testleri İstanbul saat diliminde (CI düzeltmesi) | ✅ |
 
-Kurulu migration'lar: `20261005000000` … `20261011000001`. Kurulacak: `20261011000002_inventory_messages.sql`.
+Kurulu migration'lar: `20261005000000` … `20261020000001` (hepsi canlıda kurulu, 10 Ekim 2026). Kurulacak migration yok.
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.
 
 ---
@@ -55,7 +116,7 @@ Kurulu migration'lar: `20261005000000` … `20261011000001`. Kurulacak: `2026101
 - [x] Veritabanı hata mesajlarındaki "şantiye şefi" ifadelerini "ana yönetici" yap (`20261012000001`).
 - [x] `sync_project_stage_rows` ve `refresh_project_rollup` iç fonksiyonlarında `authenticated` çalıştırma yetkisini kaldır (`20261012000001`).
 - [x] `src/app/(app)` boş klasörü silindi.
-- [ ] `delete-user` Edge Function mesajı hâlâ "şantiye şefi" diyor; bir sonraki function deploy'unda "firma yöneticisi" yapılacak.
+- [ ] `delete-user` Edge Function mesajı hâlâ "şantiye şefi" diyor (bkz. Sıradaki çalışma → Küçük teknik işler).
 
 ---
 
@@ -75,13 +136,13 @@ kayıtları onaya gönderiyor. Bütün roller paketin kullanıcı limitine sayı
 |---|---|---|
 | A | Rol yapısı: çoklu firma yöneticisi, rol sınırlarının kalkması, şefin kullanıcı yönetimi, rol varsayılan yetkileri, muhasebenin araç/stok görünürlüğü ve irsaliye girişi, yeni yan menü | ✅ |
 | B | Onaylar: muhasebenin eklediği personel/araç onayı, ay sonu puantaj onayı (onaydan sonra ay kesinleşir; onayı yalnızca firma yöneticisi kaldırır) | ✅ |
-| T | Ekipler ve taşeronlar (ofis tarafı); taşeronun kendi girişi sonra, ayrı rol olarak | 🚧 dalda |
-| C | Ekip başı rolü ve saha paneli; imalat taslak → onaya gönder → onay/red; ekip bazlı hakediş | ⏳ |
+| T | Taşeronlar (ofis tarafı, personel kartından); taşeronun kendi girişi sonra, ayrı rol olarak | ✅ |
+| C | Ekip başı rolü ve saha paneli; imalat taslak → onaya gönder → onay/red; ekip bazlı hakediş | ⏸ Ertelendi (10 Ekim): saha personeli şimdilik sisteme girmeyecek. Ekranların taslağı hazır (aşağıda). Yapılınca ekip başları paket limitine dahil edilecek. |
 | D | Şubeler: şube tablosu; personel, proje, araç ve depo şubeye bağlı; şefe ve muhasebeye şube atama; şube bazlı veri kısıtı (veritabanında); şubeler arası malzeme gönderme/teslim alma | ⏳ |
 | E | Firma yöneticisi için "Bugün" özeti (hangi ekip nerede, ne yaptı, bekleyen onaylar) | ⏳ |
 
 Not (kullanıcıdan): Projede iş kalemleri önceden girilmemişse imalat yazılırken listeden iş kalemi
-seçilip projeye doğrudan eklenebilmeli. Mevcut davranış C aşamasında kontrol edilecek.
+seçilip projeye doğrudan eklenebilmeli. Ayrıntısı yukarıda "Sıradaki çalışma → İş kalemi notu"nda.
 
 ---
 
