@@ -31,6 +31,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { PersonnelRepository } from "@/modules/work-plans/personnel-repository";
 import { InventoryRepository } from "@/modules/inventory/inventory-repository";
+import { useReportBrand } from "@/components/layout/company-brand-provider";
+import { PendingApprovalsCard } from "@/components/approvals/pending-approvals-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -65,6 +67,11 @@ type Props = {
   summaryYear?: number;
   summaryMonth?: number;
   readOnly?: boolean;
+  /** Yeni personel ekleyebilir (muhasebenin eklediği kayıt onaya düşer). */
+  canCreate?: boolean;
+  /** Bekleyen kayıtları onaylayabilir (şantiye şefi, firma yöneticisi). */
+  canReview?: boolean;
+  currentUserId?: string | null;
 };
 
 export function PersonnelManager({
@@ -75,8 +82,12 @@ export function PersonnelManager({
   summaryYear = new Date().getFullYear(),
   summaryMonth = new Date().getMonth() + 1,
   readOnly = false,
+  canCreate = !readOnly,
+  canReview = false,
+  currentUserId = null,
 }: Props) {
   const router = useRouter();
+  const brand = useReportBrand();
   const [items, setItems] = useState(initialPersonnel);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Personnel | null>(null);
@@ -341,7 +352,11 @@ export function PersonnelManager({
           updated_by: user.id,
         });
         setItems((prev) => sortByCreatedAtDesc([...prev, created]));
-        toast.success("Personel eklendi");
+        toast.success(
+          created.approval_status === "pending"
+            ? "Personel eklendi; şantiye şefi veya firma yöneticisi onaylayınca kullanıma açılır"
+            : "Personel eklendi"
+        );
       }
       setOpen(false);
       router.refresh();
@@ -355,9 +370,28 @@ export function PersonnelManager({
     }
   }
 
-  const activeCount = items.filter((person) => person.is_active).length;
-  const passiveCount = items.length - activeCount;
-  const filtered = sortByCreatedAtDesc(items).filter((p) => {
+  const pendingItems = items.filter((person) => person.approval_status === "pending");
+  const approvedItems = items.filter((person) => person.approval_status !== "pending");
+  const activeCount = approvedItems.filter((person) => person.is_active).length;
+  const passiveCount = approvedItems.length - activeCount;
+
+  async function reviewPersonnel(id: string, approve: boolean) {
+    try {
+      await new PersonnelRepository(createClient()).review(id, approve);
+      setItems((prev) =>
+        approve
+          ? prev.map((p) => (p.id === id ? { ...p, approval_status: "approved" } : p))
+          : prev.filter((p) => p.id !== id)
+      );
+      toast.success(approve ? "Personel onaylandı" : "Personel kaydı reddedildi");
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      toast.error("İşlem yapılamadı", { description: (error as Error)?.message });
+    }
+  }
+
+  const filtered = sortByCreatedAtDesc(approvedItems).filter((p) => {
     if (p.is_active === showPassive) return false;
     const q = filter.trim().toLowerCase();
     if (!q) return true;
@@ -390,7 +424,7 @@ export function PersonnelManager({
       return;
     }
     printWindow.document.write(
-      `<!doctype html><html><head><title>Personel Listesi</title><style>body{font-family:Arial,sans-serif;padding:24px}h1{font-size:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #bbb;padding:8px;text-align:left}th{background:#eee}</style></head><body><h1>AZG İLETİŞİM ŞANTİYE — Personel Listesi</h1><table><thead><tr><th>Ad Soyad</th><th>Telefon</th><th>Durum</th><th>İşe Giriş</th><th>İşten Ayrılış</th></tr></thead><tbody>${rows}</tbody></table></body></html>`
+      `<!doctype html><html><head><title>Personel Listesi</title><style>body{font-family:Arial,sans-serif;padding:24px}h1{font-size:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #bbb;padding:8px;text-align:left}th{background:#eee}</style></head><body><h1>${escapeHtml(brand.name)} — Personel Listesi</h1><table><thead><tr><th>Ad Soyad</th><th>Telefon</th><th>Durum</th><th>İşe Giriş</th><th>İşten Ayrılış</th></tr></thead><tbody>${rows}</tbody></table></body></html>`
     );
     printWindow.document.close();
     printWindow.focus();
@@ -425,7 +459,7 @@ export function PersonnelManager({
             <Printer className="h-4 w-4" />
             Listeyi Yazdır
           </Button>
-          {!readOnly && (
+          {canCreate && (
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4" />
               Personel Ekle
@@ -463,6 +497,24 @@ export function PersonnelManager({
           </CardContent>
         </Card>
       )}
+
+      <PendingApprovalsCard
+        noun="personel"
+        items={pendingItems.map((person) => ({
+          id: person.id,
+          title: person.full_name,
+          subtitle: [person.job_title, person.phone].filter(Boolean).join(" · ") || null,
+          createdBy: person.created_by,
+          createdAt: person.created_at,
+        }))}
+        canReview={canReview}
+        currentUserId={currentUserId}
+        onReview={reviewPersonnel}
+        onEdit={(id) => {
+          const person = items.find((p) => p.id === id);
+          if (person) openEdit(person);
+        }}
+      />
 
       <Card>
         <CardHeader className="pb-3">

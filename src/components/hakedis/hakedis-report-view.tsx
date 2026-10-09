@@ -226,7 +226,7 @@ export function HakedisReportView({ report, periods, currency, canEditPrices }: 
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               Bu kayıtlar toplama dahil değil.{" "}
               {canEditPrices ? (
-                <Link href="/panel/settings" className="underline">
+                <Link href="/panel/projects/turler" className="underline">
                   İş kalemi fiyatlarını girin
                 </Link>
               ) : (

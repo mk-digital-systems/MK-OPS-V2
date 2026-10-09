@@ -116,6 +116,7 @@ const FIELD_LABELS: Record<string, string> = {
   email: "E-posta",
   role: "Rol",
   is_approved: "Onaylı",
+  approval_status: "Onay durumu",
   projects_write: "Yetki: Projeler",
   work_plans_write: "Yetki: İş planı",
   personnel_write: "Yetki: Personel",
@@ -164,6 +165,7 @@ export function formatAuditValue(field: string, value: unknown, entityType: stri
       entityType === "projects" ? PROJECT_STATUSES : STAGE_STATUSES;
     return statuses.find((item) => item.value === value)?.label ?? value;
   }
+  if (field === "approval_status") return value === "pending" ? "Onay bekliyor" : value === "approved" ? "Onaylandı" : value;
   if (field === "role") return USER_ROLE_LABELS[value as UserRole] ?? (value === "super_admin" ? "MK OPS Destek" : value);
   if (field === "unit" && entityType.startsWith("inventory")) return INVENTORY_UNITS.find((item) => item.value === value)?.label ?? value;
   if (field === "logo_path" || field === "image_url") return "Dosya";

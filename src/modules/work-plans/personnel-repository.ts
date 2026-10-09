@@ -25,9 +25,11 @@ export class PersonnelRepository {
     return data as Personnel | null;
   }
 
+  /** Varsayılan olarak onay bekleyen personel listelenmez (puantaj, iş planı, seçim listeleri). */
   async list(options?: {
     activeOnly?: boolean;
     search?: string;
+    includePending?: boolean;
   }): Promise<Personnel[]> {
     let query = this.supabase
       .from("personnel")
@@ -36,6 +38,10 @@ export class PersonnelRepository {
 
     if (options?.activeOnly) {
       query = query.eq("is_active", true);
+    }
+
+    if (!options?.includePending) {
+      query = query.eq("approval_status", "approved");
     }
 
     if (options?.search?.trim()) {
@@ -182,6 +188,16 @@ export class PersonnelRepository {
 
     if (error) throw error;
     return (data ?? []) as PersonnelEmploymentPeriod[];
+  }
+
+  /** Şef / firma yöneticisi: bekleyen kaydı onaylar; ret kaydı siler. */
+  async review(id: string, approve: boolean): Promise<void> {
+    const { error } = await this.supabase.rpc("review_pending_record", {
+      p_kind: "personnel",
+      p_id: id,
+      p_approve: approve,
+    });
+    if (error) throw error;
   }
 
   async deleteInactiveWithoutEarnedDays(id: string): Promise<void> {

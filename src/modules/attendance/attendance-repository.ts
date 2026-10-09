@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
+  AttendanceMonthApproval,
   AttendanceChange,
   AttendanceMonthArchive,
   AttendanceStatus,
@@ -127,6 +128,24 @@ export class AttendanceRepository {
 
     if (error) throw error;
     return data as { saved: number; deleted: number };
+  }
+
+  async getMonthApproval(year: number, month: number): Promise<AttendanceMonthApproval | null> {
+    const { data, error } = await this.supabase.rpc("get_attendance_month_approval", { p_year: year, p_month: month });
+    if (error) throw error;
+    return (data as AttendanceMonthApproval | null) ?? null;
+  }
+
+  /** Şantiye şefi / firma yöneticisi: ay bittikten sonra ayı onaylar ve kilitler. */
+  async approveMonth(year: number, month: number): Promise<void> {
+    const { error } = await this.supabase.rpc("approve_attendance_month", { p_year: year, p_month: month });
+    if (error) throw error;
+  }
+
+  /** Yalnızca firma yöneticisi: onayı kaldırır, ay yeniden düzenlenebilir. */
+  async reopenMonth(year: number, month: number): Promise<void> {
+    const { error } = await this.supabase.rpc("reopen_attendance_month", { p_year: year, p_month: month });
+    if (error) throw error;
   }
 
   async getMonthNotes(year: number, month: number): Promise<string> {

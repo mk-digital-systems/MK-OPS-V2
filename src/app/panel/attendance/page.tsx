@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { AttendanceRepository } from "@/modules/attendance/attendance-repository";
 import { MonthlyAttendanceTable } from "@/components/attendance/monthly-attendance-table";
+import { AttendanceMonthApprovalBar } from "@/components/attendance/attendance-month-approval";
 import type { PersonnelActivityFilter } from "@/types/attendance";
 import type { AttendanceStatus } from "@/types/attendance";
 import { UserRepository } from "@/modules/users/user-repository";
@@ -60,7 +61,7 @@ export default async function AttendancePage({ searchParams }: Props) {
   } catch {
     // Yetkisiz kullanıcılar puantajı salt okunur görüntülemeye devam edebilir.
   }
-  const [data, exportData, monthNotes, canWrite] = await Promise.all([
+  const [data, exportData, monthNotes, canWrite, approval, profile] = await Promise.all([
     attendanceRepository.getMonth({
       year,
       month,
@@ -77,17 +78,29 @@ export default async function AttendancePage({ searchParams }: Props) {
     }),
     attendanceRepository.getMonthNotes(year, month),
     new UserRepository(supabase).canWrite("attendance"),
+    attendanceRepository.getMonthApproval(year, month),
+    new UserRepository(supabase).getCurrent(),
   ]);
+  const canApprove = profile?.role === "site_chief" || profile?.role === "company_manager";
 
   return (
-    <MonthlyAttendanceTable
-      initialData={data}
-      exportPersonnel={exportData.personnel}
-      initialMonthNotes={monthNotes}
-      initialSearch={search}
-      initialActivityFilter={activeFilter}
-      initialStatusFilter={statusFilter}
-      readOnly={!canWrite}
-    />
+    <div className="space-y-4">
+      <AttendanceMonthApprovalBar
+        year={year}
+        month={month}
+        approval={approval}
+        canApprove={canApprove}
+        canReopen={profile?.role === "site_chief"}
+      />
+      <MonthlyAttendanceTable
+        initialData={data}
+        exportPersonnel={exportData.personnel}
+        initialMonthNotes={monthNotes}
+        initialSearch={search}
+        initialActivityFilter={activeFilter}
+        initialStatusFilter={statusFilter}
+        readOnly={!canWrite || approval !== null}
+      />
+    </div>
   );
 }

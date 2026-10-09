@@ -82,7 +82,7 @@ export function ProjectForm({ mode, project, types, locations }: Props) {
         <CardContent className="space-y-3 p-8 text-center text-sm text-muted-foreground">
           <p>Proje oluşturmadan önce en az bir proje türü tanımlanmalı.</p>
           <Button asChild variant="outline">
-            <Link href="/panel/settings">Proje türlerini tanımla</Link>
+            <Link href="/panel/projects/turler">Proje türlerini tanımla</Link>
           </Button>
         </CardContent>
       </Card>

@@ -16,11 +16,11 @@ function emptyToNull(value?: string | null) {
 export class VehicleRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
-  async list(): Promise<Vehicle[]> {
-    const { data, error } = await this.supabase
-      .from("vehicles")
-      .select("*")
-      .order("plate");
+  /** Varsayılan olarak onay bekleyen araçlar listelenmez (iş planı, ekipman, seçim listeleri). */
+  async list(options?: { includePending?: boolean }): Promise<Vehicle[]> {
+    let query = this.supabase.from("vehicles").select("*").order("plate");
+    if (!options?.includePending) query = query.eq("approval_status", "approved");
+    const { data, error } = await query;
     if (error) throw error;
     return (data ?? []) as Vehicle[];
   }
@@ -122,6 +122,16 @@ export class VehicleRepository {
       .single();
     if (error) throw error;
     return data as Vehicle;
+  }
+
+  /** Şef / firma yöneticisi: bekleyen aracı onaylar; ret kaydı siler. */
+  async review(id: string, approve: boolean): Promise<void> {
+    const { error } = await this.supabase.rpc("review_pending_record", {
+      p_kind: "vehicle",
+      p_id: id,
+      p_approve: approve,
+    });
+    if (error) throw error;
   }
 
   async listFuelLogs(): Promise<VehicleFuelLog[]> {

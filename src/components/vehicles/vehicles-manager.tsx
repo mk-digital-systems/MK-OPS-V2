@@ -17,6 +17,7 @@ import {
 import { formatDate } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { VehicleRepository } from "@/modules/vehicles/vehicle-repository";
+import { PendingApprovalsCard } from "@/components/approvals/pending-approvals-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -36,12 +37,20 @@ export function VehiclesManager({
   initialFuelLogs,
   personnel,
   readOnly = false,
+  canCreate = !readOnly,
+  canReview = false,
+  currentUserId = null,
 }: {
   initialVehicles: Vehicle[];
   equipmentBalances: InventoryCustodyBalance[];
   initialFuelLogs: VehicleFuelLog[];
   personnel: Personnel[];
   readOnly?: boolean;
+  /** Yeni araç ekleyebilir (muhasebenin eklediği araç onaya düşer). */
+  canCreate?: boolean;
+  /** Bekleyen araçları onaylayabilir (şantiye şefi, firma yöneticisi). */
+  canReview?: boolean;
+  currentUserId?: string | null;
 }) {
   const brand = useReportBrand();
   const [vehicles, setVehicles] = useState(initialVehicles);
@@ -171,7 +180,11 @@ export function VehiclesManager({
             a.plate.localeCompare(b.plate, "tr")
           )
         );
-        toast.success("Araç eklendi");
+        toast.success(
+          created.approval_status === "pending"
+            ? "Araç eklendi; şantiye şefi veya firma yöneticisi onaylayınca kullanıma açılır"
+            : "Araç eklendi"
+        );
       }
       setOpen(false);
     } catch (error) {
@@ -187,14 +200,32 @@ export function VehiclesManager({
     }
   }
 
+  const pendingVehicles = vehicles.filter((vehicle) => vehicle.approval_status === "pending");
+  const approvedVehicles = vehicles.filter((vehicle) => vehicle.approval_status !== "pending");
+
+  async function reviewVehicle(id: string, approve: boolean) {
+    try {
+      await new VehicleRepository(createClient()).review(id, approve);
+      setVehicles((current) =>
+        approve
+          ? current.map((vehicle) => (vehicle.id === id ? { ...vehicle, approval_status: "approved" } : vehicle))
+          : current.filter((vehicle) => vehicle.id !== id)
+      );
+      toast.success(approve ? "Araç onaylandı" : "Araç kaydı reddedildi");
+    } catch (error) {
+      console.error(error);
+      toast.error("İşlem yapılamadı", { description: (error as Error)?.message });
+    }
+  }
+
   const query = search.trim().toLocaleLowerCase("tr-TR");
-  const filtered = vehicles.filter((vehicle) =>
+  const filtered = approvedVehicles.filter((vehicle) =>
     [vehicle.plate, vehicle.brand, vehicle.model, vehicle.notes ?? ""].some(
       (value) => value.toLocaleLowerCase("tr-TR").includes(query)
     )
   );
 
-  const fuelSummary = useMemo(() => vehicles.map((vehicle) => {
+  const fuelSummary = useMemo(() => vehicles.filter((vehicle) => vehicle.approval_status !== "pending").map((vehicle) => {
     const vehicleLogs = fuelLogs.filter((log) => log.vehicle_id === vehicle.id).sort((a, b) => a.fuel_date.localeCompare(b.fuel_date) || a.created_at.localeCompare(b.created_at));
     const periodLogs = vehicleLogs.filter((log) => log.fuel_date >= dateFrom && log.fuel_date <= dateTo);
     const baseline = vehicleLogs.filter((log) => log.fuel_date < dateFrom).at(-1);
@@ -226,13 +257,31 @@ export function VehiclesManager({
             İş planında kullanılacak şirket araçları
           </p>
         </div>
-        {!readOnly && (
+        {canCreate && (
           <Button onClick={openCreate}>
             <Plus className="h-4 w-4" />
             Araç Ekle
           </Button>
         )}
       </div>
+
+      <PendingApprovalsCard
+        noun="araç"
+        items={pendingVehicles.map((vehicle) => ({
+          id: vehicle.id,
+          title: vehicle.plate,
+          subtitle: `${vehicle.brand} ${vehicle.model}`,
+          createdBy: vehicle.created_by,
+          createdAt: vehicle.created_at,
+        }))}
+        canReview={canReview}
+        currentUserId={currentUserId}
+        onReview={reviewVehicle}
+        onEdit={(id) => {
+          const vehicle = vehicles.find((item) => item.id === id);
+          if (vehicle) openEdit(vehicle);
+        }}
+      />
 
       <Card>
         <CardHeader><CardTitle className="text-base">Yakıt ve Kilometre Raporu</CardTitle></CardHeader>

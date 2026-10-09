@@ -96,7 +96,7 @@ export default function GuidePage() {
       <h2 id="projeler">{SECTIONS[2].title}</h2>
       <h3>Proje türü tanımlayın</h3>
       <p>
-        <strong>Ayarlar → Proje Türleri</strong> bölümünde işinize uyan türleri oluşturun. Hazır şablonlardan (Bina İnşaatı,
+        <strong>Projeler → Proje Türleri</strong> sayfasında işinize uyan türleri oluşturun. Hazır şablonlardan (Bina İnşaatı,
         Altyapı Hattı, Doğalgaz Hattı, Elektrik Tesisatı, Fiber/Telekom Hattı, Araç Bakım/Servis, Genel İş) başlayıp
         değiştirebilirsiniz. Her türün <strong>iş kalemleri</strong> (aşamaları) vardır (ör. Kazı, Boru döşeme, Dolgu). Kaleme birim
         (m, m², adet…) verirseniz o kalemde <strong>metraj</strong> takip edilir ve İmalatlar&apos;da seçilebilir.
@@ -128,7 +128,7 @@ export default function GuidePage() {
       <h3>Fiyatlar nereden gelir?</h3>
       <ul>
         <li>
-          <strong>İş kalemleri:</strong> <strong>Ayarlar → Proje Türleri</strong> bölümünde her türün iş kalemleri (aşamaları)
+          <strong>İş kalemleri:</strong> <strong>Projeler → Proje Türleri</strong> sayfasında her türün iş kalemleri (aşamaları)
           birim ve <strong>birim fiyatla</strong> tanımlanır (ör. Kazı 120 ₺/m). Belirli bir projede fiyat farklıysa proje
           detayında o kaleme projeye özel fiyat yazılır.
         </li>
@@ -187,9 +187,18 @@ export default function GuidePage() {
           alınır; kayıtları silinmez. Üzerinde zimmetli malzeme olan personel pasife alınamaz.
         </li>
         <li>
+          <strong>Muhasebenin eklediği personel:</strong> &quot;Onay Bekleyen Personel&quot; listesine düşer. Şantiye şefi veya
+          firma yöneticisi onaylayana kadar puantajda, iş planında ve seçim listelerinde görünmez; reddedilen kayıt silinir.
+        </li>
+        <li>
           <strong>Puantaj:</strong> ay tablosunda her gün için Çalıştı, Çalışmadı, Mazeretsiz Gelmedi, İzinli, Raporlu veya
           Hafta Tatili işaretlenir. Aylık tabloyu Excel ya da Word olarak, kişi bazında puantajı Word olarak alabilirsiniz.
           Puantaj değişikliklerinin kendi geçmişi tutulur.
+        </li>
+        <li>
+          <strong>Ay sonu onayı:</strong> ay bittikten sonra şantiye şefi veya firma yöneticisi puantaj sayfasındaki{" "}
+          <strong>Ayı Onayla</strong> düğmesiyle ayı kesinleştirir. Onaylı ayın puantajı ve avansları değiştirilemez; maaş ve
+          hakediş hesapları onaylı puantaja göre yapılır. Onayı yalnızca firma yöneticisi kaldırabilir.
         </li>
         <li>
           <strong>Avans:</strong> personel detayında &quot;Avans Ekle&quot; ile tarih ve tutar girilir; avans dökümü ve toplamı
@@ -240,7 +249,8 @@ export default function GuidePage() {
       <ul>
         <li>
           <strong>Araçlar:</strong> plaka, marka, model, kilometre, muayene ve sigorta tarihleri. Tarihi yaklaşan muayene ve
-          sigortalar Dashboard&apos;da uyarı olarak çıkar. Aracı bir personele atayabilirsiniz.
+          sigortalar Genel Bakış&apos;ta uyarı olarak çıkar. Aracı bir personele atayabilirsiniz. Muhasebenin eklediği araç,
+          şantiye şefi veya firma yöneticisi onaylayınca kullanıma açılır.
         </li>
         <li>
           <strong>Yakıt:</strong> her alımda tarih, kilometre ve litre girilir; aylık yakıt dökümü araç sayfasında görünür.

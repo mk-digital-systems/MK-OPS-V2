@@ -5,7 +5,9 @@ export type NotificationType =
   | "project_due"
   | "vehicle_deadline"
   | "subscription"
-  | "hakedis_unpriced";
+  | "hakedis_unpriced"
+  | "pending_approval"
+  | "attendance_approval";
 
 /** Durumdan hesaplanan bildirim; key durum değişince değişir. */
 export type AppNotification = {

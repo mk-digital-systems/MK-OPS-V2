@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, FileSpreadsheet, Loader2, Plus, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileSpreadsheet, Layers, Loader2, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import type { ArchiveScope, PaginatedResult, Project, ProjectType } from "@/types/project";
 import { PAGE_SIZE_OPTIONS, PROJECT_STATUSES, getStatusLabel } from "@/lib/constants/project";
@@ -22,6 +22,8 @@ type Props = {
   types: ProjectType[];
   locations: string[];
   showCreate?: boolean;
+  /** Proje türlerini düzenleyebilir (firma yöneticisi). */
+  canManageTypes?: boolean;
   exportProjects?: Project[];
   defaultArchiveScope: ArchiveScope;
   allowArchiveScopeFilter?: boolean;
@@ -40,6 +42,7 @@ export function ProjectsTable({
   types,
   locations,
   showCreate = false,
+  canManageTypes = false,
   exportProjects,
   defaultArchiveScope,
   allowArchiveScopeFilter = false,
@@ -127,6 +130,14 @@ export function ProjectsTable({
               Excel
             </Button>
           )}
+          {canManageTypes && (
+            <Button asChild variant="outline">
+              <Link href="/panel/projects/turler">
+                <Layers className="h-4 w-4" />
+                Proje Türleri
+              </Link>
+            </Button>
+          )}
           {showCreate && (
             <Button asChild>
               <Link href="/panel/projects/new">
@@ -199,7 +210,7 @@ export function ProjectsTable({
             <CardContent className="py-14 text-center text-sm text-muted-foreground">
               {types.length === 0 && showCreate ? (
                 <>
-                  Önce <Link href="/panel/settings" className="font-medium text-primary underline">Ayarlar</Link> sayfasından proje türlerinizi tanımlayın.
+                  Önce <Link href="/panel/projects/turler" className="font-medium text-primary underline">Proje Türleri</Link> sayfasından proje türlerinizi tanımlayın.
                 </>
               ) : (
                 "Kriterlere uyan proje yok."

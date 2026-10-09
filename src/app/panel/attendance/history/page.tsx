@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { AttendanceRepository } from "@/modules/attendance/attendance-repository";
 import { MonthlyAttendanceTable } from "@/components/attendance/monthly-attendance-table";
+import { AttendanceMonthApprovalBar } from "@/components/attendance/attendance-month-approval";
 import type {
   AttendanceStatus,
   PersonnelActivityFilter,
@@ -57,7 +58,7 @@ export default async function AttendanceHistoryPage({ searchParams }: Props) {
 
   const supabase = await createClient();
   const repository = new AttendanceRepository(supabase);
-  const [data, exportData, monthNotes, archives, canWrite] = await Promise.all([
+  const [data, exportData, monthNotes, archives, canWrite, approval, profile] = await Promise.all([
     repository.getMonth({
       year,
       month,
@@ -75,19 +76,31 @@ export default async function AttendanceHistoryPage({ searchParams }: Props) {
     repository.getMonthNotes(year, month),
     repository.getMonthArchives(),
     new UserRepository(supabase).canWrite("attendance"),
+    repository.getMonthApproval(year, month),
+    new UserRepository(supabase).getCurrent(),
   ]);
+  const canApprove = profile?.role === "site_chief" || profile?.role === "company_manager";
 
   return (
-    <MonthlyAttendanceTable
-      initialData={data}
-      exportPersonnel={exportData.personnel}
-      initialMonthNotes={monthNotes}
-      initialSearch={search}
-      initialActivityFilter={activeFilter}
-      initialStatusFilter={statusFilter}
-      historyMode
-      archives={archives}
-      readOnly={!canWrite}
-    />
+    <div className="space-y-4">
+      <AttendanceMonthApprovalBar
+        year={year}
+        month={month}
+        approval={approval}
+        canApprove={canApprove}
+        canReopen={profile?.role === "site_chief"}
+      />
+      <MonthlyAttendanceTable
+        initialData={data}
+        exportPersonnel={exportData.personnel}
+        initialMonthNotes={monthNotes}
+        initialSearch={search}
+        initialActivityFilter={activeFilter}
+        initialStatusFilter={statusFilter}
+        historyMode
+        archives={archives}
+        readOnly={!canWrite || approval !== null}
+      />
+    </div>
   );
 }

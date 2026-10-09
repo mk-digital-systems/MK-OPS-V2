@@ -60,7 +60,7 @@ export function DashboardView({ stats, overview, vehicleAlerts, canManageTypes, 
             </p>
             {canManageTypes && (
               <Button asChild>
-                <Link href="/panel/settings">
+                <Link href="/panel/projects/turler">
                   <Settings className="h-4 w-4" />
                   Proje türlerini tanımla
                 </Link>

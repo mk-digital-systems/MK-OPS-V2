@@ -47,8 +47,9 @@ export default async function PersonnelPage({ searchParams }: Props) {
 
   const supabase = await createClient();
   const attendanceRepository = new AttendanceRepository(supabase);
-  const [personnel, attendanceSummary, personnelSummaries, assignedVehicles, canWrite] = await Promise.all([
-    new PersonnelRepository(supabase).list(),
+  const userRepository = new UserRepository(supabase);
+  const [personnel, attendanceSummary, personnelSummaries, assignedVehicles, canWrite, profile] = await Promise.all([
+    new PersonnelRepository(supabase).list({ includePending: true }),
     validPersonnelId
       ? attendanceRepository.getPersonnelSummary(
           validPersonnelId,
@@ -58,7 +59,8 @@ export default async function PersonnelPage({ searchParams }: Props) {
       : Promise.resolve(null),
     attendanceRepository.getPersonnelListSummaries(year, month),
     new VehicleRepository(supabase).list(),
-    new UserRepository(supabase).canWrite("personnel"),
+    userRepository.canWrite("personnel"),
+    userRepository.getCurrent(),
   ]);
 
   return (
@@ -70,6 +72,9 @@ export default async function PersonnelPage({ searchParams }: Props) {
       summaryYear={year}
       summaryMonth={month}
       readOnly={!canWrite}
+      canCreate={canWrite || profile?.role === "accounting"}
+      canReview={profile?.role === "site_chief" || profile?.role === "company_manager"}
+      currentUserId={profile?.id ?? null}
     />
   );
 }

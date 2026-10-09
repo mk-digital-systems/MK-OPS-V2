@@ -10,11 +10,17 @@ export type Personnel = {
   termination_reason: string | null;
   monthly_salary: number;
   notes: string | null;
+  /** Muhasebenin eklediği kayıt şef/firma yöneticisi onaylayana kadar "pending". */
+  approval_status: RecordApprovalStatus;
+  approved_by: string | null;
+  approved_at: string | null;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;
   updated_at: string;
 };
+
+export type RecordApprovalStatus = "pending" | "approved";
 
 export type PersonnelInsert = {
   full_name: string;

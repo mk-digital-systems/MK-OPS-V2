@@ -124,3 +124,9 @@ export type PersonnelAdvance = {
   notes: string | null;
   created_at: string;
 };
+
+/** Ay sonu puantaj onayı; onaylı ay kilitlidir. */
+export type AttendanceMonthApproval = {
+  approved_at: string;
+  approved_by_name: string | null;
+};

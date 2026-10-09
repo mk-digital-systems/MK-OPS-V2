@@ -1,3 +1,5 @@
+import type { RecordApprovalStatus } from "@/types/work-plan";
+
 export type Vehicle = {
   id: string;
   plate: string;
@@ -8,6 +10,10 @@ export type Vehicle = {
   inspection_date: string | null;
   insurance_date: string | null;
   assigned_personnel_id: string | null;
+  /** Muhasebenin eklediği araç şef/firma yöneticisi onaylayana kadar "pending". */
+  approval_status: RecordApprovalStatus;
+  approved_by: string | null;
+  approved_at: string | null;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;

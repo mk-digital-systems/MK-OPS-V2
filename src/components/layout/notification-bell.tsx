@@ -8,6 +8,8 @@ import {
   CalendarClock,
   CarFront,
   CheckCheck,
+  ClipboardCheck,
+  Clock3,
   CreditCard,
   LifeBuoy,
   Receipt,
@@ -29,6 +31,8 @@ const ICONS: Record<NotificationType, LucideIcon> = {
   vehicle_deadline: CarFront,
   subscription: CreditCard,
   hakedis_unpriced: Receipt,
+  pending_approval: Clock3,
+  attendance_approval: ClipboardCheck,
 };
 
 const REFRESH_MS = 5 * 60 * 1000;

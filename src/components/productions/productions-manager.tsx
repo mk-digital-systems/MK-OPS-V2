@@ -428,7 +428,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
               </Select>
               <Input disabled={readOnly} inputMode="decimal" value={line.quantity} onChange={(event) => updateLine(teamIndex, jobIndex, lineIndex, { quantity: event.target.value })} placeholder="Miktar" />
               <span className="self-center text-sm text-muted-foreground">{line.unit || "—"}</span>
-              {jobTargets && !jobTargets.length && <p className="text-xs text-amber-700 sm:col-span-3">Bu projede birimi olan iş kalemi yok. Ayarlar → Proje Türleri&apos;nden aşamalara birim verin ya da &quot;Ek İş&quot; satırı kullanın.</p>}
+              {jobTargets && !jobTargets.length && <p className="text-xs text-amber-700 sm:col-span-3">Bu projede birimi olan iş kalemi yok. Projeler → Proje Türleri&apos;nden aşamalara birim verin ya da &quot;Ek İş&quot; satırı kullanın.</p>}
             </div>
             : line.kind === "extra" ? <div className={`grid gap-2 ${canSeePrices ? "sm:grid-cols-[minmax(0,1fr)_100px_90px_120px]" : "sm:grid-cols-[minmax(0,1fr)_100px_90px]"}`}>
               <div className="relative"><Input disabled={readOnly} value={line.description} onChange={(event) => updateLine(teamIndex, jobIndex, lineIndex, { description: event.target.value })} placeholder="Ek iş açıklaması" className="pr-14" /><span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">Ek iş</span></div>

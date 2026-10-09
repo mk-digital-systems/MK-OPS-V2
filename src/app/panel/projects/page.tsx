@@ -21,12 +21,14 @@ async function ProjectsContent({ searchParams }: Props) {
 
   const supabase = await createClient();
   const repository = new ProjectRepository(supabase);
-  const [result, exportResult, types, locations, canWrite] = await Promise.all([
+  const userRepository = new UserRepository(supabase);
+  const [result, exportResult, types, locations, canWrite, profile] = await Promise.all([
     repository.list(filters),
     repository.list({ ...filters, page: 1, pageSize: 5000 }),
     repository.listTypes(true),
     repository.getDistinctLocations(),
-    new UserRepository(supabase).canWrite("projects"),
+    userRepository.canWrite("projects"),
+    userRepository.getCurrent(),
   ]);
 
   return (
@@ -36,6 +38,7 @@ async function ProjectsContent({ searchParams }: Props) {
       types={types}
       locations={locations}
       showCreate={canWrite}
+      canManageTypes={profile?.role === "site_chief"}
       exportProjects={exportResult.data}
       defaultArchiveScope="active"
       allowArchiveScopeFilter
