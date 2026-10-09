@@ -1,6 +1,6 @@
 # MK OPS — Geliştirme Planı
 
-Son güncelleme: 6 Ekim 2026 (onay akışı ve ekip payı kapsam dışı bırakıldı)
+Son güncelleme: 9 Ekim 2026 (yeni rol yapısı; ekip başı, onay akışı ve şubeler plana alındı)
 
 Bu dosya, üzerinde çalışılacak geliştirmelerin listesidir. Eski MK-OPS projesi
 (`PORTFÖY/PANEL/MK-OPS`) silindiği için oradan alınacak fikirlerin iş mantığı
@@ -40,6 +40,7 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 | 20 | Stok Excel/PDF çıktısında elle yazılan üst başlık ve isteğe bağlı logo | ✅ |
 | 21 | İş planında proje listeden seçilir (project_id kaydedilir); İş Planından Doldur bunu kullanır | ✅ |
 | 22 | KVKK belgeleri (/kvkk), çalışan aydınlatma metni oluşturucu, Türkçe e-posta şablonları, Pazar otomatik hafta tatili (pg_cron) | ✅ |
+| 23 | Rol yapısı: Firma Yöneticisi (birden fazla, kurucu korumalı), Şantiye Şefi, Muhasebe; yeni yan menü (`20261017000001_roles.sql`) | 🚧 dalda |
 
 Kurulu migration'lar: `20261005000000` … `20261011000001`. Kurulacak: `20261011000002_inventory_messages.sql`.
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.
@@ -51,6 +52,32 @@ Kurulu migration'lar: `20261005000000` … `20261011000001`. Kurulacak: `2026101
 - [x] Veritabanı hata mesajlarındaki "şantiye şefi" ifadelerini "ana yönetici" yap (`20261012000001`).
 - [x] `sync_project_stage_rows` ve `refresh_project_rollup` iç fonksiyonlarında `authenticated` çalıştırma yetkisini kaldır (`20261012000001`).
 - [x] `src/app/(app)` boş klasörü silindi.
+- [ ] `delete-user` Edge Function mesajı hâlâ "şantiye şefi" diyor; bir sonraki function deploy'unda "firma yöneticisi" yapılacak.
+
+---
+
+## Rol yapısı, onay akışı, saha paneli ve şubeler (9 Ekim 2026 kararı)
+
+6 Ekim'deki "onay akışı ve sabit ekip yok" kararı değişti: ekip başları sisteme dahil oluyor ve
+kayıtları onaya gönderiyor. Bütün roller paketin kullanıcı limitine sayılır; sahadaki personel sayılmaz.
+
+| Rol | Kapsam | Özet |
+|---|---|---|
+| **Firma Yöneticisi** (`site_chief`) | Bütün şubeler | Her şey. Şube açar, şef atar, şefe fiyat izni verir. Birden fazla olabilir; kurucu silinemez. |
+| **Şantiye Şefi** (`company_manager`) | Atandığı şube(ler) | Operasyonun tamamı; muhasebe ve ekip başı atar; imalat ve aylık puantaj onayı. Fiyatlar yalnızca izinle. |
+| **Muhasebe** (`accounting`) | Firma yöneticisinin seçtiği şubeler | Personel, puantaj/izin/avans, araç (yakıt, sigorta, muayene), stok, hakediş (ekip bazlı dahil). Personel ve araç ekler, şef onaylar. İrsaliye teslim alır. |
+| **Ekip Başı** (yeni) | Kendi ekibi | Ayrı, telefona uygun saha paneli: kendi ekibinin iş planı, imalat girişi (onaya gider), proje aşamaları (fiyatsız). |
+
+| Aşama | İçerik | Durum |
+|---|---|---|
+| A | Rol yapısı: çoklu firma yöneticisi, rol sınırlarının kalkması, şefin kullanıcı yönetimi, rol varsayılan yetkileri, muhasebenin araç/stok görünürlüğü ve irsaliye girişi, yeni yan menü | 🚧 dalda |
+| B | Onaylar: muhasebenin eklediği personel/araç onayı, ay sonu puantaj onayı (onaydan sonra ay kesinleşir) | ⏳ |
+| C | Ekip başı rolü ve saha paneli; imalat taslak → onaya gönder → onay/red; ekip bazlı hakediş | ⏳ |
+| D | Şubeler: şube tablosu; personel, proje, araç ve depo şubeye bağlı; şefe ve muhasebeye şube atama; şube bazlı veri kısıtı (veritabanında); şubeler arası malzeme gönderme/teslim alma | ⏳ |
+| E | Firma yöneticisi için "Bugün" özeti (hangi ekip nerede, ne yaptı, bekleyen onaylar) | ⏳ |
+
+Not (kullanıcıdan): Projede iş kalemleri önceden girilmemişse imalat yazılırken listeden iş kalemi
+seçilip projeye doğrudan eklenebilmeli. Mevcut davranış C aşamasında kontrol edilecek.
 
 ---
 
@@ -196,8 +223,8 @@ Eski projede görünürlük role göre ayrılıyordu. Bizde yalnızca ana yönet
 
 | Eski MK-OPS özelliği | Neden alınmıyor |
 |---|---|
-| **İş onay akışı** (taslak → onaya gönder → onayla/reddet) | Kayıtları ofisteki yöneticiler giriyor; sahada kayıt giren sabit ekip yok. Ek onay adımı gereksiz iş yükü olur. |
-| **Ekipler, ekip lideri hesabı, ekip/taşeron payı (%)** | Sistemde sabit ekip yok; ekipler günlük iş planında her gün yeniden kuruluyor. Pay hesabı bu yapıya ters düşer. |
+| ~~İş onay akışı~~ | 9 Ekim 2026'da plana alındı (yukarıda C aşaması). |
+| ~~Ekip lideri hesabı~~ | 9 Ekim 2026'da "Ekip Başı" olarak plana alındı (C aşaması). Ekip/taşeron payı (%) hâlâ kapsam dışı. |
 | **Onay anında zimmetten malzeme düşme** | Onay akışına bağlıydı; bizde zimmet ve stok hareketleri depo modülünde ayrı yönetiliyor. |
 | **5 dil desteği** | Şimdilik yalnızca Türkiye pazarı. |
 | **Ödeme sağlayıcısı ile plan değişimi** | EFT + süper admin plan ataması kullanılıyor. |

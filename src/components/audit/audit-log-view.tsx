@@ -69,7 +69,7 @@ export function AuditLogView({ logs, hasMore, actors, filters }: Props) {
           İşlem Geçmişi
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Kim, ne zaman, hangi kayıtta neyi değiştirdi. Kayıtlar değiştirilemez ve silinemez; yalnızca ana yönetici görür.
+          Kim, ne zaman, hangi kayıtta neyi değiştirdi. Kayıtlar değiştirilemez ve silinemez; yalnızca firma yöneticileri görür.
         </p>
       </div>
 

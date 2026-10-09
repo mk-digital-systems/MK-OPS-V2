@@ -127,7 +127,7 @@ check("second accounting user in A", !e, e);
 e = await asErr(chiefB, `select public.assign_user_role($1, 'accounting')`, [accB1]);
 check("B accounting limit counted separately", !e, e);
 e = await asErr(chiefA, `select public.assign_user_role($1, 'accounting')`, [acc3]);
-check("third accounting user in A rejected", !!e && /2 muhasebe/.test(e), e);
+check("third accounting user in A allowed (only the plan user limit applies)", !e, e);
 e = await asErr(chiefA, `select public.assign_user_role($1, 'company_manager')`, [accB1]);
 check("A chief cannot change B user", !!e && /bulunamadı/i.test(e), e);
 check("B user untouched", (await sys(`select company_id, role from public.profiles where id = $1`, [accB1])).rows[0].role === "accounting");
@@ -136,8 +136,8 @@ check("user cannot move self to another company",
   (await sys(`select company_id from public.profiles where id = $1`, [chiefA])).rows[0].company_id === A, e ?? "0 rows updated");
 e = await asErr(acc1, `select public.update_own_profile('Yeni Ad', null, null)`);
 check("user can still update own profile", !e, e);
-e = await sys(`update public.profiles set role = 'site_chief', is_approved = true, approved_at = now(), approved_by = id where id = $1`, [acc1]).then(() => null, (x) => x.message);
-check("second site chief in A rejected", !!e && /ana yönetici yapılamaz/.test(e), e);
+e = await asErr(acc1, `select public.assign_user_role($1, 'site_chief')`, [acc2]);
+check("accounting cannot appoint a company manager", !!e && /firma yöneticisi/.test(e), e);
 e = await asErr(chiefA, `delete from public.profiles where id = $1`, [chiefA]);
 check("A site chief cannot be deleted", !!e || (await sys(`select 1 from public.profiles where id = $1`, [chiefA])).rows.length === 1, e);
 

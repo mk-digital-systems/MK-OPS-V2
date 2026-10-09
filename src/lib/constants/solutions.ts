@@ -87,7 +87,7 @@ export const SOLUTIONS: Solution[] = [
       },
       {
         q: "Fiyatları herkes görebilir mi?",
-        a: "Hayır. Birim fiyat ve tutarları yalnızca ana yönetici ile \"Hakediş\" yetkisi verilen kullanıcılar görür.",
+        a: "Hayır. Birim fiyat ve tutarları yalnızca firma yöneticileri ile \"Hakediş\" yetkisi verilen kullanıcılar görür.",
       },
     ],
     related: ["gunluk-is-takibi", "proje-metraj-takibi", "irsaliye-malzeme-takibi"],
@@ -466,7 +466,7 @@ export const SOLUTIONS: Solution[] = [
         text: "İşlem geçmişi bir kanıt kaydıdır; bu yüzden korunur.",
         bullets: [
           "Kayıtlar değiştirilemez ve silinemez",
-          "Yalnızca firmanın ana yöneticisi görür",
+          "Yalnızca firma yöneticileri görür",
           "TC kimlik numarası kayıtta maskelenir",
           "Puantaj değişikliklerinin ayrıca kendi geçmişi tutulur",
         ],
@@ -485,7 +485,7 @@ export const SOLUTIONS: Solution[] = [
     faq: [
       {
         q: "İşlem geçmişini kimler görebilir?",
-        a: "Yalnızca firmanın ana yöneticisi. Yönetici ve muhasebe kullanıcıları bu ekranı göremez.",
+        a: "Yalnızca firma yöneticileri. Şantiye şefi ve muhasebe kullanıcıları bu ekranı göremez.",
       },
       {
         q: "Bir kayıt silinirse geçmişi de silinir mi?",

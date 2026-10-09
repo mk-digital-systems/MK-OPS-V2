@@ -36,7 +36,7 @@ check("nothing to report initially", (await list(manager)).length === 0);
 await as(joiner, `select public.join_company('Deneme Firma', $1)`, [company.join_code]);
 let items = await list(chief);
 check("chief sees join request", items.some((item) => item.type === "join_request" && item.link === "/panel/users" && !item.read));
-check("manager does not see join request", !(await list(manager)).some((item) => item.type === "join_request"));
+check("site manager (şef) also sees join request", (await list(manager)).some((item) => item.type === "join_request"));
 check("pending user gets nothing", (await list(joiner)).length === 0);
 
 // Projeler: gecikmiş + 3 gün içinde bitecek

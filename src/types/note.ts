@@ -25,10 +25,10 @@ export type CompanyVaultNote = {
 };
 
 export type CompanyVaultStatus = {
-  /** Ana yönetici şifre belirlemiş mi */
+  /** Firma yöneticisi şifre belirlemiş mi */
   configured: boolean;
   /** Onaylı firma kullanıcısı mı */
   can_use: boolean;
-  /** Şifreyi belirleyip değiştirebilir mi (ana yönetici) */
+  /** Şifreyi belirleyip değiştirebilir mi (firma yöneticisi) */
   can_manage: boolean;
 };

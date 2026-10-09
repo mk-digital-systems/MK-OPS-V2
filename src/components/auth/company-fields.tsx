@@ -17,7 +17,7 @@ const MODES: { value: SignupMode; label: string; hint: string; icon: typeof Buil
   {
     value: "create",
     label: "Yeni şirket kur",
-    hint: "Şirketinizin ana yöneticisi olursunuz; 48 saat ücretsiz deneme başlar.",
+    hint: "Şirketinizin firma yöneticisi olursunuz; 48 saat ücretsiz deneme başlar.",
     icon: Building2,
   },
   {

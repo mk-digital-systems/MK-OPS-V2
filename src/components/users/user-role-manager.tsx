@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import {
+  Building2,
   Calculator,
-  CheckCircle2,
   Clock3,
+  Copy,
+  HardHat,
   Loader2,
-  ShieldCheck,
   UserX,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -33,7 +34,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type AssignableRole = Exclude<UserRole, "site_chief">;
+/** Kullanıcıları yönetebilen roller. */
+export type UserManagerRole = Extract<UserRole, "site_chief" | "company_manager">;
 
 const PERMISSION_FIELDS: {
   module: PermissionModule;
@@ -62,22 +64,52 @@ const PERMISSION_FIELDS: {
   { module: "hakedis", field: "hakedis_write", label: "Hakediş (fiyat ve rapor)" },
 ];
 
+/** Görüntüleyen kişinin atayabileceği roller. */
+const ROLE_OPTIONS: Record<UserManagerRole, { value: UserRole; label: string }[]> = {
+  site_chief: [
+    { value: "site_chief", label: "Firma Yöneticisi" },
+    { value: "company_manager", label: "Şantiye Şefi" },
+    { value: "accounting", label: "Muhasebe" },
+    { value: "pending", label: "Erişimi Kaldır / Beklet" },
+  ],
+  company_manager: [
+    { value: "accounting", label: "Muhasebe" },
+    { value: "pending", label: "Erişimi Kaldır / Beklet" },
+  ],
+};
+
+const ROLE_BADGE: Record<UserRole, string> = {
+  site_chief: "bg-slate-900 text-white dark:bg-white dark:text-slate-900",
+  company_manager: "bg-sky-600 text-white",
+  accounting: "bg-violet-600 text-white",
+  pending: "bg-amber-500 text-amber-950",
+};
+
 export function UserRoleManager({
   initialUsers,
   initialPermissions,
+  viewerRole,
+  currentUserId,
+  primaryManagerId,
+  userLimit,
+  companyName,
+  joinCode,
 }: {
   initialUsers: UserProfile[];
   initialPermissions: CompanyManagerPermissions[];
+  viewerRole: UserManagerRole;
+  currentUserId: string;
+  primaryManagerId: string | null;
+  userLimit: number | null;
+  companyName: string;
+  joinCode: string | null;
 }) {
+  const isManager = viewerRole === "site_chief";
   const [users, setUsers] = useState(initialUsers);
-  const [selections, setSelections] = useState<Record<string, AssignableRole>>(
-    {}
-  );
+  const [selections, setSelections] = useState<Record<string, UserRole>>({});
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [permissions, setPermissions] = useState(initialPermissions);
-  const [loadingPermission, setLoadingPermission] = useState<string | null>(
-    null
-  );
+  const [loadingPermission, setLoadingPermission] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [permissionUserId, setPermissionUserId] = useState<string | null>(null);
   const permissionUser = users.find((user) => user.id === permissionUserId) ?? null;
@@ -85,79 +117,69 @@ export function UserRoleManager({
     ? permissions.find((item) => item.user_id === permissionUser.id) ?? emptyPermissions(permissionUser.id)
     : null;
 
-  const managerCount = useMemo(
-    () =>
-      users.filter(
-        (user) => user.is_approved && user.role === "company_manager"
-      ).length,
-    [users]
-  );
-  const accountingCount = useMemo(
-    () =>
-      users.filter(
-        (user) => user.is_approved && user.role === "accounting"
-      ).length,
-    [users]
-  );
+  const counts = useMemo(() => {
+    const approved = users.filter((user) => user.is_approved);
+    return {
+      pending: users.length - approved.length,
+      approved: approved.length,
+      site_chief: approved.filter((user) => user.role === "site_chief").length,
+      company_manager: approved.filter((user) => user.role === "company_manager").length,
+      accounting: approved.filter((user) => user.role === "accounting").length,
+    };
+  }, [users]);
+
+  async function copyJoinInfo() {
+    if (!joinCode) return;
+    try {
+      await navigator.clipboard.writeText(`Şirket adı: ${companyName}
+Katılım kodu: ${joinCode}`);
+      toast.success("Şirket adı ve katılım kodu kopyalandı");
+    } catch {
+      toast.error("Kopyalanamadı");
+    }
+  }
+
+  /** Görüntüleyen kişi bu kullanıcının rolünü değiştirebilir mi? */
+  function canChange(user: UserProfile) {
+    if (user.id === currentUserId || user.id === primaryManagerId) return false;
+    if (isManager) return true;
+    return !user.is_approved || user.role === "accounting";
+  }
 
   async function saveRole(user: UserProfile) {
-    const selected = selections[user.id] ?? user.role;
+    const selected = selections[user.id];
+    if (!selected) return;
 
     setLoadingId(user.id);
     try {
-      const updated = await new UserRepository(
-        createClient()
-      ).assignRole(user.id, selected);
-      setUsers((current) =>
-        current.map((item) => (item.id === updated.id ? updated : item))
-      );
-      if (selected === "company_manager" || selected === "accounting") {
-        setPermissions((current) =>
-          current.some((item) => item.user_id === user.id)
-            ? current
-            : [...current, emptyPermissions(user.id)]
-        );
-      } else {
-        setPermissions((current) =>
-          current.filter((item) => item.user_id !== user.id)
-        );
-      }
-      toast.success(
-        selected === "pending"
-          ? "Kullanıcının erişimi kaldırıldı"
-          : "Kullanıcı rolü onaylandı"
-      );
+      const repository = new UserRepository(createClient());
+      const updated = await repository.assignRole(user.id, selected);
+      setUsers((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      if (isManager) setPermissions(await repository.listCompanyManagerPermissions());
+      setSelections((current) => {
+        const next = { ...current };
+        delete next[user.id];
+        return next;
+      });
+      toast.success(selected === "pending" ? "Kullanıcının erişimi kaldırıldı" : "Kullanıcı rolü kaydedildi");
     } catch (error) {
       console.error(error);
-      toast.error("Rol güncellenemedi", {
-        description: (error as Error)?.message,
-      });
+      toast.error("Rol güncellenemedi", { description: (error as Error)?.message });
     } finally {
       setLoadingId(null);
     }
   }
 
-  async function togglePermission(
-    userId: string,
-    module: PermissionModule,
-    enabled: boolean
-  ) {
+  async function togglePermission(userId: string, module: PermissionModule, enabled: boolean) {
     const loadingKey = `${userId}-${module}`;
     setLoadingPermission(loadingKey);
     try {
-      const updated = await new UserRepository(
-        createClient()
-      ).setCompanyManagerPermission(userId, module, enabled);
-      setPermissions((current) => [
-        ...current.filter((item) => item.user_id !== userId),
-        updated,
-      ]);
+      const updated = await new UserRepository(createClient()).setCompanyManagerPermission(userId, module, enabled);
+      setPermissions((current) => [...current.filter((item) => item.user_id !== userId), updated]);
       toast.success(enabled ? "Alan yetkisi açıldı" : "Alan yetkisi kapatıldı");
     } catch (error) {
       console.error(error);
-      toast.error("Alan yetkisi güncellenemedi", {
-        description: (error as Error)?.message,
-      });
+      toast.error("Alan yetkisi güncellenemedi", { description: (error as Error)?.message });
     } finally {
       setLoadingPermission(null);
     }
@@ -175,9 +197,7 @@ export function UserRoleManager({
         toast.success("Katılma isteği reddedildi");
       } catch (error) {
         console.error(error);
-        toast.error("İstek reddedilemedi", {
-          description: (error as Error)?.message,
-        });
+        toast.error("İstek reddedilemedi", { description: (error as Error)?.message });
       } finally {
         setDeletingId(null);
       }
@@ -185,7 +205,7 @@ export function UserRoleManager({
     }
 
     const confirmed = window.confirm(
-      `${user.full_name || user.email} kullanıcısı tamamen silinecek. Tekrar erişebilmesi için yeniden kayıt olup ana yönetici onayı beklemesi gerekecek. Devam edilsin mi?`
+      `${user.full_name || user.email} kullanıcısı tamamen silinecek. Tekrar erişebilmesi için yeniden kayıt olup onay beklemesi gerekecek. Devam edilsin mi?`
     );
     if (!confirmed) return;
 
@@ -193,15 +213,11 @@ export function UserRoleManager({
     try {
       await new UserRepository(createClient()).deleteUser(user.id);
       setUsers((current) => current.filter((item) => item.id !== user.id));
-      setPermissions((current) =>
-        current.filter((item) => item.user_id !== user.id)
-      );
+      setPermissions((current) => current.filter((item) => item.user_id !== user.id));
       toast.success("Kullanıcı tamamen kaldırıldı");
     } catch (error) {
       console.error(error);
-      toast.error("Kullanıcı kaldırılamadı", {
-        description: (error as Error)?.message,
-      });
+      toast.error("Kullanıcı kaldırılamadı", { description: (error as Error)?.message });
     } finally {
       setDeletingId(null);
     }
@@ -210,115 +226,106 @@ export function UserRoleManager({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Kullanıcı Yetkileri
-        </h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Kullanıcılar</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Yeni kullanıcıları onaylayın ve görevlerini belirleyin
+          {isManager
+            ? "Katılım isteklerini onaylayın, rolleri ve işlem yetkilerini belirleyin."
+            : "Katılım isteklerini muhasebe olarak onaylayabilir veya reddedebilirsiniz. Diğer roller firma yöneticisi tarafından atanır."}
         </p>
       </div>
 
+      {joinCode && (
+        <div className="flex flex-col gap-3 rounded-xl border bg-muted/40 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium">Çalışan davet bilgisi</p>
+            <p className="text-xs text-muted-foreground">
+              Çalışan kayıt olurken <strong>{companyName}</strong> adını ve katılım kodunu girer; istek bu listeye düşer.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-2xl font-semibold tracking-[0.3em]">{joinCode}</span>
+            <Button type="button" variant="outline" size="sm" onClick={copyJoinInfo}>
+              <Copy className="h-4 w-4" />
+              Kopyala
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Summary
-          label="Onay Bekleyen"
-          value={users.filter((user) => !user.is_approved).length}
-          icon={<Clock3 className="h-5 w-5 text-amber-500" />}
-        />
-        <Summary
-          label="Yönetici"
-          value={`${managerCount}/3`}
-          icon={<ShieldCheck className="h-5 w-5 text-blue-500" />}
-        />
-        <Summary
-          label="Muhasebe"
-          value={`${accountingCount}/2`}
-          icon={<Calculator className="h-5 w-5 text-violet-500" />}
-        />
-        <Summary
-          label="Onaylı Kullanıcı"
-          value={users.filter((user) => user.is_approved).length}
-          icon={<CheckCircle2 className="h-5 w-5 text-emerald-500" />}
-        />
+        <Summary label="Onay Bekleyen" value={counts.pending} icon={<Clock3 className="h-5 w-5 text-amber-500" />} />
+        <Summary label="Firma Yöneticisi" value={counts.site_chief} icon={<Building2 className="h-5 w-5 text-slate-500" />} />
+        <Summary label="Şantiye Şefi" value={counts.company_manager} icon={<HardHat className="h-5 w-5 text-sky-500" />} />
+        <Summary label="Muhasebe" value={counts.accounting} icon={<Calculator className="h-5 w-5 text-violet-500" />} />
       </div>
+      <p className="-mt-2 text-xs text-muted-foreground">
+        Onaylı kullanıcı: <strong>{counts.approved}</strong>
+        {userLimit !== null && <> / paket limiti <strong>{userLimit}</strong></>}. Bütün roller limite dahildir; sahadaki
+        personel sayısı limite girmez.
+      </p>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Kullanıcılar</CardTitle>
+          <CardTitle className="text-base">Kullanıcı Listesi</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {[...users]
             .sort((a, b) => Number(a.is_approved) - Number(b.is_approved))
             .map((user) => {
-              const isChief = user.role === "site_chief";
-              const selected =
-                selections[user.id] ??
-                (isChief ? "pending" : user.role);
-              const userPermissions =
-                permissions.find((item) => item.user_id === user.id) ??
-                emptyPermissions(user.id);
+              const editable = canChange(user);
+              // Bekleyen kullanıcıda rol bilinçli seçilsin diye varsayılan boş gelir.
+              const selected = selections[user.id] ?? (user.is_approved ? user.role : undefined);
+              const options = ROLE_OPTIONS[viewerRole];
+              const showPermissions = isManager && user.is_approved && (user.role === "company_manager" || user.role === "accounting");
+              const userPermissions = permissions.find((item) => item.user_id === user.id) ?? emptyPermissions(user.id);
+              const lockedReason =
+                user.id === primaryManagerId
+                  ? "Firmayı kuran yönetici"
+                  : user.id === currentUserId
+                    ? "Sizin hesabınız"
+                    : "Rolünü firma yöneticisi değiştirir";
               return (
-                <div
-                  key={user.id}
-                  className="rounded-xl border p-4"
-                >
+                <div key={user.id} className="rounded-xl border p-4">
                   <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_190px] lg:items-center">
                     <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {user.is_approved && (user.role === "company_manager" || user.role === "accounting") ? (
-                        <button type="button" className="font-semibold text-primary hover:underline" onClick={() => setPermissionUserId(user.id)}>
-                          {user.full_name || "İsimsiz kullanıcı"}
-                        </button>
-                      ) : (
-                        <p className="font-semibold">{user.full_name || "İsimsiz kullanıcı"}</p>
-                      )}
-                      <Badge
-                        className={
-                          user.is_approved
-                            ? "bg-emerald-600"
-                            : "bg-amber-500 text-amber-950"
-                        }
+                      <div className="flex flex-wrap items-center gap-2">
+                        {showPermissions ? (
+                          <button type="button" className="font-semibold text-primary hover:underline" onClick={() => setPermissionUserId(user.id)}>
+                            {user.full_name || "İsimsiz kullanıcı"}
+                          </button>
+                        ) : (
+                          <p className="font-semibold">{user.full_name || "İsimsiz kullanıcı"}</p>
+                        )}
+                        <Badge className={user.is_approved ? ROLE_BADGE[user.role] : ROLE_BADGE.pending}>
+                          {USER_ROLE_LABELS[user.role]}
+                        </Badge>
+                        {user.id === primaryManagerId && <Badge className="border-border bg-transparent text-foreground">Kurucu</Badge>}
+                      </div>
+                      <p className="truncate text-sm text-muted-foreground">{user.email}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Kayıt: {formatDateTime(user.created_at)}</p>
+                    </div>
+
+                    {editable ? (
+                      <Select
+                        value={selected && options.some((option) => option.value === selected) ? selected : undefined}
+                        onValueChange={(value: UserRole) => setSelections((current) => ({ ...current, [user.id]: value }))}
                       >
-                        {USER_ROLE_LABELS[user.role]}
-                      </Badge>
-                    </div>
-                    <p className="truncate text-sm text-muted-foreground">
-                      {user.email}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Kayıt: {formatDateTime(user.created_at)}
-                    </p>
-                    </div>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Rol seçin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {options.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">{lockedReason}</div>
+                    )}
 
-                  {isChief ? (
-                    <div className="text-sm text-muted-foreground">
-                      Ana yönetici hesabı
-                    </div>
-                  ) : (
-                    <Select
-                      value={selected}
-                      onValueChange={(value: AssignableRole) =>
-                        setSelections((current) => ({
-                          ...current,
-                          [user.id]: value,
-                        }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="company_manager">
-                          Yönetici
-                        </SelectItem>
-                        <SelectItem value="accounting">Muhasebe</SelectItem>
-                        <SelectItem value="pending">
-                          Erişimi Kaldır / Beklet
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-
-                    {!isChief && (
+                    {editable && (
                       <div className="flex gap-2">
                         <Button
                           className="flex-1"
@@ -326,77 +333,43 @@ export function UserRoleManager({
                           disabled={
                             loadingId === user.id ||
                             deletingId === user.id ||
-                            (selected === "company_manager" &&
-                              managerCount >= 3 &&
-                              user.role !== "company_manager") ||
-                            (selected === "accounting" &&
-                              accountingCount >= 2 &&
-                              user.role !== "accounting")
+                            !selected ||
+                            !options.some((option) => option.value === selected) ||
+                            (selected === user.role && user.is_approved)
                           }
                         >
-                          {loadingId === user.id && (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          )}
-                          Onayla
+                          {loadingId === user.id && <Loader2 className="h-4 w-4 animate-spin" />}
+                          {user.is_approved ? "Kaydet" : "Onayla"}
                         </Button>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          onClick={() => deleteUser(user)}
-                          disabled={deletingId === user.id}
-                          aria-label={user.is_approved ? "Kullanıcıyı tamamen kaldır" : "Katılma isteğini reddet"}
-                          title={user.is_approved ? "Kullanıcıyı tamamen kaldır" : "Katılma isteğini reddet"}
-                        >
-                          {deletingId === user.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <UserX className="h-4 w-4" />
-                          )}
-                        </Button>
+                        {(!user.is_approved || (isManager && user.role !== "site_chief")) && (
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => deleteUser(user)}
+                            disabled={deletingId === user.id}
+                            aria-label={user.is_approved ? "Kullanıcıyı tamamen kaldır" : "Katılma isteğini reddet"}
+                            title={user.is_approved ? "Kullanıcıyı tamamen kaldır" : "Katılma isteğini reddet"}
+                          >
+                            {deletingId === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserX className="h-4 w-4" />}
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
 
-                  {user.is_approved && (user.role === "company_manager" || user.role === "accounting") && (
+                  {showPermissions && (
                     <div className="mt-4 border-t pt-4">
-                      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        İşlem Yetkileri
-                      </p>
-                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                        {PERMISSION_FIELDS.map((permission) => {
-                          const enabled = userPermissions[permission.field];
-                          const loadingKey = `${user.id}-${permission.module}`;
-                          return (
-                            <Button
-                              key={permission.module}
-                              type="button"
-                              variant={enabled ? "default" : "outline"}
-                              className="justify-between"
-                              disabled={loadingPermission === loadingKey}
-                              onClick={() =>
-                                togglePermission(
-                                  user.id,
-                                  permission.module,
-                                  !enabled
-                                )
-                              }
-                            >
-                              {permission.label}
-                              {loadingPermission === loadingKey ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <span className="text-xs">
-                                  {enabled ? "Açık" : "Kapalı"}
-                                </span>
-                              )}
-                            </Button>
-                          );
-                        })}
-                      </div>
+                      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">İşlem Yetkileri</p>
+                      <PermissionGrid
+                        userId={user.id}
+                        values={userPermissions}
+                        loadingKey={loadingPermission}
+                        onToggle={togglePermission}
+                      />
                       <p className="mt-2 text-xs text-muted-foreground">
                         {user.role === "accounting"
-                          ? "Personel ve Puantaj varsayılan olarak salt okunur. Açılan diğer modüller menüde görünür ve işlem yapılabilir."
-                          : "Kapalı alanlar salt okunur kalır. Ayarlar ve kullanıcı yetkileri hiçbir zaman açılamaz."}
+                          ? "Muhasebe personel, puantaj, araç ve malzeme stokunu her zaman görür ve irsaliye teslim alabilir. Açılan modüllerde işlem yapabilir."
+                          : "Şantiye şefi kapalı alanları salt okunur görür. Hakediş açılmadıkça birim fiyat ve tutarları göremez."}
                       </p>
                     </div>
                   )}
@@ -411,22 +384,16 @@ export function UserRoleManager({
           <DialogHeader>
             <DialogTitle>{permissionUser?.full_name || permissionUser?.email || "Kullanıcı"} · Yetkiler</DialogTitle>
             <p className="text-sm text-muted-foreground">
-              İşlem yetkilerini ana yönetici açıp kapatabilir. Kapalı modüller salt okunur kalır.
+              İşlem yetkilerini firma yöneticisi açıp kapatabilir. Kapalı modüller salt okunur kalır.
             </p>
           </DialogHeader>
           {permissionUser && permissionUserValues && (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {PERMISSION_FIELDS.map((permission) => {
-                const enabled = permissionUserValues[permission.field];
-                const loadingKey = `${permissionUser.id}-${permission.module}`;
-                return (
-                  <Button key={permission.module} type="button" variant={enabled ? "default" : "outline"} className="justify-between" disabled={loadingPermission === loadingKey} onClick={() => togglePermission(permissionUser.id, permission.module, !enabled)}>
-                    {permission.label}
-                    {loadingPermission === loadingKey ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="text-xs">{enabled ? "Açık" : "Kapalı"}</span>}
-                  </Button>
-                );
-              })}
-            </div>
+            <PermissionGrid
+              userId={permissionUser.id}
+              values={permissionUserValues}
+              loadingKey={loadingPermission}
+              onToggle={togglePermission}
+            />
           )}
         </DialogContent>
       </Dialog>
@@ -434,15 +401,41 @@ export function UserRoleManager({
   );
 }
 
-function Summary({
-  label,
-  value,
-  icon,
+function PermissionGrid({
+  userId,
+  values,
+  loadingKey,
+  onToggle,
 }: {
-  label: string;
-  value: number | string;
-  icon: React.ReactNode;
+  userId: string;
+  values: CompanyManagerPermissions;
+  loadingKey: string | null;
+  onToggle: (userId: string, module: PermissionModule, enabled: boolean) => void;
 }) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {PERMISSION_FIELDS.map((permission) => {
+        const enabled = values[permission.field];
+        const key = `${userId}-${permission.module}`;
+        return (
+          <Button
+            key={permission.module}
+            type="button"
+            variant={enabled ? "default" : "outline"}
+            className="justify-between"
+            disabled={loadingKey === key}
+            onClick={() => onToggle(userId, permission.module, !enabled)}
+          >
+            {permission.label}
+            {loadingKey === key ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="text-xs">{enabled ? "Açık" : "Kapalı"}</span>}
+          </Button>
+        );
+      })}
+    </div>
+  );
+}
+
+function Summary({ label, value, icon }: { label: string; value: number | string; icon: React.ReactNode }) {
   return (
     <Card>
       <CardContent className="flex items-center justify-between p-5">

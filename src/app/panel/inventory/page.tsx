@@ -11,7 +11,8 @@ export const metadata = {
 export default async function InventoryPage() {
   const supabase = await createClient();
   const repository = new InventoryRepository(supabase);
-  const [materials, catalogs, categories, locations, shipments, receipts, requests, personnel, canWrite] = await Promise.all([
+  const userRepository = new UserRepository(supabase);
+  const [materials, catalogs, categories, locations, shipments, receipts, requests, personnel, canWrite, profile] = await Promise.all([
     repository.listMaterials("stock"),
     repository.listCatalogs(),
     repository.listCategories(),
@@ -20,7 +21,8 @@ export default async function InventoryPage() {
     repository.listReceipts(),
     repository.listRequests(),
     new PersonnelRepository(supabase).list({ activeOnly: true }),
-    new UserRepository(supabase).canWrite("inventory"),
+    userRepository.canWrite("inventory"),
+    userRepository.getCurrent(),
   ]);
 
   return (
@@ -34,6 +36,7 @@ export default async function InventoryPage() {
       initialRequests={requests}
       personnel={personnel}
       readOnly={!canWrite}
+      canReceive={canWrite || profile?.role === "accounting"}
     />
   );
 }

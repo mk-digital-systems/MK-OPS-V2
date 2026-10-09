@@ -35,7 +35,9 @@ export type CompanySummary = {
   currency_code: CurrencyCode;
   /** company-logos deposundaki dosya yolu; logo yoksa null. */
   logo_path: string | null;
-  /** Yalnızca onaylı ana yöneticiye döner. */
+  /** Firmayı kuran Firma Yöneticisi; silinemez ve rolü değiştirilemez. */
+  primary_manager_id: string | null;
+  /** Yalnızca onaylı Firma Yöneticisi ve Şantiye Şefine döner. */
   join_code: string | null;
 };
 
@@ -48,8 +50,8 @@ export type SignupMode = "create" | "join";
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   pending: "Onay Bekliyor",
-  site_chief: "Ana Yönetici",
-  company_manager: "Yönetici",
+  site_chief: "Firma Yöneticisi",
+  company_manager: "Şantiye Şefi",
   accounting: "Muhasebe",
 };
 

@@ -52,39 +52,43 @@ export default function GuidePage() {
         </li>
         <li>
           Girişte <strong>Yeni şirket kur</strong> seçeneğiyle firma adınızı yazın. Firmayı kuran kişi firmanın{" "}
-          <strong>Ana Yöneticisi</strong> olur.
+          <strong>kurucu Firma Yöneticisi</strong> olur.
         </li>
         <li>Firmanız kurulduğu anda 48 saatlik ücretsiz deneme başlar; bütün modüller açıktır.</li>
       </ol>
       <h3>Çalışanlarınızı ekleyin</h3>
       <ol>
         <li>
-          <strong>Ayarlar → Şirket Bilgileri</strong> bölümünde firmanızın 4 haneli <strong>katılım kodu</strong> yazar.
+          <strong>Kullanıcılar</strong> sayfasının üstünde (ve <strong>Ayarlar → Şirket Bilgileri</strong> bölümünde) firmanızın
+          4 haneli <strong>katılım kodu</strong> yazar.
           &quot;Kopyala&quot; ile firma adı ve kodu birlikte çalışanlarınıza gönderin.
         </li>
         <li>Çalışan kayıt olur, <strong>Şirkete katıl</strong> seçeneğinde firma adını ve kodu girer.</li>
         <li>
-          Talep <strong>Kullanıcılar</strong> sayfasına düşer. Ana yönetici rolünü (Yönetici veya Muhasebe) seçerek onaylar ya da
-          reddeder. Onaylanmadan çalışan hiçbir veriyi göremez.
+          Talep <strong>Kullanıcılar</strong> sayfasına düşer. Firma yöneticisi rolü (Firma Yöneticisi, Şantiye Şefi veya Muhasebe)
+          seçerek onaylar ya da reddeder; şantiye şefi de istekleri Muhasebe olarak onaylayabilir veya reddedebilir. Onaylanmadan çalışan hiçbir veriyi göremez.
         </li>
       </ol>
 
       <h2 id="roller">{SECTIONS[1].title}</h2>
       <ul>
         <li>
-          <strong>Ana Yönetici:</strong> her şeyi görür ve düzenler. Kullanıcıları onaylar, yetki verir; Ayarlar, Destek ve
-          İşlem Geçmişi yalnızca ona açıktır.
+          <strong>Firma Yöneticisi:</strong> her şeyi görür ve düzenler. Kullanıcıları onaylar, rol ve yetki verir; Ayarlar,
+          Destek ve İşlem Geçmişi yalnızca firma yöneticilerine açıktır. Birden fazla firma yöneticisi olabilir; firmayı kuran
+          hesap silinemez ve rolü değiştirilemez.
         </li>
         <li>
-          <strong>Yönetici:</strong> operasyon modüllerinin hepsini görür; yalnızca kendisine yetki verilen modüllerde kayıt
-          ekleyip düzenleyebilir.
+          <strong>Şantiye Şefi:</strong> operasyonun tamamını yürütür: projeler, iş planı, imalatlar, personel, puantaj, araçlar
+          ve malzeme stoku. Katılım isteklerini Muhasebe olarak onaylayabilir. Birim fiyat ve hakediş tutarlarını yalnızca firma
+          yöneticisi izin verirse görür.
         </li>
         <li>
-          <strong>Muhasebe:</strong> personel ve puantajı görür; diğer modüller ancak yetki verilirse açılır.
+          <strong>Muhasebe:</strong> personel, puantaj, araçlar (yakıt, sigorta, muayene), malzeme stoku ve hakedişi görür;
+          irsaliye ile stok girişi yapabilir. Diğer işlemler firma yöneticisi yetki verirse açılır.
         </li>
       </ul>
       <p>
-        Yetkiler <strong>Kullanıcılar</strong> sayfasında her kişi için ayrı ayrı açılıp kapatılır: Projeler, İş Planı,
+        Firma yöneticisi yetkileri <strong>Kullanıcılar</strong> sayfasında her kişi için ayrı ayrı açıp kapatır: Projeler, İş Planı,
         Personel, Puantaj, Araçlar, Malzeme Stok, Araç Ekipmanları, İmalatlar ve Hakediş. Hakediş yetkisi olmayan kişi birim
         fiyatları ve tutarları hiçbir ekranda göremez.
       </p>
@@ -283,14 +287,14 @@ export default function GuidePage() {
         </li>
         <li>
           <strong>Önemli ve Gizli Notlar:</strong> panelin sağ altındaki kilit düğmesi firmanın ortak gizli alanını açar (banka
-          bilgileri, kapı ve alarm şifreleri, önemli yazışmalar gibi). Alan, ana yöneticinin{" "}
+          bilgileri, kapı ve alarm şifreleri, önemli yazışmalar gibi). Alan, firma yöneticisinin{" "}
           <strong>Ayarlar → Gizli Alan Şifresi</strong> bölümünde belirlediği firma şifresiyle açılır; şifreyi bilen her onaylı
           kullanıcı aynı notları görür. Kilit 30 dakika işlem yapılmazsa kendiliğinden kapanır; 5 hatalı denemeden sonra 15
           dakika beklenir. Şifre değiştirilince açık oturumlar kapanır, notlar silinmez.
         </li>
         <li>
           <strong>Bildirimler:</strong> menünün üstündeki zil; okunmamış sayısını gösterir. Katılım isteği, destek yanıtı,
-          deneme/plan bitişi (ana yönetici), geciken ya da 3 gün içinde bitecek projeler, 15 gün içinde muayene/sigorta tarihi
+          deneme/plan bitişi (firma yöneticisi), geciken ya da 3 gün içinde bitecek projeler, 15 gün içinde muayene/sigorta tarihi
           gelen araçlar ve fiyatı girilmemiş hakediş kayıtları burada çıkar. Herkes yalnızca yetkisi olan konuları görür;
           bildirime tıklayınca ilgili sayfa açılır.
         </li>
@@ -304,7 +308,7 @@ export default function GuidePage() {
       <ul>
         <li>Deneme süresi firma kurulduktan sonra 48 saattir; panelin üstünde kalan süre gösterilir.</li>
         <li>
-          Plan almak için ana yönetici <strong>Destek</strong> sayfasından plan talebi gönderir; kullanıcı sayınızı ve ödeme
+          Plan almak için firma yöneticisi <strong>Destek</strong> sayfasından plan talebi gönderir; kullanıcı sayınızı ve ödeme
           dönemini yazın. Ödeme EFT ile alınır; ödeme bilgileri talebinize yanıt olarak iletilir ve ödeme onaylanınca planınız
           tanımlanır.
         </li>

@@ -101,10 +101,10 @@ const anon = await pg.transaction(async (tx) => {
 });
 check("anon blocked", !!anon, anon);
 
-const remaining = (await sys(`select count(*)::int n from pg_proc where pronamespace = 'public'::regnamespace and prosrc ~* 'şantiye şef'`)).rows[0].n;
-check("no 'şantiye şefi' messages left", Number(remaining) === 0);
-e = await asErr(manager, `select public.assign_user_role($1, 'accounting')`, [pending]);
-check("renamed message", !!e && e.includes("ana yönetici"), e);
+const remaining = (await sys(`select count(*)::int n from pg_proc where pronamespace = 'public'::regnamespace and prosrc ~* 'ana yönetici'`)).rows[0].n;
+check("no 'ana yönetici' messages left", Number(remaining) === 0);
+e = await asErr(manager, `select public.set_company_vault_password('gizli123')`);
+check("renamed message", !!e && e.includes("firma yöneticisi"), e);
 e = await asErr(chief, `select public.refresh_project_rollup(gen_random_uuid())`);
 check("internal helper not callable", !!e && /permission denied/.test(e), e);
 console.log(failures ? `\n${failures} FAILED` : "\nall passed");

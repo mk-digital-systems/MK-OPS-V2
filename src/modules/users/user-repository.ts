@@ -40,7 +40,7 @@ export class UserRepository {
 
   async assignRole(
     userId: string,
-    role: Exclude<UserRole, "site_chief">
+    role: UserRole
   ): Promise<UserProfile> {
     const { data, error } = await this.supabase.rpc("assign_user_role", {
       p_user_id: userId,

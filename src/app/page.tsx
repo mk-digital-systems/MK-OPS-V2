@@ -140,7 +140,7 @@ const MORE = [
   { icon: CarFront, title: "Araç ve yakıt", text: "Araç-personel eşleşmesi, yakıt ve kilometre." },
   { icon: Wallet, title: "Avans ve ödeme günleri", text: "Personel avansları ve ücrete esas günler." },
   { icon: Hammer, title: "Günlük faaliyet raporu", text: "Ekiplerin günlük yaptığı işler, PDF rapor." },
-  { icon: KeyRound, title: "Rol ve yetki", text: "Yönetici ve muhasebe rolleri, modül bazında yetki." },
+  { icon: KeyRound, title: "Rol ve yetki", text: "Firma yöneticisi, şantiye şefi ve muhasebe rolleri; modül bazında yetki." },
   { icon: Bell, title: "Notlar ve hatırlatmalar", text: "Ekiple paylaşılan ve kişisel notlar." },
   { icon: FileSpreadsheet, title: "Excel, Word, PDF", text: "Listeler ve raporlar tek tıkla dışa aktarılır." },
   { icon: Smartphone, title: "Her cihazda", text: "Kurulum yok; telefon, tablet ve bilgisayardan." },

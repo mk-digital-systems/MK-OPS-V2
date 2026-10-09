@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 const vault = () => new CompanyVaultRepository(createClient());
 
 /**
- * Firmanın ortak "Önemli ve Gizli Notlar" alanı. Ana yöneticinin Ayarlar'da belirlediği
+ * Firmanın ortak "Önemli ve Gizli Notlar" alanı. Firma yöneticisinin Ayarlar'da belirlediği
  * firma şifresiyle açılır; koruma sunucudadır. Oturum anahtarı yalnızca bellekte tutulur.
  */
 export function PrivateNotesPanel() {
@@ -169,7 +169,7 @@ export function PrivateNotesPanel() {
           <p className="text-sm text-muted-foreground">Bu alan firmanın ortak gizli notları içindir ve firma şifresiyle açılır. Henüz şifre belirlenmemiş.</p>
           {status.can_manage
             ? <Button asChild size="sm"><Link href="/panel/settings#gizli-alan" onClick={() => setOpen(false)}>Ayarlar&apos;dan şifre belirle</Link></Button>
-            : <p className="text-sm font-medium">Şifreyi ana yöneticiniz Ayarlar&apos;dan belirleyebilir.</p>}
+            : <p className="text-sm font-medium">Şifreyi firma yöneticiniz Ayarlar&apos;dan belirleyebilir.</p>}
         </div>
       : !token ? <form onSubmit={unlock} className="m-auto w-full max-w-xs space-y-4 p-5">
           <div className="text-center"><KeyRound className="mx-auto mb-2 h-8 w-8 text-amber-600" /><p className="text-sm text-muted-foreground">Firmanın ortak gizli notları. Açmak için firma gizli alan şifresini girin.</p></div>

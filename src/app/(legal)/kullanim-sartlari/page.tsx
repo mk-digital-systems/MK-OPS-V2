@@ -30,9 +30,9 @@ export default function TermsPage() {
       <h2>3. Hesap ve şirket yapısı</h2>
       <ul>
         <li>Kayıt sırasında doğru ve güncel bilgi vermeniz gerekir. Giriş bilgilerinizin gizliliğinden siz sorumlusunuz.</li>
-        <li>Yeni şirket kuran kullanıcı, o şirketin ana yöneticisi olur. Her şirketin tek bir ana yöneticisi bulunur.</li>
-        <li>Diğer kullanıcılar şirket adı ve katılım koduyla katılma isteği gönderir; ana yönetici onaylayana kadar şirket verisine erişemez.</li>
-        <li>Rol ve modül yetkileri ana yönetici tarafından belirlenir. Şirket hesabı altında yapılan işlemlerden şirket sorumludur.</li>
+        <li>Yeni şirket kuran kullanıcı, o şirketin kurucu firma yöneticisidir. Firma yöneticileri başka kullanıcıları da firma yöneticisi olarak atayabilir; kurucu hesap silinemez.</li>
+        <li>Diğer kullanıcılar şirket adı ve katılım koduyla katılma isteği gönderir; firma yöneticisi veya şantiye şefi onaylayana kadar şirket verisine erişemez.</li>
+        <li>Rol ve modül yetkileri firma yöneticisi tarafından belirlenir. Şirket hesabı altında yapılan işlemlerden şirket sorumludur.</li>
         <li>Her şirketin verisi diğer şirketlerden ayrı tutulur.</li>
       </ul>
 

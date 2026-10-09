@@ -30,9 +30,11 @@ type ReceiptLine = { catalog_id: string; material_code: string; unit: InventoryU
 const today = () => new Date().toLocaleDateString("en-CA");
 const LOCATION_COLORS = ["bg-emerald-600", "bg-blue-600", "bg-violet-600", "bg-amber-600", "bg-rose-600", "bg-teal-600"];
 
-export function InventoryManager({ initialMaterials, initialCatalogs, initialCategories, initialLocations, initialShipments, initialReceipts, initialRequests, personnel, readOnly = false }: {
+export function InventoryManager({ initialMaterials, initialCatalogs, initialCategories, initialLocations, initialShipments, initialReceipts, initialRequests, personnel, readOnly = false, canReceive = !readOnly }: {
   initialMaterials: InventoryMaterial[]; initialCatalogs: InventoryCatalog[]; initialCategories: InventoryCategory[]; initialLocations: InventoryLocation[];
   initialShipments: InventoryShipment[]; initialReceipts: InventoryReceipt[]; initialRequests: InventoryRequest[]; personnel: Personnel[]; readOnly?: boolean;
+  /** İrsaliye ile stok girişi (muhasebe salt okunur olsa da teslim alabilir). */
+  canReceive?: boolean;
 }) {
   const [materials, setMaterials] = useState(initialMaterials);
   const [catalogs, setCatalogs] = useState(initialCatalogs);
@@ -108,9 +110,9 @@ export function InventoryManager({ initialMaterials, initialCatalogs, initialCat
           <Button variant="outline" onClick={() => setLocationsOpen(true)}><Warehouse />Depolar</Button>
           <Button variant="outline" onClick={() => setCategoriesOpen(true)}><Tags />Kategoriler</Button>
           {locations.length > 1 && <Button variant="outline" onClick={() => setTransferOpen(true)}><Send />Depolar Arası Sevkiyat</Button>}
-          <Button variant="outline" onClick={() => setReceiptOpen(true)}><ArrowDownToLine />İrsaliye ile Stok Girişi</Button>
           <Button onClick={() => setCatalogOpen(true)}><Plus />Yeni Malzeme</Button>
         </>}
+        {canReceive && <Button variant="outline" onClick={() => setReceiptOpen(true)}><ArrowDownToLine />İrsaliye ile Stok Girişi</Button>}
       </div>
     </div>
 

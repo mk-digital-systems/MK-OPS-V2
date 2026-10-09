@@ -33,18 +33,18 @@ export default async function AppLayout({
     : pathname.startsWith("/panel/custody") ? "custody"
     : pathname.startsWith("/panel/hakedis") ? "hakedis" : null;
 
+  // Muhasebe personel, puantaj, araç ve malzeme stokunu her zaman görür; diğer modülleri
+  // yalnızca firma yöneticisi yetki verdiyse.
+  const accountingPaths = ["/panel/attendance", "/panel/personnel", "/panel/vehicles", "/panel/inventory", "/panel/profile"];
   if (
     profile.role === "accounting" &&
-    !pathname.startsWith("/panel/attendance") &&
-    !pathname.startsWith("/panel/personnel") &&
-    !pathname.startsWith("/panel/profile") &&
+    !accountingPaths.some((path) => pathname.startsWith(path)) &&
     (!permissionModule || !writableModules.includes(permissionModule))
   ) redirect("/panel/attendance");
 
-  if (
-    (pathname.startsWith("/panel/users") || pathname.startsWith("/panel/settings")) &&
-    profile.role !== "site_chief"
-  ) redirect(profile.role === "accounting" ? "/panel/attendance" : "/panel");
+  const home = profile.role === "accounting" ? "/panel/attendance" : "/panel";
+  if (pathname.startsWith("/panel/settings") && profile.role !== "site_chief") redirect(home);
+  if (pathname.startsWith("/panel/users") && profile.role !== "site_chief" && profile.role !== "company_manager") redirect(home);
 
   const isWriteOnlyRoute =
     pathname === "/panel/projects/new" ||

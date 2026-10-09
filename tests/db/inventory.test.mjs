@@ -73,6 +73,8 @@ check("other company sees no foreign locations", Number((await one(other, `selec
 const elec = (await one(chief, `select public.save_inventory_category(null, 'Elektrik') id`)).id;
 let e = await asErr(chief, `select public.save_inventory_category(null, 'elektrik')`);
 check("duplicate category name rejected", !!e, e);
+// Yeni şef malzeme yetkisiyle başlar; yetkisiz durumu sınamak için kapatılır.
+await as(chief, `select public.set_company_manager_permission($1, 'inventory', false)`, [manager]);
 e = await asErr(manager, `select public.save_inventory_category(null, 'X')`);
 check("manager without inventory permission cannot add category", !!e, e);
 const cable = (await one(chief, `select public.create_inventory_catalog_material('NYM 3x2.5', $1, null, null, 'meter', false) id`, [elec])).id;

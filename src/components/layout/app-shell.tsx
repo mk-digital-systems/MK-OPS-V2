@@ -20,9 +20,9 @@ import {
   PackageCheck,
   Menu,
   X,
-  ChevronDown,
   Hammer,
   Ban,
+  type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -42,114 +42,53 @@ import { TrialBanner } from "@/components/layout/trial-banner";
 import { useReportBrand } from "@/components/layout/company-brand-provider";
 import { NotificationBell } from "@/components/layout/notification-bell";
 
-const NAV_ITEMS = [
-  {
-    href: "/panel",
-    label: "Dashboard",
-    icon: LayoutDashboard,
-    accounting: false,
-    group: "OPERASYON",
-  },
-  {
-    href: "/panel/projects",
-    label: "Projeler",
-    icon: FolderKanban,
-    accounting: false,
-    group: "OPERASYON",
-  },
-  {
-    href: "/panel/cancelled-projects",
-    label: "İptal Projeler",
-    icon: Ban,
-    accounting: false,
-    group: "OPERASYON",
-  },
-  {
-    href: "/panel/work-plans",
-    label: "İş Planı",
-    icon: ClipboardList,
-    accounting: false,
-    group: "OPERASYON",
-  },
-  {
-    href: "/panel/hakedis",
-    label: "Hakediş",
-    icon: Receipt,
-    accounting: false,
-    group: "OPERASYON",
-  },
-  {
-    href: "/panel/imalatlar",
-    label: "İmalatlar",
-    icon: Hammer,
-    accounting: false,
-    group: "OPERASYON",
-  },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  /** Muhasebe, yetki verilmeden de görür. */
+  accounting?: boolean;
+  /** Yalnızca bu roller görür. */
+  roles?: UserRole[];
+};
 
+const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
   {
-    href: "/panel/personnel",
-    label: "Personel",
-    icon: Users,
-    accounting: true,
-    group: "KAYNAKLAR",
+    title: null,
+    items: [{ href: "/panel", label: "Genel Bakış", icon: LayoutDashboard }],
   },
   {
-    href: "/panel/vehicles",
-    label: "Araçlar",
-    icon: CarFront,
-    accounting: false,
-    group: "KAYNAKLAR",
+    title: "Operasyon",
+    items: [
+      { href: "/panel/projects", label: "Projeler", icon: FolderKanban },
+      { href: "/panel/work-plans", label: "İş Planı", icon: ClipboardList },
+      { href: "/panel/imalatlar", label: "İmalatlar", icon: Hammer },
+      { href: "/panel/hakedis", label: "Hakediş", icon: Receipt },
+      { href: "/panel/cancelled-projects", label: "İptal Projeler", icon: Ban },
+    ],
   },
   {
-    href: "/panel/inventory",
-    label: "Malzeme Stok",
-    icon: Boxes,
-    accounting: false,
-    group: "KAYNAKLAR",
+    title: "Personel",
+    items: [
+      { href: "/panel/personnel", label: "Personel", icon: Users, accounting: true },
+      { href: "/panel/attendance", label: "Puantaj", icon: CalendarCheck, accounting: true },
+    ],
   },
   {
-    href: "/panel/custody",
-    label: "Araç Ekipmanları",
-    icon: PackageCheck,
-    accounting: false,
-    group: "KAYNAKLAR",
-  },
-
-  {
-    href: "/panel/attendance",
-    label: "Puantaj",
-    icon: CalendarCheck,
-    accounting: true,
-    group: "PERSONEL YÖNETİMİ",
-  },
-
-  {
-    href: "/panel/profile",
-    label: "Profilim",
-    icon: CircleUserRound,
-    accounting: true,
-    group: "SİSTEM",
+    title: "Kaynaklar",
+    items: [
+      { href: "/panel/vehicles", label: "Araçlar", icon: CarFront, accounting: true },
+      { href: "/panel/custody", label: "Araç Ekipmanları", icon: PackageCheck },
+      { href: "/panel/inventory", label: "Malzeme Stok", icon: Boxes, accounting: true },
+    ],
   },
   {
-    href: "/panel/settings",
-    label: "Ayarlar",
-    icon: Settings,
-    accounting: false,
-    group: "SİSTEM",
-  },
-  {
-    href: "/panel/support",
-    label: "Destek",
-    icon: LifeBuoy,
-    accounting: false,
-    group: "SİSTEM",
-  },
-  {
-    href: "/kilavuz",
-    label: "Kullanım Kılavuzu",
-    icon: BookOpen,
-    accounting: true,
-    group: "SİSTEM",
+    title: "Yönetim",
+    items: [
+      { href: "/panel/users", label: "Kullanıcılar", icon: ShieldCheck, roles: ["site_chief", "company_manager"] },
+      { href: "/panel/settings", label: "Ayarlar", icon: Settings, roles: ["site_chief"] },
+      { href: "/panel/support", label: "Destek", icon: LifeBuoy, roles: ["site_chief"] },
+    ],
   },
 ];
 
@@ -185,180 +124,121 @@ export function AppShell({
     router.refresh();
   }
 
-  const navGroups = [
-    { name: "OPERASYON", icon: LayoutDashboard },
-    { name: "KAYNAKLAR", icon: Boxes },
-    { name: "PERSONEL YÖNETİMİ", icon: Users },
-    { name: "SİSTEM", icon: Settings },
-  ];
-
-  const visibleNavItems = NAV_ITEMS.filter((item) => {
-    if (item.href === "/panel/hakedis") {
-      return writableModules.includes("hakedis");
-    }
-
-    if (item.href === "/panel/settings" || item.href === "/panel/support") {
-      return profile.role === "site_chief";
-    }
-
+  function canSee(item: NavItem) {
+    if (item.roles) return item.roles.includes(profile.role);
+    if (item.href === "/panel/hakedis") return writableModules.includes("hakedis");
     if (profile.role === "accounting") {
       const permissionModule = moduleForPath(item.href);
-      return item.accounting || (permissionModule !== null && writableModules.includes(permissionModule));
+      return !!item.accounting || (permissionModule !== null && writableModules.includes(permissionModule));
     }
-
     return true;
-  });
+  }
 
-  // İçinde bulunduğumuz sayfanın grubunu başlangıçta açık getir
-  const activeGroup =
-    NAV_ITEMS.find((item) =>
-      item.href === "/panel"
-        ? pathname === "/panel"
-        : pathname.startsWith(item.href)
-    )?.group ?? null;
-
-  const [openGroup, setOpenGroup] = useState<string | null>(
-    pathname.startsWith("/panel/users") ? "YÖNETİM" : activeGroup
-  );
-
-  const toggleGroup = (groupName: string) => {
-    setOpenGroup((current) =>
-      current === groupName ? null : groupName
-    );
-  };
+  const isActive = (href: string) => (href === "/panel" ? pathname === "/panel" : pathname.startsWith(href));
 
   const nav = (
-    <nav className="flex flex-col gap-2 p-3">
-      {navGroups.map((group) => {
-        const groupItems = visibleNavItems.filter(
-          (item) => item.group === group.name
-        );
-
-        // Kullanıcının bu grupta yetkili olduğu menü yoksa
-        // grup başlığını da gösterme
-        if (groupItems.length === 0) return null;
-
-        const GroupIcon = group.icon;
-        const isOpen = openGroup === group.name;
-
+    <nav className="flex flex-col gap-5 px-3 py-2">
+      {NAV_SECTIONS.map((section) => {
+        const items = section.items.filter(canSee);
+        if (items.length === 0) return null;
         return (
-          <div key={group.name}>
-            {/* Açılır Grup Başlığı */}
-            <button
-              type="button"
-              onClick={() => toggleGroup(group.name)}
-              className={cn(
-                "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors",
-                isOpen
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              )}
-            >
-              <GroupIcon className="h-4 w-4" />
-
-              <span className="flex-1 text-left text-xs font-semibold tracking-wide">
-                {group.name}
-              </span>
-
-              <ChevronDown
-                className={cn(
-                  "h-4 w-4 transition-transform duration-200",
-                  isOpen && "rotate-180"
-                )}
-              />
-            </button>
-
-            {/* Açılan Menü Öğeleri */}
-            {isOpen && (
-              <div className="mt-1 flex flex-col gap-1 pl-3">
-                {groupItems.map((item) => {
-                  const active =
-                    item.href === "/panel"
-                      ? pathname === "/panel"
-                      : pathname.startsWith(item.href);
-
-                  const Icon = item.icon;
-
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setMobileOpen(false)}
-                      className={cn(
-                        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                        active
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-
-                      <span>{item.label}</span>
-
-                    </Link>
-                  );
-                })}
-              </div>
+          <div key={section.title ?? "genel"}>
+            {section.title && (
+              <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/80">
+                {section.title}
+              </p>
             )}
+            <div className="flex flex-col gap-0.5">
+              {items.map((item) => {
+                const active = isActive(item.href);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      active
+                        ? "bg-primary/10 text-primary dark:bg-primary/15"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    )}
+                  >
+                    {active && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-full bg-primary" aria-hidden />}
+                    <Icon
+                      className={cn(
+                        "h-4 w-4 shrink-0",
+                        active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                      )}
+                    />
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         );
       })}
-
-      {/* Yönetim - sadece Ana Yönetici */}
-      {profile.role === "site_chief" && (
-        <div>
-          <button
-            type="button"
-            onClick={() => toggleGroup("YÖNETİM")}
-            className={cn(
-              "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors",
-              openGroup === "YÖNETİM"
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-            )}
-          >
-            <ShieldCheck className="h-4 w-4" />
-
-            <span className="flex-1 text-left text-xs font-semibold tracking-wide">
-              YÖNETİM
-            </span>
-
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 transition-transform duration-200",
-                openGroup === "YÖNETİM" && "rotate-180"
-              )}
-            />
-          </button>
-
-          {openGroup === "YÖNETİM" && (
-            <div className="mt-1 pl-3">
-              <Link
-                href="/panel/users"
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                  pathname.startsWith("/panel/users")
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                )}
-              >
-                <ShieldCheck className="h-4 w-4" />
-                <span>Kullanıcı Yetkileri</span>
-              </Link>
-            </div>
-          )}
-        </div>
-      )}
     </nav>
   );
 
+  const account = (
+    <div className="space-y-1 border-t border-border/70 p-3">
+      <Link
+        href="/panel/profile"
+        onClick={() => setMobileOpen(false)}
+        className={cn(
+          "flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-accent",
+          pathname.startsWith("/panel/profile") && "bg-accent"
+        )}
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-background">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt={`${profile.full_name || "Kullanıcı"} profil fotoğrafı`}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <CircleUserRound className="h-5 w-5 text-muted-foreground" />
+          )}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">{profile.full_name || profile.email}</span>
+          <span className="block truncate text-xs text-muted-foreground">
+            {USER_ROLE_LABELS[profile.role as UserRole]}
+          </span>
+        </span>
+      </Link>
+      <div className="flex items-center gap-1">
+        <Button asChild variant="ghost" size="sm" className="flex-1 justify-start gap-2 text-muted-foreground">
+          <Link href="/kilavuz" onClick={() => setMobileOpen(false)}>
+            <BookOpen className="h-4 w-4" />
+            Kılavuz
+          </Link>
+        </Button>
+        <ThemeToggle />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground"
+          onClick={handleLogout}
+          aria-label="Çıkış yap"
+          title="Çıkış yap"
+        >
+          <LogOut className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-50 via-background to-background dark:from-slate-900 dark:via-background dark:to-background">
       <div className="mx-auto flex min-h-screen max-w-[1600px]">
         <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border/70 bg-background/80 backdrop-blur-xl md:flex">
-          <div className="flex items-center gap-3 px-5 py-6">
+          <div className="flex items-center gap-3 px-5 py-5">
             <BrandLogo size={40} priority />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold tracking-tight">
@@ -370,47 +250,8 @@ export function AppShell({
             </div>
             <NotificationBell className="-mr-2 shrink-0" />
           </div>
-          {nav}
-          <div className="mt-auto space-y-2 border-t border-border/70 p-3">
-            <Link
-              href="/panel/profile"
-              className="flex items-center gap-3 rounded-lg bg-muted px-3 py-2 transition-colors hover:bg-accent"
-            >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-background">
-                {avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={avatarUrl}
-                    alt={`${profile.full_name || "Kullanıcı"} profil fotoğrafı`}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <CircleUserRound className="h-5 w-5 text-muted-foreground" />
-                )}
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-xs font-medium">
-                  {profile.full_name || profile.email}
-                </span>
-                <span className="block truncate text-[11px] text-muted-foreground">
-                  {profile.job_title ||
-                    USER_ROLE_LABELS[profile.role as UserRole]}
-                </span>
-              </span>
-            </Link>
-            <div className="flex items-center justify-between px-2">
-              <span className="text-xs text-muted-foreground">Tema</span>
-              <ThemeToggle />
-            </div>
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-3 text-muted-foreground"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 w-4" />
-              Çıkış Yap
-            </Button>
-          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">{nav}</div>
+          {account}
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
@@ -458,40 +299,81 @@ export function AppShell({
                 className="overflow-hidden border-b border-border/70 bg-background md:hidden"
               >
                 {nav}
-                <div className="p-3">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start gap-3"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Çıkış Yap
-                  </Button>
-                </div>
+                {account}
               </motion.div>
             )}
           </AnimatePresence>
 
           <main className="flex-1 p-4 md:p-8">
             {company && <TrialBanner company={company} canRequestPlan={profile.role === "site_chief"} />}
-            {profile.role === "company_manager" && (
-              <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
-                Yönetici hesabı: işlem yetkileri ana yönetici
-                tarafından alan bazında belirlenir.
-              </div>
-            )}
-            {profile.role === "accounting" && (
-              <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
-                Muhasebe hesabı: Personel ve Puantaj listeleri ile dökümler açıktır.
-                İşlem yetkileri ana yönetici tarafından ayrıca verilir.
-              </div>
-            )}
+            <RoleBar profile={profile} company={company} writableModules={writableModules} />
             {children}
           </main>
         </div>
       </div>
       <QuickNotesPanel initialNotes={notes} currentUserId={profile.id} />
       <PrivateNotesPanel />
+    </div>
+  );
+}
+
+const MODULE_LABELS: Record<PermissionModule, string> = {
+  projects: "Projeler",
+  work_plans: "İş Planı",
+  personnel: "Personel",
+  attendance: "Puantaj",
+  vehicles: "Araçlar",
+  inventory: "Malzeme Stok",
+  custody: "Araç Ekipmanları",
+  productions: "İmalatlar",
+  hakedis: "Hakediş",
+};
+
+/** Her sayfanın üstünde: kim giriş yaptı, rolü ne, hangi alanlarda işlem yapabilir. */
+function RoleBar({
+  profile,
+  company,
+  writableModules,
+}: {
+  profile: UserProfile;
+  company: CompanySummary | null;
+  writableModules: PermissionModule[];
+}) {
+  const labels = (modules: PermissionModule[]) => modules.map((module) => MODULE_LABELS[module]).join(", ");
+  const operations = writableModules.filter((module) => module !== "hakedis");
+  const seesPrices = writableModules.includes("hakedis");
+
+  let detail: string;
+  if (profile.role === "site_chief") {
+    detail = "Bütün modüllerde tam yetki; kullanıcılar, ayarlar ve destek.";
+  } else if (profile.role === "company_manager") {
+    detail = [
+      operations.length ? `İşlem yetkisi: ${labels(operations)}` : "İşlem yetkisi yok; kayıtları salt okunur görürsünüz",
+      seesPrices ? "Fiyat ve hakediş: açık" : "Fiyat ve hakediş: kapalı",
+    ].join(" · ");
+  } else {
+    detail = [
+      "Görüntüleme: Personel, Puantaj, Araçlar, Malzeme Stok · İrsaliye girişi",
+      operations.length ? `İşlem yetkisi: ${labels(operations)}` : null,
+      seesPrices ? "Hakediş: açık" : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  }
+
+  return (
+    <div className="mb-4 flex flex-col gap-1 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm text-blue-900 sm:flex-row sm:items-center sm:gap-3 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-100">
+      <p className="shrink-0 font-semibold">
+        {profile.full_name || profile.email}
+        <span className="font-normal text-blue-800/80 dark:text-blue-200/80">
+          {" · "}
+          {USER_ROLE_LABELS[profile.role as UserRole]}
+          {company?.primary_manager_id === profile.id && " (kurucu)"}
+        </span>
+      </p>
+      <p className="min-w-0 text-xs text-blue-800 sm:border-l sm:border-blue-200 sm:pl-3 dark:text-blue-200 sm:dark:border-blue-900">
+        {detail}
+      </p>
     </div>
   );
 }
