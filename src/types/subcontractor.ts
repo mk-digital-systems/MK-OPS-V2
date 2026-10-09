@@ -1,6 +1,8 @@
 export type Subcontractor = {
   id: string;
   name: string;
+  /** Taşeronun kendisi (personel kaydı); taşeron personel kartından yönetilir. */
+  personnel_id: string | null;
   contact_name: string | null;
   phone: string | null;
   tax_number: string | null;
@@ -17,35 +19,6 @@ export type SubcontractorListItem = Subcontractor & {
   team_count: number;
   personnel_count: number;
   balance: number | null;
-};
-
-export type SubcontractorInput = {
-  name: string;
-  contact_name?: string | null;
-  phone?: string | null;
-  tax_number?: string | null;
-  iban?: string | null;
-  share_percent: number;
-  is_active?: boolean;
-  notes?: string | null;
-};
-
-export type Team = {
-  id: string;
-  name: string;
-  leader_personnel_id: string;
-  subcontractor_id: string | null;
-  is_active: boolean;
-  notes: string | null;
-  created_at: string;
-};
-
-export type TeamInput = {
-  name: string;
-  leader_personnel_id: string;
-  subcontractor_id: string | null;
-  is_active?: boolean;
-  notes?: string | null;
 };
 
 export type SubcontractorCategory = {
@@ -87,10 +60,13 @@ export type SubcontractorStatement = {
   share_total: number;
   company_total: number;
   unpriced_count: number;
+  /** Firmanın ödediği maaşlar (taşeron ve ekibi, puantaja göre). */
+  salary_total: number;
   paid_total: number;
   carried_balance: number;
   balance: number;
   rows: SubcontractorWorkRow[];
+  salaries: { personnel_id: string; full_name: string; monthly_salary: number; payable_days: number; amount: number }[];
   transactions: (SubcontractorTransaction & { category_name: string })[];
   by_category: { category_name: string; amount: number }[];
 };

@@ -79,10 +79,12 @@ export async function downloadAttendanceSummaryExcel(options: {
   month: number;
   fileName: string;
   notes?: string;
+  /** Sayfa adı (ör. kapsam: "Firma", taşeron adı). */
+  sheetName?: string;
 }) {
   const { Workbook } = await import("exceljs");
   const workbook = new Workbook();
-  const worksheet = workbook.addWorksheet("Puantaj Dökümü");
+  const worksheet = workbook.addWorksheet((options.sheetName ?? "Puantaj Dökümü").replace(/[*?:\\/[\]]/g, " ").slice(0, 31));
   const days = getMonthDays(options.year, options.month);
 
   worksheet.columns = [

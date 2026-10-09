@@ -26,8 +26,11 @@ export const personnelSchema = z
     monthly_salary: z.coerce.number().min(0, "Maaş negatif olamaz"),
     is_active: z.boolean(),
     notes: z.string().trim().max(2000).optional().or(z.literal("")),
+    /** "" firma personeli, "__self__" bu kişi taşeron, aksi halde bağlı olduğu taşeron. */
     subcontractor_id: z.string().optional().or(z.literal("")),
-    sgk_paid_by_main: z.boolean().optional(),
+    share_percent: z.string().optional().or(z.literal("")),
+    sub_iban: z.string().trim().max(40).optional().or(z.literal("")),
+    sub_tax_number: z.string().trim().max(20).optional().or(z.literal("")),
   })
   .superRefine((data, ctx) => {
     if (data.is_active && data.employment_end_date) {

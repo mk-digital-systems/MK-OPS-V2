@@ -161,28 +161,36 @@ export default function GuidePage() {
           haftanın ve bu dönemin toplamını gösterir.
         </li>
       </ol>
-      <h3>Ekipler ve taşeronlar (isteğe bağlı)</h3>
+      <h3>Taşeronlar (isteğe bağlı)</h3>
       <ul>
         <li>
-          <strong>Ekipler:</strong> Personel → Ekipler sayfasında ekip adı ve ekip başı tanımlanır; ekip istenirse bir taşerona
-          bağlanır. İş planı ve imalat ekibi ekip başından tanır, bu ekranlarda bir şey değişmez.
+          <strong>Taşeronu tanımlama:</strong> taşeron de personel olarak eklenir. Personel kartında <strong>Kime çalışıyor → Bu kişi
+          taşeron</strong> seçilir ve <strong>pay yüzdesi</strong> girilir (ör. %70: 100 ₺&apos;lik işin 70 ₺&apos;si taşeronun).
+          Taşeronun işçileri de personel olarak eklenir ve kartlarında <strong>Kime çalışıyor → Taşeron: …</strong> seçilir; personel
+          listesinde taşeronun altında görünürler.
         </li>
         <li>
-          <strong>Taşeronlar:</strong> taşeron kartında firma bilgileri ve <strong>pay yüzdesi</strong> girilir (ör. %70: 100 ₺&apos;lik
-          işin 70 ₺&apos;si taşeronun). Taşerona bağlı ekibin imalatı girildiği anda o taşeronun hakedişine yazılır; fiyatı girilmiş
-          ek işler de dahildir. Yüzde sonradan değişirse yeni oran yalnızca yeni imalatlara uygulanır.
+          <strong>Hakediş:</strong> imalatta ekip başı taşeronun kendisi ya da işçisiyse imalat, girildiği anda o taşeronun hakedişine
+          yazılır; fiyatı girilmiş ek işler de dahildir. Yüzde sonradan değişirse yeni oran yalnızca yeni imalatlara uygulanır.
         </li>
         <li>
-          <strong>Harcama ve ödemeler:</strong> taşerona yapılan ödemeler ve onun adına yapılan harcamalar (personel, yakıt, SGK…)
-          kategoriyle girilir ve bakiyeden düşer. Firma 10 kategoriye kadar tanımlayabilir.
+          <strong>Maaşlar:</strong> taşeronun ya da işçilerinin maaşı girilmişse maaşı firma öder; puantaja göre hak edilen maaş taşeron
+          alacağından düşer. Maaşı 0 olan personeli taşeron kendisi öder, hakedişin tamamını alır.
         </li>
         <li>
-          <strong>Taşeron personeli:</strong> personel kaydında taşeron seçilir; SGK&apos;nın ana firmadan yatıp yatmadığı işaretlenir.
-          Puantajı normal tutulur, ana firmanın maaş dökümüne girmez; taşeron sayfasından ayrı maaş dökümü alınır.
+          <strong>Harcama ve ödemeler:</strong> Taşeronlar sayfasında taşerona yapılan ödemeler ve onun adına yapılan harcamalar (yakıt,
+          SGK…) kategoriyle girilir ve bakiyeden düşer. Firma 10 kategoriye kadar tanımlayabilir.
         </li>
         <li>
-          Taşeron tutarlarını hakediş yetkisi olanlar görür; ekipleri ve taşeron kartlarını firma yöneticisi ve şantiye şefi yönetir.
+          <strong>Puantaj ve maaş dökümü:</strong> puantaj tablosunda firma personeli ve her taşeronun ekibi ayrı gruplanır; Excel, Word ve
+          PDF çıktılarını &quot;Çıktı&quot; seçimiyle firma personeli ya da tek bir taşeron için alabilirsiniz. Taşeronun maaş dökümü
+          Taşeronlar sayfasından alınır.
         </li>
+        <li>
+          <strong>Taşeronluk biterse:</strong> personel kartında taşeronluk kaldırılır ya da taşeronun çıkışı verilir; taşeron ve ekibi
+          firma personeli olur. Geçmiş hakediş, maaş kesintisi ve ödemeler taşeron hesabında kalır.
+        </li>
+        <li>Taşeron tutarlarını hakediş yetkisi olanlar görür; taşeronu personel kartından firma yöneticisi ve şantiye şefi tanımlar.</li>
       </ul>
 
       <h2 id="is-plani">{SECTIONS[4].title}</h2>

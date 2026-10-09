@@ -28,12 +28,11 @@ export default async function SubcontractorDetailPage({
   const supabase = await createClient();
   const userRepository = new UserRepository(supabase);
   const repository = new SubcontractorRepository(supabase);
-  const [profile, canSeePrices, account, subcontractor, teams, personnel] = await Promise.all([
+  const [profile, canSeePrices, account, subcontractor, personnel] = await Promise.all([
     userRepository.getCurrent(),
     userRepository.canWrite("hakedis"),
     new CompanyRepository(supabase).getMyAccount(),
     repository.getById(id),
-    repository.listTeams(),
     new PersonnelRepository(supabase).list(),
   ]);
   const canManage = profile?.role === "site_chief" || profile?.role === "company_manager" || canSeePrices;
@@ -58,9 +57,7 @@ export default async function SubcontractorDetailPage({
   return (
     <SubcontractorDetail
       subcontractor={subcontractor}
-      teams={teams.filter((team) => team.subcontractor_id === id)}
       personnel={personnel.filter((person) => person.subcontractor_id === id)}
-      allPersonnel={personnel}
       periods={periods}
       start={start}
       end={end}

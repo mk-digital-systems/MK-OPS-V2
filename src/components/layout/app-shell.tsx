@@ -23,7 +23,6 @@ import {
   Hammer,
   Ban,
   HardHat,
-  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -74,7 +73,6 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
     title: "Personel",
     items: [
       { href: "/panel/personnel", label: "Personel", icon: Users, accounting: true },
-      { href: "/panel/ekipler", label: "Ekipler", icon: UsersRound, accounting: true },
       { href: "/panel/attendance", label: "Puantaj", icon: CalendarCheck, accounting: true },
     ],
   },

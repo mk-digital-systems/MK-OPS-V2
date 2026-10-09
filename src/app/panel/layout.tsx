@@ -35,7 +35,7 @@ export default async function AppLayout({
 
   // Muhasebe personel, puantaj, araç ve malzeme stokunu her zaman görür; diğer modülleri
   // yalnızca firma yöneticisi yetki verdiyse.
-  const accountingPaths = ["/panel/attendance", "/panel/personnel", "/panel/ekipler", "/panel/vehicles", "/panel/inventory", "/panel/profile"];
+  const accountingPaths = ["/panel/attendance", "/panel/personnel", "/panel/vehicles", "/panel/inventory", "/panel/profile"];
   if (
     profile.role === "accounting" &&
     !accountingPaths.some((path) => pathname.startsWith(path)) &&

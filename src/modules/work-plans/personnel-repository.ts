@@ -206,6 +206,22 @@ export class PersonnelRepository {
     if (error) throw error;
   }
 
+  /** Personeli taşeron yapar (pay yüzdesiyle) ya da taşeronluğu kaldırır; taşeron hesabı arka planda açılır. */
+  async setSubcontractor(
+    id: string,
+    enabled: boolean,
+    details?: { share_percent: number; iban?: string | null; tax_number?: string | null }
+  ): Promise<void> {
+    const { error } = await this.supabase.rpc("set_personnel_subcontractor", {
+      p_personnel_id: id,
+      p_enabled: enabled,
+      p_share_percent: details?.share_percent ?? null,
+      p_iban: details?.iban ?? null,
+      p_tax_number: details?.tax_number ?? null,
+    });
+    if (error) throw error;
+  }
+
   async deleteInactiveWithoutEarnedDays(id: string): Promise<void> {
     const { error } = await this.supabase.rpc(
       "delete_inactive_personnel_without_earned_days",

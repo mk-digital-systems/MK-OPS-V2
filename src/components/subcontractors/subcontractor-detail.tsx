@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, FileSpreadsheet, Loader2, Pencil, Plus, Tags, Trash2 } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, Loader2, Pencil, Plus, Tags, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import type { CurrencyCode } from "@/types/auth";
 import type { Personnel } from "@/types/work-plan";
@@ -12,7 +12,6 @@ import type {
   Subcontractor,
   SubcontractorCategory,
   SubcontractorStatement,
-  Team,
 } from "@/types/subcontractor";
 import type { HakedisPeriod } from "@/lib/hakedis";
 import { formatMoney } from "@/lib/hakedis";
@@ -22,7 +21,6 @@ import { downloadSimpleSheet } from "@/lib/simple-excel";
 import { createClient } from "@/lib/supabase/client";
 import { SubcontractorRepository, subcontractorErrorMessage } from "@/modules/subcontractors/subcontractor-repository";
 import { useReportBrand } from "@/components/layout/company-brand-provider";
-import { SubcontractorFormDialog } from "@/components/subcontractors/subcontractor-form-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +32,6 @@ import { NativeSelect } from "@/components/ui/native-select";
 const TABS = [
   { id: "ozet", label: "Özet ve Hakediş", money: true },
   { id: "odemeler", label: "Harcama ve Ödemeler", money: true },
-  { id: "ekipler", label: "Ekipler", money: false },
   { id: "personel", label: "Personel", money: false },
   { id: "maas", label: "Maaş Dökümü", money: false },
 ] as const;
@@ -42,10 +39,8 @@ const TABS = [
 type TxDraft = { id: string | null; date: string; category: string; amount: string; notes: string };
 
 export function SubcontractorDetail({
-  subcontractor: initialSubcontractor,
-  teams,
+  subcontractor,
   personnel,
-  allPersonnel,
   periods,
   start,
   end,
@@ -58,9 +53,7 @@ export function SubcontractorDetail({
   initialTab,
 }: {
   subcontractor: Subcontractor;
-  teams: Team[];
   personnel: Personnel[];
-  allPersonnel: Personnel[];
   periods: HakedisPeriod[];
   start: string;
   end: string;
@@ -80,14 +73,11 @@ export function SubcontractorDetail({
   const canSeeMoney = statement !== null;
   const tabs = TABS.filter((tab) => canSeeMoney || !tab.money);
   const [tab, setTab] = useState(tabs.some((item) => item.id === initialTab) ? initialTab : tabs[0].id);
-  const [subcontractor, setSubcontractor] = useState(initialSubcontractor);
-  const [editing, setEditing] = useState(false);
   const [categories, setCategories] = useState(initialCategories);
   const [txDraft, setTxDraft] = useState<TxDraft | null>(null);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const money = (value: number | string | null | undefined) => formatMoney(value, currency);
-  const leaderName = (id: string) => allPersonnel.find((person) => person.id === id)?.full_name ?? "—";
   const periodLabel = `${formatDate(start)} – ${formatDate(end)}`;
   const monthLabel = `${MONTH_NAMES[payrollMonth - 1]} ${payrollYear}`;
 
@@ -174,6 +164,7 @@ export function SubcontractorDetail({
       footer: [
         ["İşveren tutarı", Number(statement.employer_total)],
         ["Taşeron payı", Number(statement.share_total)],
+        ["Firmanın ödediği maaşlar (puantaja göre)", Number(statement.salary_total)],
         ["Önceki dönemden devreden", Number(statement.carried_balance)],
         ["Bu dönem ödenen / harcanan", Number(statement.paid_total)],
         ["Kalan bakiye", Number(statement.balance)],
@@ -228,7 +219,7 @@ export function SubcontractorDetail({
               <Badge className="bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-200">
                 Pay %{Number(subcontractor.share_percent)}
               </Badge>
-              {!subcontractor.is_active && <Badge className="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">Pasif</Badge>}
+              {!subcontractor.is_active && <Badge className="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">Taşeronluk sona erdi</Badge>}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
               {[subcontractor.contact_name, subcontractor.phone, subcontractor.tax_number && `VKN ${subcontractor.tax_number}`, subcontractor.iban]
@@ -236,10 +227,14 @@ export function SubcontractorDetail({
                 .join(" · ") || "İletişim bilgisi girilmemiş"}
             </p>
           </div>
-          <Button variant="outline" onClick={() => setEditing(true)}>
-            <Pencil className="h-4 w-4" />
-            Düzenle
-          </Button>
+          {subcontractor.personnel_id && (
+            <Button asChild variant="outline">
+              <Link href={`/panel/personnel/${subcontractor.personnel_id}`}>
+                <UserRound className="h-4 w-4" />
+                Personel kartını aç
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -286,10 +281,11 @@ export function SubcontractorDetail({
 
       {tab === "ozet" && statement && (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
             <Stat label="İşveren tutarı" value={money(statement.employer_total)} />
             <Stat label={`Taşeron payı (%${Number(subcontractor.share_percent)})`} value={money(statement.share_total)} />
             <Stat label="Firmaya kalan" value={money(statement.company_total)} />
+            <Stat label="Firmanın ödediği maaşlar" value={money(statement.salary_total)} hint="Puantaja göre" />
             <Stat label="Bu dönem ödenen / harcanan" value={money(statement.paid_total)} />
             <Stat
               label="Kalan bakiye"
@@ -356,6 +352,30 @@ export function SubcontractorDetail({
               )}
             </CardContent>
           </Card>
+          {statement.salaries.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Firmanın Ödediği Maaşlar</CardTitle>
+                <CardDescription>
+                  Maaşı girilmiş taşeron personelinin bu dönemde puantaja göre hak ettiği maaş; taşeron alacağından düşer. Maaşı 0
+                  olan personeli taşeron kendisi öder.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-1">
+                {statement.salaries.map((row) => (
+                  <div key={row.personnel_id} className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm">
+                    <span>
+                      {row.full_name}{" "}
+                      <span className="text-muted-foreground">
+                        · {row.payable_days} gün × {money(Number(row.monthly_salary) / 30)}
+                      </span>
+                    </span>
+                    <strong className="tabular-nums">{money(row.amount)}</strong>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
 
@@ -444,35 +464,13 @@ export function SubcontractorDetail({
         </Card>
       )}
 
-      {tab === "ekipler" && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Ekipler</CardTitle>
-            <CardDescription>
-              Ekipleri bu taşerona <Link href="/panel/ekipler" className="text-primary underline">Ekipler</Link> sayfasından bağlayın.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {teams.length === 0 && <p className="py-4 text-center text-sm text-muted-foreground">Bu taşerona bağlı ekip yok.</p>}
-            {teams.map((team) => (
-              <div key={team.id} className="rounded-xl border px-4 py-3">
-                <p className="font-medium">
-                  {team.name} {!team.is_active && <span className="text-xs text-muted-foreground">(pasif)</span>}
-                </p>
-                <p className="text-sm text-muted-foreground">Ekip başı: {leaderName(team.leader_personnel_id)}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
       {tab === "personel" && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Taşeron Personeli</CardTitle>
             <CardDescription>
-              Personel kaydında &quot;Taşeron&quot; alanı bu taşeron seçilen kişiler. Puantajları normal puantaj tablosunda tutulur; ana
-              firmanın maaş dökümüne girmez.
+              Taşeron ve personel kartında &quot;Kime çalışıyor&quot; bu taşeron seçilen kişiler. Puantajları tutulur; firmanın maaş
+              dökümüne girmez. Taşeronluk personel kartından iptal edilirse ya da taşeronun çıkışı verilirse ekibi firmaya geçer.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -488,15 +486,9 @@ export function SubcontractorDetail({
                     {!person.is_active && " · Pasif"}
                   </p>
                 </div>
-                <Badge
-                  className={
-                    person.sgk_paid_by_main
-                      ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200"
-                      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                  }
-                >
-                  {person.sgk_paid_by_main ? "SGK ana firmadan" : "SGK taşerondan"}
-                </Badge>
+                {person.id === subcontractor.personnel_id && (
+                  <Badge className="bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-200">Taşeron</Badge>
+                )}
               </div>
             ))}
           </CardContent>
@@ -559,17 +551,6 @@ export function SubcontractorDetail({
           </CardContent>
         </Card>
       )}
-
-      <SubcontractorFormDialog
-        open={editing}
-        initial={subcontractor}
-        onClose={() => setEditing(false)}
-        onSaved={(saved) => {
-          setSubcontractor(saved);
-          setEditing(false);
-          router.refresh();
-        }}
-      />
 
       <Dialog open={txDraft !== null} onOpenChange={(open) => !open && setTxDraft(null)}>
         <DialogContent>

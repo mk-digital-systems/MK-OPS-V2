@@ -1,17 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { HardHat, Plus } from "lucide-react";
+import { HardHat } from "lucide-react";
 import type { CurrencyCode } from "@/types/auth";
 import type { SubcontractorListItem } from "@/types/subcontractor";
 import { formatMoney } from "@/lib/hakedis";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { SubcontractorFormDialog } from "@/components/subcontractors/subcontractor-form-dialog";
 
 export function SubcontractorsManager({
   initialItems,
@@ -20,8 +16,6 @@ export function SubcontractorsManager({
   initialItems: SubcontractorListItem[];
   currency: CurrencyCode;
 }) {
-  const router = useRouter();
-  const [creating, setCreating] = useState(false);
   const showMoney = initialItems.some((item) => item.balance !== null);
 
   return (
@@ -30,21 +24,19 @@ export function SubcontractorsManager({
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Taşeronlar</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Taşeron kartları, pay yüzdeleri, hakediş, harcama/ödeme ve bakiye takibi
+            Taşeron hakedişi, firmanın ödediği maaşlar, harcama/ödeme ve bakiye. Taşeron, personel kartında &quot;Kime
+            çalışıyor → Bu kişi taşeron&quot; seçilerek tanımlanır.
           </p>
         </div>
-        <Button onClick={() => setCreating(true)}>
-          <Plus className="h-4 w-4" />
-          Yeni Taşeron
-        </Button>
       </div>
 
       {initialItems.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-2 py-12 text-center text-sm text-muted-foreground">
             <HardHat className="h-8 w-8" />
-            Henüz taşeron yok. Taşeronla çalışmak zorunlu değil; çalışıyorsanız kartını açın, ardından Ekipler sayfasında ekiplerini
-            taşerona bağlayın.
+            Henüz taşeron yok. Taşeronla çalışmak zorunlu değil. Çalışıyorsanız{" "}
+            <Link href="/panel/personnel" className="text-primary underline">Personel</Link> sayfasında taşeronun kartını açıp &quot;Kime
+            çalışıyor → Bu kişi taşeron&quot; seçin ve pay yüzdesini girin; işçilerinin kartında da taşeronu seçin.
           </CardContent>
         </Card>
       ) : (
@@ -60,8 +52,8 @@ export function SubcontractorsManager({
                 <Badge className="bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-200">%{Number(item.share_percent)}</Badge>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                {item.team_count} ekip · {item.personnel_count} personel
-                {!item.is_active && " · Pasif"}
+                {item.personnel_count} personel
+                {!item.is_active && " · Taşeronluk sona erdi"}
               </p>
               {showMoney && item.balance !== null && (
                 <p className={cn("mt-3 text-sm font-medium", Number(item.balance) < 0 ? "text-red-600" : "text-foreground")}>
@@ -76,15 +68,6 @@ export function SubcontractorsManager({
         </div>
       )}
 
-      <SubcontractorFormDialog
-        open={creating}
-        initial={null}
-        onClose={() => setCreating(false)}
-        onSaved={(saved) => {
-          setCreating(false);
-          router.push(`/panel/taseronlar/${saved.id}`);
-        }}
-      />
     </div>
   );
 }

@@ -55,6 +55,8 @@ export async function downloadMonthlyAttendanceWord(options: {
   year: number;
   month: number;
   notes?: string;
+  /** Çıktı kapsamı (ör. "Firma personeli", "Taşeron: Ahmet Usta"). */
+  scopeLabel?: string;
 }) {
   const docx = await import("docx");
   const {
@@ -192,6 +194,9 @@ export async function downloadMonthlyAttendanceWord(options: {
               }),
             ],
           }),
+          ...(options.scopeLabel
+            ? [new Paragraph({ children: [new TextRun({ text: `Kapsam: ${options.scopeLabel}`, bold: true })] })]
+            : []),
           new Paragraph({ children: [new TextRun({ text: `Dönem: ${getPeriod(options.year, options.month)}`, bold: true })] }),
           new Paragraph({ children: [new TextRun({ text: `Rapor Tarihi: ${formatReportDate()}` })] }),
           new Paragraph({ spacing: { after: 220 }, children: [new TextRun({ text: `Toplam Personel: ${options.personnel.length}` })] }),
@@ -210,7 +215,7 @@ export async function downloadMonthlyAttendanceWord(options: {
   const blob = await Packer.toBlob(document);
   downloadBlob(
     blob,
-    `${brandFilePrefix(options.brand)}-Puantaj-${options.year}-${pad(options.month)}.docx`
+    `${brandFilePrefix(options.brand)}-Puantaj${options.scopeLabel ? `-${toFileNamePart(options.scopeLabel)}` : ""}-${options.year}-${pad(options.month)}.docx`
   );
 }
 

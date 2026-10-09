@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -72,9 +72,22 @@ type Props = {
   /** Bekleyen kayıtları onaylayabilir (şantiye şefi, firma yöneticisi). */
   canReview?: boolean;
   currentUserId?: string | null;
-  /** Taşeron seçimi için (boşsa alan gösterilmez). */
-  subcontractors?: { id: string; name: string; is_active: boolean }[];
+  /** Taşeron hesapları (personelden açılanlarda personnel_id dolu). */
+  subcontractors?: SubcontractorOption[];
 };
+
+export type SubcontractorOption = {
+  id: string;
+  name: string;
+  is_active: boolean;
+  personnel_id: string | null;
+  share_percent: number;
+  iban: string | null;
+  tax_number: string | null;
+};
+
+/** Form değeri: bu personel taşeronun kendisi. */
+const SELF = "__self__";
 
 export function PersonnelManager({
   initialPersonnel,
@@ -117,7 +130,9 @@ export function PersonnelManager({
       is_active: true,
       notes: "",
       subcontractor_id: "",
-      sgk_paid_by_main: false,
+      share_percent: "",
+      sub_iban: "",
+      sub_tax_number: "",
     },
   });
 
@@ -134,12 +149,15 @@ export function PersonnelManager({
       is_active: true,
       notes: "",
       subcontractor_id: "",
-      sgk_paid_by_main: false,
+      share_percent: "",
+      sub_iban: "",
+      sub_tax_number: "",
     });
     setOpen(true);
   }
 
   function openEdit(person: Personnel) {
+    const ownSub = subcontractors.find((sub) => sub.personnel_id === person.id && sub.is_active);
     setEditing(person);
     form.reset({
       full_name: person.full_name,
@@ -151,8 +169,10 @@ export function PersonnelManager({
       monthly_salary: person.monthly_salary ?? 0,
       is_active: person.is_active,
       notes: person.notes ?? "",
-      subcontractor_id: person.subcontractor_id ?? "",
-      sgk_paid_by_main: person.sgk_paid_by_main,
+      subcontractor_id: ownSub && person.subcontractor_id === ownSub.id ? SELF : person.subcontractor_id ?? "",
+      share_percent: ownSub ? String(ownSub.share_percent) : "",
+      sub_iban: ownSub?.iban ?? "",
+      sub_tax_number: ownSub?.tax_number ?? "",
     });
     setOpen(true);
   }
@@ -333,26 +353,35 @@ export function PersonnelManager({
     }
 
     const repo = new PersonnelRepository(supabase);
+    const { subcontractor_id: workFor = "", share_percent, sub_iban, sub_tax_number, ...personValues } = values;
+    const isSelf = workFor === SELF;
+    const sharePercent = Number((share_percent ?? "").replace(",", "."));
+    if (isSelf && (!Number.isFinite(sharePercent) || sharePercent <= 0 || sharePercent > 100)) {
+      toast.error("Taşeron payı 0'dan büyük, en fazla 100 olmalı");
+      setLoading(false);
+      return;
+    }
+    const ownSub = editing ? subcontractors.find((sub) => sub.personnel_id === editing.id && sub.is_active) : undefined;
+    const wasSelf = !!(editing && ownSub && editing.subcontractor_id === ownSub.id);
 
     try {
+      // Taşeronluk kaldırılıyorsa önce hesap pasife alınır.
+      if (editing && wasSelf && !isSelf) await repo.setSubcontractor(editing.id, false);
+      let saved: Personnel;
       if (editing) {
-        const updated = await repo.update(editing.id, {
-          ...values,
+        saved = await repo.update(editing.id, {
+          ...personValues,
+          ...(isSelf ? {} : { subcontractor_id: workFor || null }),
           job_title: values.job_title || null,
           phone: values.phone || null,
           tc_identity_number: values.tc_identity_number || null,
           notes: values.notes || null,
           updated_by: user.id,
         });
-        setItems((prev) =>
-          sortByCreatedAtDesc(
-            prev.map((p) => (p.id === updated.id ? updated : p))
-          )
-        );
-        toast.success("Personel güncellendi");
       } else {
-        const created = await repo.create({
-          ...values,
+        saved = await repo.create({
+          ...personValues,
+          subcontractor_id: isSelf ? null : workFor || null,
           job_title: values.job_title || null,
           phone: values.phone || null,
           tc_identity_number: values.tc_identity_number || null,
@@ -360,13 +389,23 @@ export function PersonnelManager({
           created_by: user.id,
           updated_by: user.id,
         });
-        setItems((prev) => sortByCreatedAtDesc([...prev, created]));
-        toast.success(
-          created.approval_status === "pending"
-            ? "Personel eklendi; şantiye şefi veya firma yöneticisi onaylayınca kullanıma açılır"
-            : "Personel eklendi"
-        );
       }
+      if (isSelf) {
+        await repo.setSubcontractor(saved.id, true, {
+          share_percent: sharePercent,
+          iban: sub_iban || null,
+          tax_number: sub_tax_number || null,
+        });
+        saved = (await repo.getById(saved.id)) ?? saved;
+      }
+      setItems((prev) => sortByCreatedAtDesc([...prev.filter((p) => p.id !== saved.id), saved]));
+      toast.success(
+        saved.approval_status === "pending"
+          ? "Personel eklendi; şantiye şefi veya firma yöneticisi onaylayınca kullanıma açılır"
+          : editing
+            ? "Personel güncellendi"
+            : "Personel eklendi"
+      );
       setOpen(false);
       router.refresh();
     } catch (error) {
@@ -549,15 +588,18 @@ export function PersonnelManager({
                 Personel bulunamadı.
               </p>
             ) : (
-              filtered.map((person) => {
+              groupBySubcontractor(filtered, subcontractors).map(({ person, header, indent }) => {
                 const summary = summaryByPersonnel.get(person.id);
                 const assignedVehicle = assignedVehicles.find(
                   (vehicle) => vehicle.assigned_personnel_id === person.id
                 );
                 return (
+                <Fragment key={person.id}>
+                {header && (
+                  <p className="px-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{header}</p>
+                )}
                 <div
-                  key={person.id}
-                  className={`flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
+                  className={`flex flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${indent ? "ml-6 border-l-4 border-l-violet-300 dark:border-l-violet-800" : ""} ${
                     attendanceSummary?.personnel_id === person.id
                       ? "border-blue-400 bg-blue-50 ring-1 ring-blue-300 dark:border-blue-800 dark:bg-blue-950/30"
                       : ""
@@ -678,6 +720,7 @@ export function PersonnelManager({
                     </div>
                   )}
                 </div>
+                </Fragment>
                 );
               })
             )}
@@ -800,31 +843,46 @@ export function PersonnelManager({
                 )}
               </div>
             )}
-            {subcontractors.length > 0 && (
+            {(canReview || subcontractors.length > 0) && (
               <div className="space-y-2 rounded-xl border p-3">
-                <Label htmlFor="subcontractor_id">Taşeron (taşeron personeli ise)</Label>
+                <Label htmlFor="subcontractor_id">Kime çalışıyor?</Label>
                 <select
                   id="subcontractor_id"
                   className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
                   {...form.register("subcontractor_id")}
                 >
-                  <option value="">Ana firma personeli</option>
+                  <option value="">Firma (kendi personelimiz)</option>
+                  {(canReview || form.watch("subcontractor_id") === SELF) && (
+                    <option value={SELF}>Bu kişi taşeron (kendi ekibiyle çalışıyor)</option>
+                  )}
                   {subcontractors
-                    .filter((sub) => sub.is_active || sub.id === form.getValues("subcontractor_id"))
+                    .filter((sub) => (sub.is_active || sub.id === form.getValues("subcontractor_id")) && sub.personnel_id !== editing?.id)
                     .map((sub) => (
                       <option key={sub.id} value={sub.id}>
-                        {sub.name}
+                        Taşeron: {sub.name}
                       </option>
                     ))}
                 </select>
-                {form.watch("subcontractor_id") && (
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" {...form.register("sgk_paid_by_main")} />
-                    SGK primi ana firma üzerinden yatıyor
-                  </label>
+                {form.watch("subcontractor_id") === SELF && (
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="share_percent">Taşeron payı (%)</Label>
+                      <Input id="share_percent" inputMode="decimal" placeholder="ör. 70" {...form.register("share_percent")} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="sub_iban">IBAN (isteğe bağlı)</Label>
+                      <Input id="sub_iban" {...form.register("sub_iban")} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="sub_tax_number">Vergi no (isteğe bağlı)</Label>
+                      <Input id="sub_tax_number" {...form.register("sub_tax_number")} />
+                    </div>
+                  </div>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Taşeron personelinin puantajı tutulur ama ana firmanın maaş dökümüne girmez; maaş dökümü taşeron sayfasında alınır.
+                  {form.watch("subcontractor_id") === SELF
+                    ? "Bu kişinin ve ekibinin imalatı, hakediş tutarının bu yüzdesiyle taşeron hesabına yazılır. Maaşı girilmişse firma öder ve taşeron alacağından düşer."
+                    : "Taşeron işçisinin puantajı tutulur, firmanın maaş dökümüne girmez. Maaşı girilmişse firma öder ve taşeron alacağından düşer; maaşı 0 ise taşeron kendisi öder."}
                 </p>
               </div>
             )}
@@ -999,4 +1057,27 @@ function sortByCreatedAtDesc(personnel: Personnel[]) {
 function maskTcIdentityNumber(value: string | null) {
   if (!value) return "Girilmemiş";
   return `${value.slice(0, 3)}******${value.slice(-2)}`;
+}
+
+/** Firma personeli önce; ardından her taşeron (önce taşeronun kendisi, sonra işçileri, girintili). */
+function groupBySubcontractor(people: Personnel[], subcontractors: SubcontractorOption[]) {
+  const subById = new Map(subcontractors.map((sub) => [sub.id, sub]));
+  const own = people.filter((person) => !person.subcontractor_id || !subById.has(person.subcontractor_id));
+  const result: { person: Personnel; header: string | null; indent: boolean }[] = own.map((person) => ({ person, header: null, indent: false }));
+  const groups = [...new Set(people.map((person) => person.subcontractor_id).filter((id): id is string => !!id && subById.has(id)))]
+    .map((id) => subById.get(id)!)
+    .sort((a, b) => a.name.localeCompare(b.name, "tr"));
+  for (const sub of groups) {
+    const members = people
+      .filter((person) => person.subcontractor_id === sub.id)
+      .sort((a, b) => Number(b.id === sub.personnel_id) - Number(a.id === sub.personnel_id));
+    members.forEach((person, index) =>
+      result.push({
+        person,
+        header: index === 0 ? `Taşeron: ${sub.name} · %${Number(sub.share_percent)}${sub.is_active ? "" : " (pasif)"}` : null,
+        indent: person.id !== sub.personnel_id,
+      })
+    );
+  }
+  return result;
 }

@@ -2,12 +2,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   Subcontractor,
   SubcontractorCategory,
-  SubcontractorInput,
   SubcontractorListItem,
   SubcontractorStatement,
   SubcontractorTransaction,
-  Team,
-  TeamInput,
 } from "@/types/subcontractor";
 import type { PayrollRow } from "@/types/attendance";
 
@@ -28,31 +25,6 @@ export class SubcontractorRepository {
     const { data, error } = await this.supabase.from("subcontractors").select("*").eq("id", id).maybeSingle();
     if (error) throw error;
     return data as Subcontractor | null;
-  }
-
-  async save(id: string | null, input: SubcontractorInput, userId: string): Promise<Subcontractor> {
-    const payload = {
-      name: input.name.trim(),
-      contact_name: clean(input.contact_name),
-      phone: clean(input.phone),
-      tax_number: clean(input.tax_number),
-      iban: clean(input.iban)?.replace(/\s+/g, "").toUpperCase() ?? null,
-      share_percent: input.share_percent,
-      is_active: input.is_active ?? true,
-      notes: clean(input.notes),
-      updated_by: userId,
-    };
-    const query = id
-      ? this.supabase.from("subcontractors").update(payload).eq("id", id)
-      : this.supabase.from("subcontractors").insert({ ...payload, created_by: userId });
-    const { data, error } = await query.select("*").single();
-    if (error) throw error;
-    return data as Subcontractor;
-  }
-
-  async remove(id: string): Promise<void> {
-    const { error } = await this.supabase.from("subcontractors").delete().eq("id", id);
-    if (error) throw error;
   }
 
   async getStatement(id: string, start: string, end: string): Promise<SubcontractorStatement> {
@@ -120,35 +92,6 @@ export class SubcontractorRepository {
     if (error) throw error;
   }
 
-  // --- Ekipler ----------------------------------------------------------------------------------
-
-  async listTeams(): Promise<Team[]> {
-    const { data, error } = await this.supabase.from("teams").select("*").order("is_active", { ascending: false }).order("name");
-    if (error) throw error;
-    return (data ?? []) as Team[];
-  }
-
-  async saveTeam(id: string | null, input: TeamInput, userId: string): Promise<Team> {
-    const payload = {
-      name: input.name.trim(),
-      leader_personnel_id: input.leader_personnel_id,
-      subcontractor_id: input.subcontractor_id,
-      is_active: input.is_active ?? true,
-      notes: clean(input.notes),
-      updated_by: userId,
-    };
-    const query = id
-      ? this.supabase.from("teams").update(payload).eq("id", id)
-      : this.supabase.from("teams").insert({ ...payload, created_by: userId });
-    const { data, error } = await query.select("*").single();
-    if (error) throw error;
-    return data as Team;
-  }
-
-  async removeTeam(id: string): Promise<void> {
-    const { error } = await this.supabase.from("teams").delete().eq("id", id);
-    if (error) throw error;
-  }
 }
 
 /** Veritabanı hatalarını kullanıcıya anlaşılır mesaja çevirir. */
@@ -156,7 +99,6 @@ export function subcontractorErrorMessage(error: unknown): string {
   const message = (error as { message?: string })?.message ?? "";
   const code = (error as { code?: string })?.code;
   if (code === "23505" || /duplicate key/.test(message)) {
-    if (/teams_active_leader/.test(message)) return "Bu personel zaten aktif bir ekibin başı.";
     return "Bu ad zaten kullanılıyor.";
   }
   if (code === "23503" || /foreign key/.test(message)) {

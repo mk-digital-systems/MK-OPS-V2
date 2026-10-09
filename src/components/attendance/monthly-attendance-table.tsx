@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   memo,
   useEffect,
   useMemo,
@@ -369,17 +370,42 @@ export function MonthlyAttendanceTable({
       };
   }
 
+  // Firma personeli ve her taşeronun personeli ayrı grup; çıktılar seçilen gruba göre alınır.
+  const groupKey = (personnel: MonthlyAttendancePersonnel) => personnel.subcontractor_id ?? "firma";
+  const exportGroups = (() => {
+    const groups = new Map<string, string>();
+    for (const personnel of [...exportPersonnel, ...initialData.personnel]) {
+      if (personnel.subcontractor_id) groups.set(personnel.subcontractor_id, `Taşeron: ${personnel.subcontractor_name ?? "—"}`);
+    }
+    return [
+      { key: "firma", label: "Firma personeli" },
+      ...[...groups.entries()].map(([key, label]) => ({ key, label })).sort((a, b) => a.label.localeCompare(b.label, "tr")),
+    ];
+  })();
+  const [exportScope, setExportScope] = useState<string>("firma");
+  const hasSubcontractors = exportGroups.length > 1;
+  const scopeLabel = hasSubcontractors && exportScope !== "all" ? exportGroups.find((group) => group.key === exportScope)?.label : undefined;
+  const inScope = (personnel: MonthlyAttendancePersonnel) => !hasSubcontractors || exportScope === "all" || groupKey(personnel) === exportScope;
+  const scopedExportPersonnel = exportPersonnel.filter(inScope);
+  const fileScope = scopeLabel ? `-${scopeLabel.replace(/^Taşeron: /, "").toLocaleLowerCase("tr-TR").replace(/[^a-z0-9çğıöşü]+/g, "-")}` : "";
+
+  // Ekranda gruplar sırayla: önce firma personeli, sonra her taşeron.
+  const displayGroups = exportGroups
+    .map((group) => ({ ...group, personnel: initialData.personnel.filter((personnel) => groupKey(personnel) === group.key) }))
+    .filter((group) => group.personnel.length > 0);
+
   async function exportExcel() {
     try {
       await downloadAttendanceSummaryExcel({
-        personnel: exportPersonnel.map((personnel) => ({
+        sheetName: scopeLabel?.replace(/^Taşeron: /, ""),
+        personnel: scopedExportPersonnel.map((personnel) => ({
           fullName: personnel.full_name,
           tcIdentityNumber: personnel.tc_identity_number,
           records: personnel.records,
         })),
         year: initialData.year,
         month: initialData.month,
-        fileName: `puantaj-${initialData.year}-${String(
+        fileName: `puantaj${fileScope}-${initialData.year}-${String(
           initialData.month
         ).padStart(2, "0")}.xlsx`,
         notes: monthNotes,
@@ -394,7 +420,8 @@ export function MonthlyAttendanceTable({
     try {
       await downloadMonthlyAttendanceWord({
         brand,
-        personnel: exportPersonnel.map((personnel) => ({
+        scopeLabel,
+        personnel: scopedExportPersonnel.map((personnel) => ({
           fullName: personnel.full_name,
           tcIdentityNumber: personnel.tc_identity_number,
           records: personnel.records,
@@ -424,7 +451,7 @@ export function MonthlyAttendanceTable({
       "Raporlu Gün",
       PAYABLE_DAYS_LABEL,
     ];
-    const body = initialData.personnel.map((personnel, index) => {
+    const body = initialData.personnel.filter(inScope).map((personnel, index) => {
       const totals = getExportTotals(personnel);
       return [
         index + 1,
@@ -444,7 +471,7 @@ export function MonthlyAttendanceTable({
     });
     document.setFontSize(15);
     document.text(
-      `${MONTH_NAMES[initialData.month - 1]} ${initialData.year} Personel Puantaj Özeti`,
+      `${MONTH_NAMES[initialData.month - 1]} ${initialData.year} Personel Puantaj Özeti${scopeLabel ? ` · ${scopeLabel}` : ""}`,
       14,
       15
     );
@@ -457,7 +484,7 @@ export function MonthlyAttendanceTable({
       columnStyles: { 1: { halign: "left", cellWidth: 48 } },
     });
     document.save(
-      `patron-puantaj-ozeti-${initialData.year}-${String(initialData.month).padStart(2, "0")}.pdf`
+      `patron-puantaj-ozeti${fileScope}-${initialData.year}-${String(initialData.month).padStart(2, "0")}.pdf`
     );
   }
 
@@ -482,6 +509,22 @@ export function MonthlyAttendanceTable({
         </div>
 
         <div className="flex flex-wrap gap-2">
+          {hasSubcontractors && (
+            <select
+              aria-label="Çıktı kapsamı"
+              title="Çıktı kapsamı"
+              className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+              value={exportScope}
+              onChange={(event) => setExportScope(event.target.value)}
+            >
+              {exportGroups.map((group) => (
+                <option key={group.key} value={group.key}>
+                  Çıktı: {group.label}
+                </option>
+              ))}
+              <option value="all">Çıktı: Tüm personel</option>
+            </select>
+          )}
           <Button variant="outline" onClick={exportWord}>
             <FileText className="h-4 w-4" />
             Word Raporu İndir
@@ -823,18 +866,32 @@ export function MonthlyAttendanceTable({
             </thead>
 
             <tbody>
-              {initialData.personnel.map((personnel) => (
-                <AttendanceRow
-                  key={personnel.id}
-                  personnel={personnel}
-                  days={days}
-                  selected={selectedPersonnel.has(personnel.id)}
-                  dirty={dirty}
-                  originalRecords={originalRecords}
-                  onToggle={togglePersonnel}
-                  onChange={setAttendance}
-                  editable={editingEnabled}
-                />
+              {displayGroups.map((group) => (
+                <Fragment key={group.key}>
+                  {hasSubcontractors && (
+                    <tr>
+                      <td
+                        colSpan={days.length + 2}
+                        className="sticky left-0 border-b bg-muted/60 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                      >
+                        {group.label} ({group.personnel.length})
+                      </td>
+                    </tr>
+                  )}
+                  {group.personnel.map((personnel) => (
+                    <AttendanceRow
+                      key={personnel.id}
+                      personnel={personnel}
+                      days={days}
+                      selected={selectedPersonnel.has(personnel.id)}
+                      dirty={dirty}
+                      originalRecords={originalRecords}
+                      onToggle={togglePersonnel}
+                      onChange={setAttendance}
+                      editable={editingEnabled}
+                    />
+                  ))}
+                </Fragment>
               ))}
             </tbody>
           </table>

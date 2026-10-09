@@ -42,7 +42,8 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 | 22 | KVKK belgeleri (/kvkk), çalışan aydınlatma metni oluşturucu, Türkçe e-posta şablonları, Pazar otomatik hafta tatili (pg_cron) | ✅ |
 | 23 | Rol yapısı: Firma Yöneticisi (birden fazla, kurucu korumalı), Şantiye Şefi, Muhasebe; yeni yan menü, her sayfada ad/rol/yetki bandı (`20261017000001_roles.sql`) | ✅ |
 | 24 | Onaylar: muhasebenin eklediği personel/araç onayı, ay sonu puantaj onayı (onaylı ay kilitli); proje türleri Projeler sayfasına taşındı (`20261018000001_approvals.sql`) | ✅ |
-| 25 | Ekipler (ekip başı + isteğe bağlı taşeron) ve taşeronlar: taşerona göre pay yüzdesi, taşeron hakedişi, harcama/ödeme ve bakiye, taşeron personeli ve ayrı maaş dökümü (`20261019000001_teams_subcontractors.sql`) | 🚧 dalda |
+| 25 | Ekipler (ekip başı + isteğe bağlı taşeron) ve taşeronlar: taşerona göre pay yüzdesi, taşeron hakedişi, harcama/ödeme ve bakiye, taşeron personeli ve ayrı maaş dökümü (`20261019000001_teams_subcontractors.sql`) | ✅ |
+| 26 | Taşeron personel kartından tanımlanır ("Kime çalışıyor"); firmanın ödediği maaşlar taşeron alacağından düşer; puantaj ve çıktılarda firma/taşeron ayrı; taşeronluk biterse ekibi firmaya geçer; Ekipler sayfası kaldırıldı (`20261020000001_subcontractor_personnel.sql`) | 🚧 dalda |
 
 Kurulu migration'lar: `20261005000000` … `20261011000001`. Kurulacak: `20261011000002_inventory_messages.sql`.
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.

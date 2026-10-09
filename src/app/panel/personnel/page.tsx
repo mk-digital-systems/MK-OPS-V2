@@ -63,7 +63,7 @@ export default async function PersonnelPage({ searchParams }: Props) {
     userRepository.getCurrent(),
   ]);
 
-  const { data: subcontractors } = await supabase.from("subcontractors").select("id, name, is_active").order("name");
+  const { data: subcontractors } = await supabase.from("subcontractors").select("id, name, is_active, personnel_id, share_percent, iban, tax_number").order("name");
 
   return (
     <PersonnelManager

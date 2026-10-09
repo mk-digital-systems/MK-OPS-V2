@@ -23,6 +23,9 @@ export type MonthlyAttendancePersonnel = {
   is_active: boolean;
   employment_start_date?: string | null;
   employment_end_date?: string | null;
+  /** Taşeron personeli ise taşeron; firma personelinde null. */
+  subcontractor_id?: string | null;
+  subcontractor_name?: string | null;
   employment_periods?: {
     employment_start_date: string | null;
     employment_end_date: string;
