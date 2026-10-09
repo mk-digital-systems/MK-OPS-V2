@@ -136,7 +136,8 @@ export function SubcontractorDetail({
     await downloadSimpleSheet({
       fileName: `taseron-hakedis-${slug(subcontractor.name)}-${start}`,
       sheetName: "Taşeron Hakediş",
-      title: [brand.name, `${subcontractor.name} · Taşeron hakedişi (%${Number(subcontractor.share_percent)})`, `Dönem: ${periodLabel}`],
+      title: [brand.name, `${subcontractor.name} · Taşeron hakedişi`, `Dönem: ${periodLabel}`],
+      // Taşeron yalnızca kendi payını görür: işveren fiyatı ve tutarı çıktıya girmez.
       columns: [
         { header: "Tarih", key: "date", width: 12 },
         { header: "Proje", key: "project", width: 28 },
@@ -144,9 +145,7 @@ export function SubcontractorDetail({
         { header: "Miktar", key: "quantity", width: 10 },
         { header: "Birim", key: "unit", width: 8 },
         { header: "Birim fiyat", key: "price", width: 13, money: true },
-        { header: "Tutar", key: "amount", width: 14, money: true },
-        { header: "Pay %", key: "percent", width: 8 },
-        { header: "Taşeron tutarı", key: "share", width: 15, money: true },
+        { header: "Tutar", key: "share", width: 15, money: true },
         { header: "Ekip başı", key: "leader", width: 20 },
       ],
       rows: statement.rows.map((row) => ({
@@ -155,15 +154,12 @@ export function SubcontractorDetail({
         item: row.item_name,
         quantity: Number(row.quantity),
         unit: row.unit,
-        price: row.unit_price === null ? "Fiyat yok" : Number(row.unit_price),
-        amount: row.amount === null ? "" : Number(row.amount),
-        percent: Number(row.share_percent),
+        price: shareUnitPrice(row) ?? "Fiyat yok",
         share: row.share_amount === null ? "" : Number(row.share_amount),
         leader: row.team_leader_name,
       })),
       footer: [
-        ["İşveren tutarı", Number(statement.employer_total)],
-        ["Taşeron payı", Number(statement.share_total)],
+        ["Hakediş", Number(statement.share_total)],
         ["Firmanın ödediği maaşlar (puantaja göre)", Number(statement.salary_total)],
         ["Önceki dönemden devreden", Number(statement.carried_balance)],
         ["Bu dönem ödenen / harcanan", Number(statement.paid_total)],
@@ -281,10 +277,8 @@ export function SubcontractorDetail({
 
       {tab === "ozet" && statement && (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-            <Stat label="İşveren tutarı" value={money(statement.employer_total)} />
-            <Stat label={`Taşeron payı (%${Number(subcontractor.share_percent)})`} value={money(statement.share_total)} />
-            <Stat label="Firmaya kalan" value={money(statement.company_total)} />
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <Stat label="Taşeron hakedişi" value={money(statement.share_total)} />
             <Stat label="Firmanın ödediği maaşlar" value={money(statement.salary_total)} hint="Puantaja göre" />
             <Stat label="Bu dönem ödenen / harcanan" value={money(statement.paid_total)} />
             <Stat
@@ -322,9 +316,8 @@ export function SubcontractorDetail({
                         <th className="px-2 py-2">Proje</th>
                         <th className="px-2 py-2">İş kalemi</th>
                         <th className="px-2 py-2 text-right">Miktar</th>
+                        <th className="px-2 py-2 text-right">Birim fiyat</th>
                         <th className="px-2 py-2 text-right">Tutar</th>
-                        <th className="px-2 py-2 text-right">Pay</th>
-                        <th className="px-2 py-2 text-right">Taşeron</th>
                         <th className="px-2 py-2">Ekip başı</th>
                       </tr>
                     </thead>
@@ -340,8 +333,9 @@ export function SubcontractorDetail({
                           <td className="px-2 py-2 text-right tabular-nums">
                             {Number(row.quantity).toLocaleString("tr-TR")} {row.unit}
                           </td>
-                          <td className="px-2 py-2 text-right tabular-nums">{row.amount === null ? <span className="text-amber-700">fiyat yok</span> : money(row.amount)}</td>
-                          <td className="px-2 py-2 text-right tabular-nums">%{Number(row.share_percent)}</td>
+                          <td className="px-2 py-2 text-right tabular-nums">
+                            {shareUnitPrice(row) === null ? <span className="text-amber-700">fiyat yok</span> : money(shareUnitPrice(row))}
+                          </td>
                           <td className="px-2 py-2 text-right font-medium tabular-nums">{row.share_amount === null ? "—" : money(row.share_amount)}</td>
                           <td className="px-2 py-2">{row.team_leader_name}</td>
                         </tr>
@@ -700,4 +694,10 @@ function slug(value: string) {
     .replace(/[çğıöşü]/g, (char) => ({ ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u" })[char] ?? char)
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+/** Taşeronun birim fiyatı: işveren birim fiyatı × taşeron payı (işveren fiyatı ekranda gösterilmez). */
+function shareUnitPrice(row: SubcontractorStatement["rows"][number]): number | null {
+  if (row.unit_price === null || row.share_amount === null) return null;
+  return Math.round(Number(row.unit_price) * Number(row.share_percent)) / 100;
 }
