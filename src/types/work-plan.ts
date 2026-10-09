@@ -14,6 +14,10 @@ export type Personnel = {
   approval_status: RecordApprovalStatus;
   approved_by: string | null;
   approved_at: string | null;
+  /** Taşeron personeli ise bağlı olduğu taşeron; ana firmanın maaş dökümüne girmez. */
+  subcontractor_id: string | null;
+  /** Taşeron personelinin SGK primi ana firma üzerinden yatıyor. */
+  sgk_paid_by_main: boolean;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;
@@ -33,6 +37,8 @@ export type PersonnelInsert = {
   termination_reason?: string | null;
   monthly_salary?: number;
   notes?: string | null;
+  subcontractor_id?: string | null;
+  sgk_paid_by_main?: boolean;
   created_by?: string | null;
   updated_by?: string | null;
 };

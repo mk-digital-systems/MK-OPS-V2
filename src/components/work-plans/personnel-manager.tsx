@@ -72,6 +72,8 @@ type Props = {
   /** Bekleyen kayıtları onaylayabilir (şantiye şefi, firma yöneticisi). */
   canReview?: boolean;
   currentUserId?: string | null;
+  /** Taşeron seçimi için (boşsa alan gösterilmez). */
+  subcontractors?: { id: string; name: string; is_active: boolean }[];
 };
 
 export function PersonnelManager({
@@ -85,6 +87,7 @@ export function PersonnelManager({
   canCreate = !readOnly,
   canReview = false,
   currentUserId = null,
+  subcontractors = [],
 }: Props) {
   const router = useRouter();
   const brand = useReportBrand();
@@ -113,6 +116,8 @@ export function PersonnelManager({
       monthly_salary: 0,
       is_active: true,
       notes: "",
+      subcontractor_id: "",
+      sgk_paid_by_main: false,
     },
   });
 
@@ -128,6 +133,8 @@ export function PersonnelManager({
       monthly_salary: 0,
       is_active: true,
       notes: "",
+      subcontractor_id: "",
+      sgk_paid_by_main: false,
     });
     setOpen(true);
   }
@@ -144,6 +151,8 @@ export function PersonnelManager({
       monthly_salary: person.monthly_salary ?? 0,
       is_active: person.is_active,
       notes: person.notes ?? "",
+      subcontractor_id: person.subcontractor_id ?? "",
+      sgk_paid_by_main: person.sgk_paid_by_main,
     });
     setOpen(true);
   }
@@ -580,6 +589,11 @@ export function PersonnelManager({
                             {assignedVehicle.plate}
                           </Badge>
                         )}
+                        {person.subcontractor_id && (
+                          <Badge className="bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-200">
+                            Taşeron{subcontractors.find((sub) => sub.id === person.subcontractor_id)?.name ? `: ${subcontractors.find((sub) => sub.id === person.subcontractor_id)?.name}` : ""}
+                          </Badge>
+                        )}
                       </div>
                       {person.job_title && (
                         <p className="text-sm text-muted-foreground">
@@ -784,6 +798,34 @@ export function PersonnelManager({
                     {form.formState.errors.employment_end_date.message}
                   </p>
                 )}
+              </div>
+            )}
+            {subcontractors.length > 0 && (
+              <div className="space-y-2 rounded-xl border p-3">
+                <Label htmlFor="subcontractor_id">Taşeron (taşeron personeli ise)</Label>
+                <select
+                  id="subcontractor_id"
+                  className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
+                  {...form.register("subcontractor_id")}
+                >
+                  <option value="">Ana firma personeli</option>
+                  {subcontractors
+                    .filter((sub) => sub.is_active || sub.id === form.getValues("subcontractor_id"))
+                    .map((sub) => (
+                      <option key={sub.id} value={sub.id}>
+                        {sub.name}
+                      </option>
+                    ))}
+                </select>
+                {form.watch("subcontractor_id") && (
+                  <label className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" {...form.register("sgk_paid_by_main")} />
+                    SGK primi ana firma üzerinden yatıyor
+                  </label>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Taşeron personelinin puantajı tutulur ama ana firmanın maaş dökümüne girmez; maaş dökümü taşeron sayfasında alınır.
+                </p>
               </div>
             )}
             <div className="space-y-2">

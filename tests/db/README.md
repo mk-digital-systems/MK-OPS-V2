@@ -14,6 +14,8 @@ node tests/db/vault.test.mjs # tek dosya, ayrıntılı çıktı
 |---|---|
 | `tenancy` | Firmalar arası veri ayrımı, yazma koruması, roller, anon erişimi |
 | `roles` | Firma yöneticisi / şantiye şefi / muhasebe yetkileri, kurucu koruması, kullanıcı limiti |
+| `approvals` | Muhasebenin eklediği personel/araç onayı, ay sonu puantaj onayı ve kilidi |
+| `subcontractors` | Ekipler, taşeron payı, ekstre, harcama/ödeme ve bakiye, maaş dökümü ayrımı |
 | `onboarding` | Firma kurma, kodla katılma, deneme süresi, erişim durumu |
 | `projects` | Proje türleri, iş kalemleri, bölümler, metraj |
 | `hakedis` | Birim fiyat, fiyat sabitleme, rapor, yetki |

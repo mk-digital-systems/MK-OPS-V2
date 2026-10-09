@@ -41,7 +41,8 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 | 21 | İş planında proje listeden seçilir (project_id kaydedilir); İş Planından Doldur bunu kullanır | ✅ |
 | 22 | KVKK belgeleri (/kvkk), çalışan aydınlatma metni oluşturucu, Türkçe e-posta şablonları, Pazar otomatik hafta tatili (pg_cron) | ✅ |
 | 23 | Rol yapısı: Firma Yöneticisi (birden fazla, kurucu korumalı), Şantiye Şefi, Muhasebe; yeni yan menü, her sayfada ad/rol/yetki bandı (`20261017000001_roles.sql`) | ✅ |
-| 24 | Onaylar: muhasebenin eklediği personel/araç onayı, ay sonu puantaj onayı (onaylı ay kilitli); proje türleri Projeler sayfasına taşındı (`20261018000001_approvals.sql`) | 🚧 dalda |
+| 24 | Onaylar: muhasebenin eklediği personel/araç onayı, ay sonu puantaj onayı (onaylı ay kilitli); proje türleri Projeler sayfasına taşındı (`20261018000001_approvals.sql`) | ✅ |
+| 25 | Ekipler (ekip başı + isteğe bağlı taşeron) ve taşeronlar: taşerona göre pay yüzdesi, taşeron hakedişi, harcama/ödeme ve bakiye, taşeron personeli ve ayrı maaş dökümü (`20261019000001_teams_subcontractors.sql`) | 🚧 dalda |
 
 Kurulu migration'lar: `20261005000000` … `20261011000001`. Kurulacak: `20261011000002_inventory_messages.sql`.
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.
@@ -72,7 +73,8 @@ kayıtları onaya gönderiyor. Bütün roller paketin kullanıcı limitine sayı
 | Aşama | İçerik | Durum |
 |---|---|---|
 | A | Rol yapısı: çoklu firma yöneticisi, rol sınırlarının kalkması, şefin kullanıcı yönetimi, rol varsayılan yetkileri, muhasebenin araç/stok görünürlüğü ve irsaliye girişi, yeni yan menü | ✅ |
-| B | Onaylar: muhasebenin eklediği personel/araç onayı, ay sonu puantaj onayı (onaydan sonra ay kesinleşir; onayı yalnızca firma yöneticisi kaldırır) | 🚧 dalda |
+| B | Onaylar: muhasebenin eklediği personel/araç onayı, ay sonu puantaj onayı (onaydan sonra ay kesinleşir; onayı yalnızca firma yöneticisi kaldırır) | ✅ |
+| T | Ekipler ve taşeronlar (ofis tarafı); taşeronun kendi girişi sonra, ayrı rol olarak | 🚧 dalda |
 | C | Ekip başı rolü ve saha paneli; imalat taslak → onaya gönder → onay/red; ekip bazlı hakediş | ⏳ |
 | D | Şubeler: şube tablosu; personel, proje, araç ve depo şubeye bağlı; şefe ve muhasebeye şube atama; şube bazlı veri kısıtı (veritabanında); şubeler arası malzeme gönderme/teslim alma | ⏳ |
 | E | Firma yöneticisi için "Bugün" özeti (hangi ekip nerede, ne yaptı, bekleyen onaylar) | ⏳ |
@@ -225,7 +227,7 @@ Eski projede görünürlük role göre ayrılıyordu. Bizde yalnızca ana yönet
 | Eski MK-OPS özelliği | Neden alınmıyor |
 |---|---|
 | ~~İş onay akışı~~ | 9 Ekim 2026'da plana alındı (yukarıda C aşaması). |
-| ~~Ekip lideri hesabı~~ | 9 Ekim 2026'da "Ekip Başı" olarak plana alındı (C aşaması). Ekip/taşeron payı (%) hâlâ kapsam dışı. |
+| ~~Ekip lideri hesabı~~ | 9 Ekim 2026'da "Ekip Başı" olarak plana alındı (C aşaması). Taşeron payı (%) 9 Ekim 2026 kararıyla T aşamasında yapıldı (taşerona göre yüzde). |
 | **Onay anında zimmetten malzeme düşme** | Onay akışına bağlıydı; bizde zimmet ve stok hareketleri depo modülünde ayrı yönetiliyor. |
 | **5 dil desteği** | Şimdilik yalnızca Türkiye pazarı. |
 | **Ödeme sağlayıcısı ile plan değişimi** | EFT + süper admin plan ataması kullanılıyor. |

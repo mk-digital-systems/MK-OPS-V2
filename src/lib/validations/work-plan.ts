@@ -26,6 +26,8 @@ export const personnelSchema = z
     monthly_salary: z.coerce.number().min(0, "Maaş negatif olamaz"),
     is_active: z.boolean(),
     notes: z.string().trim().max(2000).optional().or(z.literal("")),
+    subcontractor_id: z.string().optional().or(z.literal("")),
+    sgk_paid_by_main: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.is_active && data.employment_end_date) {

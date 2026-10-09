@@ -54,11 +54,10 @@ export default async function PersonnelDetailPage({
   const monthEnd = `${year}-${String(month).padStart(2, "0")}-${String(
     new Date(year, month, 0).getDate()
   ).padStart(2, "0")}`;
-  const [personnel, employmentPeriods, summary, payrollResult, advancesResult, assignedVehicleResult, canWriteAdvances] = await Promise.all([
+  const [personnel, employmentPeriods, summary, advancesResult, assignedVehicleResult, canWriteAdvances] = await Promise.all([
     personnelRepository.getById(id),
     personnelRepository.listEmploymentPeriods(id),
     attendanceRepository.getPersonnelDetail(id, year, month),
-    supabase.rpc("get_monthly_payroll", { p_year: year, p_month: month }),
     supabase
       .from("personnel_advances")
       .select("id, personnel_id, advance_date, amount, notes, created_at")
@@ -75,6 +74,12 @@ export default async function PersonnelDetailPage({
   ]);
 
   if (!personnel || !summary) notFound();
+  // Taşeron personeli ana firmanın maaş dökümünde değil; kendi taşeronunun dökümünden okunur.
+  const payrollResult = await supabase.rpc("get_monthly_payroll", {
+    p_year: year,
+    p_month: month,
+    p_subcontractor_id: personnel.subcontractor_id,
+  });
   const payroll = ((payrollResult.data ?? []) as PayrollRow[]).find(
     (row) => row.personnel_id === id
   ) ?? null;

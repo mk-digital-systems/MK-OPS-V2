@@ -31,11 +31,11 @@ export default async function AppLayout({
     : pathname.startsWith("/panel/vehicles") ? "vehicles"
     : pathname.startsWith("/panel/inventory") ? "inventory"
     : pathname.startsWith("/panel/custody") ? "custody"
-    : pathname.startsWith("/panel/hakedis") ? "hakedis" : null;
+    : pathname.startsWith("/panel/hakedis") || pathname.startsWith("/panel/taseronlar") ? "hakedis" : null;
 
   // Muhasebe personel, puantaj, araç ve malzeme stokunu her zaman görür; diğer modülleri
   // yalnızca firma yöneticisi yetki verdiyse.
-  const accountingPaths = ["/panel/attendance", "/panel/personnel", "/panel/vehicles", "/panel/inventory", "/panel/profile"];
+  const accountingPaths = ["/panel/attendance", "/panel/personnel", "/panel/ekipler", "/panel/vehicles", "/panel/inventory", "/panel/profile"];
   if (
     profile.role === "accounting" &&
     !accountingPaths.some((path) => pathname.startsWith(path)) &&

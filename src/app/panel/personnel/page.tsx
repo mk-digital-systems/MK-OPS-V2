@@ -63,6 +63,8 @@ export default async function PersonnelPage({ searchParams }: Props) {
     userRepository.getCurrent(),
   ]);
 
+  const { data: subcontractors } = await supabase.from("subcontractors").select("id, name, is_active").order("name");
+
   return (
     <PersonnelManager
       initialPersonnel={personnel}
@@ -75,6 +77,7 @@ export default async function PersonnelPage({ searchParams }: Props) {
       canCreate={canWrite || profile?.role === "accounting"}
       canReview={profile?.role === "site_chief" || profile?.role === "company_manager"}
       currentUserId={profile?.id ?? null}
+      subcontractors={subcontractors ?? []}
     />
   );
 }

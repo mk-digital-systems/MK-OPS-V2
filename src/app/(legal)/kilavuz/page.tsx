@@ -157,10 +157,33 @@ export default function GuidePage() {
         </li>
         <li>
           <strong>Hakediş</strong> sayfasında dönem seçip proje, iş kalemi ve ekip şefi bazında dökümü görün; PDF veya Excel
-          olarak indirin. Ek işler raporda &quot;Ek iş&quot; etiketiyle ayrıca görünür. Dashboard&apos;daki kart bugünün, bu
+          olarak indirin. Ek işler raporda &quot;Ek iş&quot; etiketiyle ayrıca görünür. Genel Bakış&apos;taki kart bugünün, bu
           haftanın ve bu dönemin toplamını gösterir.
         </li>
       </ol>
+      <h3>Ekipler ve taşeronlar (isteğe bağlı)</h3>
+      <ul>
+        <li>
+          <strong>Ekipler:</strong> Personel → Ekipler sayfasında ekip adı ve ekip başı tanımlanır; ekip istenirse bir taşerona
+          bağlanır. İş planı ve imalat ekibi ekip başından tanır, bu ekranlarda bir şey değişmez.
+        </li>
+        <li>
+          <strong>Taşeronlar:</strong> taşeron kartında firma bilgileri ve <strong>pay yüzdesi</strong> girilir (ör. %70: 100 ₺&apos;lik
+          işin 70 ₺&apos;si taşeronun). Taşerona bağlı ekibin imalatı girildiği anda o taşeronun hakedişine yazılır; fiyatı girilmiş
+          ek işler de dahildir. Yüzde sonradan değişirse yeni oran yalnızca yeni imalatlara uygulanır.
+        </li>
+        <li>
+          <strong>Harcama ve ödemeler:</strong> taşerona yapılan ödemeler ve onun adına yapılan harcamalar (personel, yakıt, SGK…)
+          kategoriyle girilir ve bakiyeden düşer. Firma 10 kategoriye kadar tanımlayabilir.
+        </li>
+        <li>
+          <strong>Taşeron personeli:</strong> personel kaydında taşeron seçilir; SGK&apos;nın ana firmadan yatıp yatmadığı işaretlenir.
+          Puantajı normal tutulur, ana firmanın maaş dökümüne girmez; taşeron sayfasından ayrı maaş dökümü alınır.
+        </li>
+        <li>
+          Taşeron tutarlarını hakediş yetkisi olanlar görür; ekipleri ve taşeron kartlarını firma yöneticisi ve şantiye şefi yönetir.
+        </li>
+      </ul>
 
       <h2 id="is-plani">{SECTIONS[4].title}</h2>
       <ol>

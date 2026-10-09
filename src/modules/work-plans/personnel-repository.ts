@@ -76,6 +76,8 @@ export class PersonnelRepository {
             : null,
         monthly_salary: payload.monthly_salary ?? 0,
         notes: emptyToNull(payload.notes),
+        subcontractor_id: payload.subcontractor_id || null,
+        sgk_paid_by_main: payload.subcontractor_id ? payload.sgk_paid_by_main ?? false : false,
         created_by: payload.created_by ?? null,
         updated_by: payload.updated_by ?? null,
       })
@@ -121,6 +123,10 @@ export class PersonnelRepository {
       updatePayload.notes = emptyToNull(payload.notes);
     if (payload.monthly_salary !== undefined)
       updatePayload.monthly_salary = payload.monthly_salary;
+    if (payload.subcontractor_id !== undefined) {
+      updatePayload.subcontractor_id = payload.subcontractor_id || null;
+      updatePayload.sgk_paid_by_main = payload.subcontractor_id ? payload.sgk_paid_by_main ?? false : false;
+    }
 
     const { data, error } = await this.supabase
       .from("personnel")

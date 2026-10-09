@@ -43,6 +43,9 @@ export const AUDIT_ENTITY_LABELS: Record<string, string> = {
   inventory_locations: "Depo",
   company_vault_notes: "Gizli not",
   company_vaults: "Gizli alan",
+  subcontractors: "Taşeron",
+  subcontractor_transactions: "Taşeron harcama/ödeme",
+  teams: "Ekip",
 };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -117,6 +120,14 @@ const FIELD_LABELS: Record<string, string> = {
   role: "Rol",
   is_approved: "Onaylı",
   approval_status: "Onay durumu",
+  share_percent: "Taşeron payı (%)",
+  subcontractor_id: "Taşeron",
+  leader_personnel_id: "Ekip başı",
+  sgk_paid_by_main: "SGK ana firmadan",
+  transaction_date: "Tarih",
+  contact_name: "Yetkili",
+  tax_number: "Vergi no",
+  iban: "IBAN",
   projects_write: "Yetki: Projeler",
   work_plans_write: "Yetki: İş planı",
   personnel_write: "Yetki: Personel",

@@ -22,6 +22,8 @@ import {
   X,
   Hammer,
   Ban,
+  HardHat,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -64,6 +66,7 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
       { href: "/panel/work-plans", label: "İş Planı", icon: ClipboardList },
       { href: "/panel/imalatlar", label: "İmalatlar", icon: Hammer },
       { href: "/panel/hakedis", label: "Hakediş", icon: Receipt },
+      { href: "/panel/taseronlar", label: "Taşeronlar", icon: HardHat },
       { href: "/panel/cancelled-projects", label: "İptal Projeler", icon: Ban },
     ],
   },
@@ -71,6 +74,7 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
     title: "Personel",
     items: [
       { href: "/panel/personnel", label: "Personel", icon: Users, accounting: true },
+      { href: "/panel/ekipler", label: "Ekipler", icon: UsersRound, accounting: true },
       { href: "/panel/attendance", label: "Puantaj", icon: CalendarCheck, accounting: true },
     ],
   },
@@ -127,6 +131,9 @@ export function AppShell({
   function canSee(item: NavItem) {
     if (item.roles) return item.roles.includes(profile.role);
     if (item.href === "/panel/hakedis") return writableModules.includes("hakedis");
+    if (item.href === "/panel/taseronlar") {
+      return profile.role === "site_chief" || profile.role === "company_manager" || writableModules.includes("hakedis");
+    }
     if (profile.role === "accounting") {
       const permissionModule = moduleForPath(item.href);
       return !!item.accounting || (permissionModule !== null && writableModules.includes(permissionModule));
@@ -387,6 +394,6 @@ function moduleForPath(pathname: string): PermissionModule | null {
   if (pathname.startsWith("/panel/inventory")) return "inventory";
   if (pathname.startsWith("/panel/custody")) return "custody";
   if (pathname.startsWith("/panel/imalatlar")) return "productions";
-  if (pathname.startsWith("/panel/hakedis")) return "hakedis";
+  if (pathname.startsWith("/panel/hakedis") || pathname.startsWith("/panel/taseronlar")) return "hakedis";
   return null;
 }
