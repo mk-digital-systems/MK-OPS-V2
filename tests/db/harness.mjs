@@ -10,10 +10,15 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const MIGRATIONS_DIR = path.resolve(here, "../../supabase/migrations");
 
+// Uygulama tarihleri İstanbul saatine göre hesaplar; testlerdeki current_date de öyle olsun.
+// (CI sunucusu UTC çalışır; 21:00 UTC sonrası "bugün" farklı güne düşüyordu.)
+const SESSION_DEFAULTS = `set search_path = "$user", public, extensions; set timezone = 'Europe/Istanbul';`;
+
 /** Supabase taklidi kurulmuş boş veritabanı (auth şeması, roller, storage). */
 export async function openDb() {
   const pg = new PGlite({ extensions: { pg_trgm, pgcrypto } });
   await pg.exec(fs.readFileSync(path.join(here, "supabase-stubs.sql"), "utf8"));
+  await pg.exec(SESSION_DEFAULTS);
   return pg;
 }
 
@@ -22,7 +27,7 @@ export async function applyFile(pg, file) {
   try {
     await pg.exec(fs.readFileSync(file, "utf8"));
     // Her SQL Editor çalıştırması yeni oturumdur; SET komutları sonraki dosyaya taşınmasın.
-    await pg.exec(`reset all; set search_path = "$user", public, extensions;`);
+    await pg.exec(`reset all; ${SESSION_DEFAULTS}`);
   } catch (error) {
     const where = error.where ? `\n  where: ${error.where}` : "";
     throw new Error(`${path.basename(file)}: ${error.message}${where}`);
