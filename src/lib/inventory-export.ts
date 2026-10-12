@@ -1,5 +1,5 @@
 import type { InventoryCatalog, InventoryCategory, InventoryLocation, InventoryMaterial } from "@/types/inventory";
-import { INVENTORY_UNITS, UNCATEGORIZED_LABEL, getCategoryName, stockAt, totalStock } from "@/lib/constants/inventory";
+import { INVENTORY_UNITS, UNCATEGORIZED_LABEL, getCategoryName, stockAt } from "@/lib/constants/inventory";
 import { fitLogo, loadLogoImage, type ReportBrand } from "@/lib/report-brand";
 import { embedRoboto } from "@/lib/pdf-fonts";
 
@@ -41,6 +41,8 @@ function buildColumns(locations: InventoryLocation[]): Column[] {
 function buildRows({ catalogs, materials, categories, locations, selectedCategoryIds }: InventoryExportOptions) {
   const unitLabel = (unit: InventoryCatalog["unit"]) => INVENTORY_UNITS.find((item) => item.value === unit)?.label ?? unit;
   const order = new Map(categories.map((item, index) => [item.id, index]));
+  // Toplam yalnızca çıktıdaki depolardan (kullanıcının erişebildiği depolar).
+  const totalIn = (lot: InventoryExportOptions["materials"][number]) => locations.reduce((sum, location) => sum + stockAt(lot, location), 0);
   const rows: (string | number)[][] = [];
   const selected = catalogs
     .filter((catalog) => selectedCategoryIds.includes(catalog.category_id ?? null))
@@ -54,7 +56,7 @@ function buildRows({ catalogs, materials, categories, locations, selectedCategor
       [catalog.material_type, catalog.size].filter(Boolean).join(" · "),
     ];
     // Stoğu tamamen tükenmiş ID'ler listelenmez.
-    const lots = materials.filter((item) => item.catalog_id === catalog.id && totalStock(item) > 0);
+    const lots = materials.filter((item) => item.catalog_id === catalog.id && totalIn(item) > 0);
     if (!lots.length) {
       rows.push([rows.length + 1, ...base, "", unitLabel(catalog.unit), ...locations.map(() => 0), ...(locations.length > 1 ? [0] : [])]);
       continue;
@@ -63,7 +65,7 @@ function buildRows({ catalogs, materials, categories, locations, selectedCategor
       rows.push([
         rows.length + 1, ...base, lot.material_code ?? "", unitLabel(lot.unit),
         ...locations.map((location) => stockAt(lot, location)),
-        ...(locations.length > 1 ? [totalStock(lot)] : []),
+        ...(locations.length > 1 ? [totalIn(lot)] : []),
       ]);
     }
   }

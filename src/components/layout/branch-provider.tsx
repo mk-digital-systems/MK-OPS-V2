@@ -13,6 +13,8 @@ type BranchContextValue = {
   selectedId: string | null;
   /** Yeni kayıt için önerilen şube: seçili şube, yoksa Merkez ya da ilk şube. */
   defaultBranchId: string | null;
+  /** Tek şubeye ait işlemler (iş planı) için şube; tek şubeli kullanıcıda null. */
+  effectiveBranchId: string | null;
   branchName: (id: string | null | undefined) => string | null;
   select: (id: string | null) => void;
 };
@@ -22,6 +24,7 @@ const BranchContext = createContext<BranchContextValue>({
   multiBranch: false,
   selectedId: null,
   defaultBranchId: null,
+  effectiveBranchId: null,
   branchName: () => null,
   select: () => {},
 });
@@ -40,11 +43,13 @@ export function BranchProvider({
   const router = useRouter();
   const value = useMemo<BranchContextValue>(() => {
     const byId = new Map(branches.map((branch) => [branch.id, branch.name]));
+    const defaultBranchId = selectedId ?? branches.find((branch) => branch.is_main)?.id ?? branches[0]?.id ?? null;
     return {
       branches,
       multiBranch: totalCount > 1,
       selectedId,
-      defaultBranchId: selectedId ?? branches.find((branch) => branch.is_main)?.id ?? branches[0]?.id ?? null,
+      defaultBranchId,
+      effectiveBranchId: branches.length > 1 ? defaultBranchId : selectedId,
       branchName: (id) => (id ? byId.get(id) ?? null : null),
       select: (id) => {
         document.cookie = `${BRANCH_COOKIE}=${id ?? ""}; path=/; max-age=31536000; samesite=lax`;

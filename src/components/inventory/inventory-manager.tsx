@@ -5,7 +5,8 @@ import { ArrowDownToLine, ArrowRight, ArrowUpFromLine, FileSpreadsheet, FileText
 import { toast } from "sonner";
 import type { InventoryCatalog, InventoryCategory, InventoryLocation, InventoryMaterial, InventoryReceipt, InventoryShipment, InventoryUnit } from "@/types/inventory";
 import type { Personnel } from "@/types/work-plan";
-import { INVENTORY_UNITS, UNCATEGORIZED_LABEL, formatInventoryQuantity, getCategoryName, stockAt, totalStock } from "@/lib/constants/inventory";
+import { INVENTORY_UNITS, UNCATEGORIZED_LABEL, formatInventoryQuantity, getCategoryName, stockAt } from "@/lib/constants/inventory";
+import { useBranches } from "@/components/layout/branch-provider";
 import { downloadInventoryStockExcel, downloadInventoryStockPdf, getInventoryExportTitle } from "@/lib/inventory-export";
 import { useReportBrand } from "@/components/layout/company-brand-provider";
 import { createClient } from "@/lib/supabase/client";
@@ -57,8 +58,12 @@ export function InventoryManager({ initialMaterials, initialCatalogs, initialCat
   const [undoShipmentTarget, setUndoShipmentTarget] = useState<InventoryShipment | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const viewLocation = locations.find((item) => item.id === stockView) ?? null;
-  const quantityOf = (lot: InventoryMaterial) => (viewLocation ? stockAt(lot, viewLocation) : totalStock(lot));
+  // Kullanıcı yalnızca erişebildiği şubelerin depolarını görür (stok, giriş, çıkış); sevkiyatta varış deposu serbesttir.
+  const { branches, multiBranch, branchName, effectiveBranchId } = useBranches();
+  const ownLocations = branches.length ? locations.filter((item) => branches.some((branch) => branch.id === item.branch_id)) : locations;
+  const ownTotal = (lot: InventoryMaterial) => ownLocations.reduce((sum, location) => sum + stockAt(lot, location), 0);
+  const viewLocation = ownLocations.find((item) => item.id === stockView) ?? null;
+  const quantityOf = (lot: InventoryMaterial) => (viewLocation ? stockAt(lot, viewLocation) : ownTotal(lot));
   const hasUncategorized = catalogs.some((catalog) => !catalog.category_id);
 
   const filtered = useMemo(() => {
@@ -97,7 +102,7 @@ export function InventoryManager({ initialMaterials, initialCatalogs, initialCat
   }
 
   function openMovement(lot: InventoryMaterial) {
-    const location = viewLocation ?? locations.find((item) => stockAt(lot, item) > 0) ?? locations[0];
+    const location = viewLocation ?? ownLocations.find((item) => stockAt(lot, item) > 0) ?? ownLocations[0];
     if (location) setMovement({ material: lot, locationId: location.id });
   }
 
@@ -109,7 +114,7 @@ export function InventoryManager({ initialMaterials, initialCatalogs, initialCat
         {!readOnly && <>
           <Button variant="outline" onClick={() => setLocationsOpen(true)}><Warehouse />Depolar</Button>
           <Button variant="outline" onClick={() => setCategoriesOpen(true)}><Tags />Kategoriler</Button>
-          {locations.length > 1 && <Button variant="outline" onClick={() => setTransferOpen(true)}><Send />Depolar Arası Sevkiyat</Button>}
+          {locations.length > 1 && ownLocations.length > 0 && <Button variant="outline" onClick={() => setTransferOpen(true)}><Send />Depolar Arası Sevkiyat</Button>}
           <Button onClick={() => setCatalogOpen(true)}><Plus />Yeni Malzeme</Button>
         </>}
         {canReceive && <Button variant="outline" onClick={() => setReceiptOpen(true)}><ArrowDownToLine />İrsaliye ile Stok Girişi</Button>}
@@ -121,7 +126,7 @@ export function InventoryManager({ initialMaterials, initialCatalogs, initialCat
     <section className="space-y-4">
       <div className="flex flex-wrap gap-2" aria-label="Depo">
         <ChipButton active={stockView === "all"} color="bg-zinc-700" onClick={() => setStockView("all")}>Tüm Depolar</ChipButton>
-        {locations.map((location, index) => <ChipButton key={location.id} active={stockView === location.id} color={LOCATION_COLORS[index % LOCATION_COLORS.length]} onClick={() => setStockView(location.id)}>{location.name}</ChipButton>)}
+        {ownLocations.map((location, index) => <ChipButton key={location.id} active={stockView === location.id} color={LOCATION_COLORS[index % LOCATION_COLORS.length]} onClick={() => setStockView(location.id)}>{location.name}</ChipButton>)}
       </div>
       <div className="grid gap-3 sm:grid-cols-[240px_1fr]">
         <Select value={category} onValueChange={(value) => setCategory(value)}>
@@ -149,9 +154,9 @@ export function InventoryManager({ initialMaterials, initialCatalogs, initialCat
               {visibleLots.map((lot) => <div key={lot.id} className="flex items-start gap-2">
                 <div>
                   <span>{catalog.has_id && <strong>ID: {lot.material_code}</strong>}{catalog.has_id && " · "}{formatInventoryQuantity(quantityOf(lot), lot.unit)}</span>
-                  {!viewLocation && locations.length > 1 && <p className="text-xs text-muted-foreground">{locations.filter((location) => stockAt(lot, location) > 0).map((location) => `${location.name}: ${formatInventoryQuantity(stockAt(lot, location), lot.unit)}`).join(" · ") || "Stok yok"}</p>}
+                  {!viewLocation && ownLocations.length > 1 && <p className="text-xs text-muted-foreground">{ownLocations.filter((location) => stockAt(lot, location) > 0).map((location) => `${location.name}: ${formatInventoryQuantity(stockAt(lot, location), lot.unit)}`).join(" · ") || "Stok yok"}</p>}
                 </div>
-                {!readOnly && totalStock(lot) > 0 && <Button title="Stoktan düş" variant="ghost" size="icon" onClick={() => openMovement(lot)}><ArrowUpFromLine /></Button>}
+                {!readOnly && ownTotal(lot) > 0 && <Button title="Stoktan düş" variant="ghost" size="icon" onClick={() => openMovement(lot)}><ArrowUpFromLine /></Button>}
                 {!readOnly && catalog.has_id && <Button title={`${lot.material_code || "Bu ID"} kaydını sil`} variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteMaterialTarget(lot)}><Trash2 /></Button>}
               </div>)}
               {!visibleLots.length && <span className="text-muted-foreground">{viewLocation ? "Bu depoda stok yok" : "Henüz irsaliye girişi yok"}</span>}
@@ -166,16 +171,16 @@ export function InventoryManager({ initialMaterials, initialCatalogs, initialCat
     <ReceiptHistory receipts={receipts} />
     <ShipmentHistory shipments={shipments} locations={locations} readOnly={readOnly} onUndo={setUndoShipmentTarget} />
 
-    <ExportDialog key={exportOpen ? "open" : "closed"} open={exportOpen} setOpen={setExportOpen} initialCategory={category} catalogs={catalogs} categories={categories} locations={locations} materials={materials} />
+    <ExportDialog key={exportOpen ? "open" : "closed"} open={exportOpen} setOpen={setExportOpen} initialCategory={category} catalogs={catalogs} categories={categories} locations={ownLocations} materials={materials} />
     <CatalogDialog open={catalogOpen} setOpen={setCatalogOpen} categories={categories} loading={loading} onSave={async (payload) => { const ok = await run((repository) => repository.createCatalogMaterial(payload), "Malzeme kataloğa eklendi"); if (ok) setCatalogOpen(false); }} />
-    <ReceiptDialog open={receiptOpen} setOpen={setReceiptOpen} catalogs={catalogs} categories={categories} locations={locations} loading={loading} onSave={async (payload) => { const ok = await run((repository) => repository.createReceipt(payload), "İrsaliye stoğa işlendi"); if (ok) setReceiptOpen(false); }} />
-    <TransferDialog key={transferOpen ? "t-open" : "t-closed"} open={transferOpen} setOpen={setTransferOpen} materials={materials} locations={locations} loading={loading} onSave={async (payload) => { const ok = await run((repository) => repository.createTransfer(payload), "Sevkiyat kaydedildi"); if (ok) setTransferOpen(false); }} />
-    <MovementDialog key={movement ? `${movement.material.id}-${movement.locationId}` : "none"} state={movement} setState={setMovement} locations={locations} personnel={personnel} loading={loading} onSave={async (payload) => { const ok = await run((repository) => repository.recordMovement(payload), "Malzeme stoktan düşüldü"); if (ok) setMovement(null); }} />
+    <ReceiptDialog open={receiptOpen} setOpen={setReceiptOpen} catalogs={catalogs} categories={categories} locations={ownLocations} loading={loading} onSave={async (payload) => { const ok = await run((repository) => repository.createReceipt(payload), "İrsaliye stoğa işlendi"); if (ok) setReceiptOpen(false); }} />
+    <TransferDialog key={transferOpen ? "t-open" : "t-closed"} open={transferOpen} setOpen={setTransferOpen} materials={materials} locations={ownLocations} targets={locations} loading={loading} onSave={async (payload) => { const ok = await run((repository) => repository.createTransfer(payload), "Sevkiyat kaydedildi"); if (ok) setTransferOpen(false); }} />
+    <MovementDialog key={movement ? `${movement.material.id}-${movement.locationId}` : "none"} state={movement} setState={setMovement} locations={ownLocations} personnel={personnel} loading={loading} onSave={async (payload) => { const ok = await run((repository) => repository.recordMovement(payload), "Malzeme stoktan düşüldü"); if (ok) setMovement(null); }} />
     <ManageListDialog
       open={locationsOpen} setOpen={setLocationsOpen} loading={loading} title="Depolar" itemLabel="Depo"
       description="Ana depo silinemez ama adı değiştirilebilir. Stoğu veya hareket geçmişi olan depo silinemez."
-      items={locations.map((item) => ({ id: item.id, name: item.name, badge: item.is_main ? "Ana depo" : undefined, deletable: !item.is_main }))}
-      onSave={(id, name) => run((repository) => repository.saveLocation(id, name), id ? "Depo adı güncellendi" : "Depo eklendi")}
+      items={ownLocations.map((item) => ({ id: item.id, name: item.name, badge: [item.is_main ? "Ana depo" : null, multiBranch ? branchName(item.branch_id) : null].filter(Boolean).join(" · ") || undefined, deletable: !item.is_main }))}
+      onSave={(id, name) => run((repository) => repository.saveLocation(id, name, effectiveBranchId), id ? "Depo adı güncellendi" : "Depo eklendi")}
       onDelete={(id) => run((repository) => repository.deleteLocation(id), "Depo silindi")}
     />
     <ManageListDialog
@@ -280,7 +285,7 @@ function ReceiptDialog({ open, setOpen, catalogs, categories, locations, loading
   const [data, setData] = useState({ receipt_date: today(), received_by: "", dispatch_number: "", notes: "" });
   const [locationId, setLocationId] = useState("");
   const [lines, setLines] = useState<ReceiptLine[]>([{ catalog_id: "", material_code: "", unit: "piece", quantity: "1" }]);
-  const targetId = locationId || locations.find((item) => item.is_main)?.id || "";
+  const targetId = locationId || locations.find((item) => item.is_main)?.id || locations[0]?.id || "";
   const items = lines.filter((line) => line.catalog_id && Number(line.quantity) > 0).map((line) => ({ catalog_id: line.catalog_id, material_code: line.material_code.trim() || undefined, quantity: Number(line.quantity) }));
   return <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto"><DialogHeader><DialogTitle>İrsaliye ile Stok Girişi</DialogTitle></DialogHeader>
     <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); if (!data.receipt_date || data.received_by.trim().length < 2 || !data.dispatch_number.trim() || !items.length) return toast.error("Tarih, teslim alan, irsaliye ve malzeme zorunlu"); void onSave({ ...data, location_id: targetId || null, items }); }}>
@@ -307,10 +312,10 @@ function ReceiptDialog({ open, setOpen, catalogs, categories, locations, loading
   </DialogContent></Dialog>;
 }
 
-function TransferDialog({ open, setOpen, materials, locations, loading, onSave }: { open: boolean; setOpen: (open: boolean) => void; materials: InventoryMaterial[]; locations: InventoryLocation[]; loading: boolean; onSave: (payload: { shipment_date: string; from_location_id: string; to_location_id: string; delivered_by: string; received_by: string; vehicle_plate?: string; notes?: string; items: { material_id: string; quantity: number }[] }) => Promise<void> }) {
+function TransferDialog({ open, setOpen, materials, locations, targets, loading, onSave }: { open: boolean; setOpen: (open: boolean) => void; materials: InventoryMaterial[]; locations: InventoryLocation[]; targets: InventoryLocation[]; loading: boolean; onSave: (payload: { shipment_date: string; from_location_id: string; to_location_id: string; delivered_by: string; received_by: string; vehicle_plate?: string; notes?: string; items: { material_id: string; quantity: number }[] }) => Promise<void> }) {
   const [data, setData] = useState({ shipment_date: today(), delivered_by: "", received_by: "", vehicle_plate: "", notes: "" });
   const [fromId, setFromId] = useState(locations.find((item) => item.is_main)?.id ?? locations[0]?.id ?? "");
-  const [toId, setToId] = useState(locations.find((item) => item.id !== fromId)?.id ?? "");
+  const [toId, setToId] = useState(targets.find((item) => item.id !== fromId)?.id ?? "");
   const [lines, setLines] = useState<Line[]>([{ material_id: "", quantity: "1" }]);
   const from = locations.find((item) => item.id === fromId);
   const available = from ? materials.filter((item) => stockAt(item, from) > 0) : [];
@@ -318,7 +323,7 @@ function TransferDialog({ open, setOpen, materials, locations, loading, onSave }
     <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); const items = normalizeLines(lines); if (!fromId || !toId || fromId === toId) return toast.error("Farklı iki depo seçin"); if (data.delivered_by.trim().length < 2 || data.received_by.trim().length < 2) return toast.error("Teslim eden ve teslim alan zorunlu"); if (!items.length) return toast.error("En az bir malzeme ekleyin"); void onSave({ ...data, from_location_id: fromId, to_location_id: toId, items }); }}>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Çıkış Deposu"><LocationSelect locations={locations} value={fromId} onChange={(value) => { setFromId(value); setLines([{ material_id: "", quantity: "1" }]); if (value === toId) setToId(locations.find((item) => item.id !== value)?.id ?? ""); }} /></Field>
-        <Field label="Varış Deposu"><LocationSelect locations={locations} value={toId} onChange={setToId} exclude={fromId} /></Field>
+        <Field label="Varış Deposu"><LocationSelect locations={targets} value={toId} onChange={setToId} exclude={fromId} /></Field>
         <Field label="Tarih"><Input type="date" value={data.shipment_date} onChange={(e) => setData({ ...data, shipment_date: e.target.value })} /></Field>
         <Field label="Araç / Plaka (opsiyonel)"><Input value={data.vehicle_plate} onChange={(e) => setData({ ...data, vehicle_plate: e.target.value })} /></Field>
         <Field label="Teslim Eden"><Input value={data.delivered_by} onChange={(e) => setData({ ...data, delivered_by: e.target.value })} /></Field>

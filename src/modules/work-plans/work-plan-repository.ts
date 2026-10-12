@@ -101,22 +101,26 @@ function mapTeam(row: TeamRow): WorkPlanTeamSnapshot {
 export class WorkPlanRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
-  async listPlans(limit = 60): Promise<DailyWorkPlan[]> {
-    const { data, error } = await this.supabase
+  async listPlans(limit = 60, branchId?: string | null): Promise<DailyWorkPlan[]> {
+    let query = this.supabase
       .from("daily_work_plans")
       .select("*")
       .order("plan_date", { ascending: false })
       .limit(limit);
+    if (branchId) query = query.eq("branch_id", branchId);
+    const { data, error } = await query;
 
     if (error) throw error;
     return (data ?? []) as DailyWorkPlan[];
   }
 
-  async listDrafts(): Promise<WorkPlanDraft[]> {
-    const { data, error } = await this.supabase
+  async listDrafts(branchId?: string | null): Promise<WorkPlanDraft[]> {
+    let query = this.supabase
       .from("daily_work_plan_drafts")
       .select("*")
       .order("updated_at", { ascending: false });
+    if (branchId) query = query.eq("branch_id", branchId);
+    const { data, error } = await query;
     if (error) throw error;
     return (data ?? []) as WorkPlanDraft[];
   }
@@ -138,6 +142,7 @@ export class WorkPlanRepository {
     userId: string;
     teams: WorkPlanTeamSnapshot[];
     absences: WorkPlanAbsenceSnapshot[];
+    branchId?: string | null;
   }): Promise<WorkPlanDraft> {
     const payload = {
       plan_date: input.planDate,
@@ -145,6 +150,7 @@ export class WorkPlanRepository {
       teams: input.teams,
       absences: input.absences,
       created_by: input.userId,
+      ...(input.branchId ? { branch_id: input.branchId } : {}),
     };
     const query = input.id
       ? this.supabase.from("daily_work_plan_drafts").update(payload).eq("id", input.id)
@@ -162,8 +168,9 @@ export class WorkPlanRepository {
     if (error) throw persistenceError("Taslak silinemedi", error);
   }
 
-  async getByDate(planDate: string): Promise<DailyWorkPlanWithTeams | null> {
-    const { data, error } = await this.supabase
+  /** Şubenin o günkü planı (tek şubeli kullanıcıda şube verilmez; veritabanı kendi şubesiyle sınırlar). */
+  async getByDate(planDate: string, branchId?: string | null): Promise<DailyWorkPlanWithTeams | null> {
+    let query = this.supabase
       .from("daily_work_plans")
       .select(
         `
@@ -175,8 +182,9 @@ export class WorkPlanRepository {
         daily_work_plan_absences (*)
       `
       )
-      .eq("plan_date", planDate)
-      .maybeSingle();
+      .eq("plan_date", planDate);
+    if (branchId) query = query.eq("branch_id", branchId);
+    const { data, error } = await query.maybeSingle();
 
     if (error) throw error;
     if (!data) return null;
@@ -187,6 +195,7 @@ export class WorkPlanRepository {
 
     return {
       id: data.id as string,
+      branch_id: data.branch_id as string,
       plan_date: data.plan_date as string,
       notes: (data.notes as string | null) ?? null,
       created_by: (data.created_by as string | null) ?? null,
@@ -223,6 +232,7 @@ export class WorkPlanRepository {
 
     return {
       id: data.id as string,
+      branch_id: data.branch_id as string,
       plan_date: data.plan_date as string,
       notes: (data.notes as string | null) ?? null,
       created_by: (data.created_by as string | null) ?? null,
@@ -247,7 +257,7 @@ export class WorkPlanRepository {
     if (error) throw error;
   }
 
-  async deletePlansByMonth(month: string): Promise<void> {
+  async deletePlansByMonth(month: string, branchId?: string | null): Promise<void> {
     if (!/^\d{4}-\d{2}$/.test(month)) {
       throw new Error("Geçerli bir ay seçin");
     }
@@ -263,22 +273,25 @@ export class WorkPlanRepository {
     const nextMonth = monthNumber === 12
       ? `${year + 1}-01-01`
       : `${year}-${String(monthNumber + 1).padStart(2, "0")}-01`;
-    const { error } = await this.supabase
+    let query = this.supabase
       .from("daily_work_plans")
       .delete()
       .gte("plan_date", `${month}-01`)
       .lt("plan_date", nextMonth);
+    if (branchId) query = query.eq("branch_id", branchId);
+    const { error } = await query;
     if (error) throw persistenceError("Aylık iş planları silinemedi", error);
   }
 
-  async getLatestBefore(planDate: string): Promise<DailyWorkPlanWithTeams | null> {
-    const { data, error } = await this.supabase
+  async getLatestBefore(planDate: string, branchId?: string | null): Promise<DailyWorkPlanWithTeams | null> {
+    let query = this.supabase
       .from("daily_work_plans")
       .select("id")
       .lt("plan_date", planDate)
       .order("plan_date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+    if (branchId) query = query.eq("branch_id", branchId);
+    const { data, error } = await query.maybeSingle();
 
     if (error) throw error;
     return data?.id ? this.getById(data.id as string) : null;
@@ -300,6 +313,7 @@ export class WorkPlanRepository {
     teams: WorkPlanTeamSnapshot[];
     absences: WorkPlanAbsenceSnapshot[];
     existingPlanId?: string;
+    branchId?: string | null;
   }): Promise<DailyWorkPlanWithTeams> {
     if (input.teams.length === 0) {
       throw new Error("En az bir ekip gerekli");
@@ -357,7 +371,7 @@ export class WorkPlanRepository {
     }
 
     let planId = input.existingPlanId;
-    const planOnSelectedDate = await this.getByDate(input.planDate);
+    const planOnSelectedDate = await this.getByDate(input.planDate, input.branchId);
 
     if (planOnSelectedDate && planOnSelectedDate.id !== input.existingPlanId) {
       for (const team of planOnSelectedDate.teams) {
@@ -422,6 +436,7 @@ export class WorkPlanRepository {
         .from("daily_work_plans")
         .insert({
           plan_date: input.planDate,
+          ...(input.branchId ? { branch_id: input.branchId } : {}),
           notes: input.notes?.trim() || null,
           created_by: input.userId,
           updated_by: input.userId,

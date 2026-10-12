@@ -18,14 +18,15 @@ export const metadata = {
 export default async function EditWorkPlanPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
-  const [plan, personnel, vehicles, projects] = await Promise.all([
-    new WorkPlanRepository(supabase).getById(id),
-    new PersonnelRepository(supabase).list(),
-    new VehicleRepository(supabase).list(),
-    new ProjectRepository(supabase).listActiveOptions(),
-  ]);
-
+  const plan = await new WorkPlanRepository(supabase).getById(id);
   if (!plan || plan.plan_date < todayISODate()) notFound();
+
+  // Plan kendi şubesinin personeli, araçları ve projeleriyle düzenlenir.
+  const [personnel, vehicles, projects] = await Promise.all([
+    new PersonnelRepository(supabase).list({ branchId: plan.branch_id }),
+    new VehicleRepository(supabase).list({ branchId: plan.branch_id }),
+    new ProjectRepository(supabase).listActiveOptions(plan.branch_id),
+  ]);
 
   return (
     <WorkPlanEditor
@@ -37,6 +38,7 @@ export default async function EditWorkPlanPage({ params }: Props) {
       initialTeams={plan.teams}
       initialAbsences={plan.absences}
       initialNotes={plan.notes}
+      branchId={plan.branch_id}
     />
   );
 }

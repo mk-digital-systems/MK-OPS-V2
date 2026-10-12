@@ -130,6 +130,9 @@ export type PersonnelAdvance = {
 
 /** Ay sonu puantaj onayı; onaylı ay kilitlidir. */
 export type AttendanceMonthApproval = {
-  approved_at: string;
+  branch_id: string;
+  branch_name: string;
+  /** Onaylanmadıysa null. */
+  approved_at: string | null;
   approved_by_name: string | null;
 };

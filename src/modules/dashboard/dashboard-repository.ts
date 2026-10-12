@@ -15,16 +15,16 @@ const EMPTY_STATS: DashboardStats = {
 export class DashboardRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
-  async getStats(): Promise<DashboardStats> {
+  async getStats(branchId?: string | null): Promise<DashboardStats> {
     const { error: refreshError } = await this.supabase.rpc("refresh_overdue_project_statuses");
     if (refreshError && refreshError.code !== "PGRST202") throw refreshError;
-    const { data, error } = await this.supabase.rpc("get_dashboard_stats");
+    const { data, error } = await this.supabase.rpc("get_dashboard_stats", { p_branch_id: branchId ?? null });
     if (error) throw error;
     return { ...EMPTY_STATS, ...(data as Partial<DashboardStats> | null) };
   }
 
-  async getOverview(): Promise<DashboardOverview> {
-    const { data, error } = await this.supabase.rpc("get_dashboard_overview");
+  async getOverview(branchId?: string | null): Promise<DashboardOverview> {
+    const { data, error } = await this.supabase.rpc("get_dashboard_overview", { p_branch_id: branchId ?? null });
     if (error) throw error;
     const overview = (data ?? {}) as Partial<DashboardOverview>;
     return {

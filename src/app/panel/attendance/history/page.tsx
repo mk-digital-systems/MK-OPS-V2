@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { BranchRepository } from "@/modules/branches/branch-repository";
+import { getSelectedBranchId } from "@/lib/branch-selection";
 import { AttendanceRepository } from "@/modules/attendance/attendance-repository";
 import { MonthlyAttendanceTable } from "@/components/attendance/monthly-attendance-table";
 import { AttendanceMonthApprovalBar } from "@/components/attendance/attendance-month-approval";
@@ -57,14 +59,16 @@ export default async function AttendanceHistoryPage({ searchParams }: Props) {
       : "all";
 
   const supabase = await createClient();
+  const branchId = await getSelectedBranchId((await new BranchRepository(supabase).getMine()).branches);
   const repository = new AttendanceRepository(supabase);
-  const [data, exportData, monthNotes, archives, canWrite, approval, profile] = await Promise.all([
+  const [data, exportData, monthNotes, archives, canWrite, approvals, profile] = await Promise.all([
     repository.getMonth({
       year,
       month,
       activeFilter,
       search,
       statusFilter,
+      branchId,
     }),
     repository.getMonth({
       year,
@@ -72,11 +76,12 @@ export default async function AttendanceHistoryPage({ searchParams }: Props) {
       activeFilter: "all",
       search: "",
       statusFilter: "all",
+      branchId,
     }),
     repository.getMonthNotes(year, month),
     repository.getMonthArchives(),
     new UserRepository(supabase).canWrite("attendance"),
-    repository.getMonthApproval(year, month),
+    repository.getMonthApprovals(year, month),
     new UserRepository(supabase).getCurrent(),
   ]);
   const canApprove = profile?.role === "site_chief" || profile?.role === "company_manager";
@@ -86,7 +91,7 @@ export default async function AttendanceHistoryPage({ searchParams }: Props) {
       <AttendanceMonthApprovalBar
         year={year}
         month={month}
-        approval={approval}
+        approvals={branchId ? approvals.filter((item) => item.branch_id === branchId) : approvals}
         canApprove={canApprove}
         canReopen={profile?.role === "site_chief"}
       />
@@ -99,7 +104,7 @@ export default async function AttendanceHistoryPage({ searchParams }: Props) {
         initialStatusFilter={statusFilter}
         historyMode
         archives={archives}
-        readOnly={!canWrite || approval !== null}
+        readOnly={!canWrite || (branchId ? approvals.some((item) => item.branch_id === branchId && item.approved_at) : approvals.length > 0 && approvals.every((item) => item.approved_at))}
       />
     </div>
   );

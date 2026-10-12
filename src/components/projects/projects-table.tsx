@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { ProjectTypeShortcuts } from "@/components/projects/project-type-shortcuts";
+import { useBranches } from "@/components/layout/branch-provider";
 import { ProgressBar, ProjectStatusBadge, TypeDot } from "@/components/projects/project-status-indicators";
 
 type Props = {
@@ -48,6 +49,8 @@ export function ProjectsTable({
   allowArchiveScopeFilter = false,
 }: Props) {
   const router = useRouter();
+  const { multiBranch, branchName } = useBranches();
+  const branchSuffix = (id: string) => (multiBranch && branchName(id) ? ` · ${branchName(id)}` : "");
   const pathname = usePathname();
   const params = useSearchParams();
   const [pending, startTransition] = useTransition();
@@ -240,7 +243,7 @@ export function ProjectsTable({
                           <Link href={`/panel/projects/${project.id}`} className="font-medium hover:underline">
                             {project.name}
                           </Link>
-                          <p className="text-xs text-muted-foreground">{project.project_code}</p>
+                          <p className="text-xs text-muted-foreground">{project.project_code}{branchSuffix(project.branch_id)}</p>
                         </td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center gap-2">
@@ -274,7 +277,7 @@ export function ProjectsTable({
                       <div className="min-w-0">
                         <p className="truncate font-medium">{project.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {project.project_code} · {project.location}
+                          {project.project_code} · {project.location}{branchSuffix(project.branch_id)}
                         </p>
                       </div>
                       <ProjectStatusBadge status={project.status} />

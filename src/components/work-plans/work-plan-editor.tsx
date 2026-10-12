@@ -91,6 +91,8 @@ type Props = {
   initialAbsences?: WorkPlanAbsenceSnapshot[];
   initialNotes?: string | null;
   draftId?: string;
+  /** Planın şubesi (tek şubeli kullanıcıda null; veritabanı kendi şubesine yazar). */
+  branchId?: string | null;
 };
 
 /** Select bileşeni boş değer kabul etmediği için "araç yok" seçeneğinin değeri. */
@@ -139,6 +141,7 @@ export function WorkPlanEditor({
   initialAbsences,
   initialNotes,
   draftId,
+  branchId = null,
 }: Props) {
   const router = useRouter();
   const [planDate, setPlanDate] = useState(initialDate || tomorrowISODate());
@@ -427,7 +430,8 @@ export function WorkPlanEditor({
     setLoadingLatest(true);
     try {
       const latest = await new WorkPlanRepository(createClient()).getLatestBefore(
-        planDate
+        planDate,
+        branchId
       );
       if (!latest) {
         toast.info("Önceki bir iş planı bulunamadı");
@@ -517,6 +521,7 @@ export function WorkPlanEditor({
       if (!user) throw new Error("Oturum bulunamadı");
       const saved = await new WorkPlanRepository(supabase).saveDraft({
         id: draftId,
+        branchId,
         planDate,
         notes,
         userId: user.id,
@@ -593,6 +598,7 @@ export function WorkPlanEditor({
       const now = new Date().toISOString();
       setPreviewPlan({
         id: draftId ?? "draft-preview",
+        branch_id: branchId ?? "",
         plan_date: planDate,
         notes: notes.trim() || null,
         created_by: null,
@@ -619,6 +625,7 @@ export function WorkPlanEditor({
     try {
       const saved = await new WorkPlanRepository(supabase).upsertFullPlan({
         planDate,
+        branchId,
         notes,
         userId: user.id,
         existingPlanId,
@@ -659,6 +666,7 @@ export function WorkPlanEditor({
       const repo = new WorkPlanRepository(supabase);
       const saved = await repo.upsertFullPlan({
         planDate,
+        branchId,
         notes,
         userId: user.id,
         absences,

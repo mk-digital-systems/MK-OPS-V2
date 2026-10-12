@@ -86,7 +86,7 @@ e = await asErr(chief, `select public.approve_attendance_month($1, $2)`, [future
 check("ay bitmeden onaylanamaz", /Ay bitmeden/.test(e ?? ""), e);
 e = await asErr(chief, `select public.approve_attendance_month(2025, 11)`);
 check("şef geçmiş ayı onaylar", !e, e);
-const approval = (await one(acc, `select public.get_attendance_month_approval(2025, 11) a`)).a;
+const approval = (await one(acc, `select public.get_attendance_month_approvals(2025, 11) a`)).a[0];
 check("onay bilgisi muhasebeye görünür", approval?.approved_by_name === "u1", JSON.stringify(approval));
 e = await asErr(chief, `select public.approve_attendance_month(2025, 11)`);
 check("aynı ay iki kez onaylanamaz", /zaten/.test(e ?? ""), e);

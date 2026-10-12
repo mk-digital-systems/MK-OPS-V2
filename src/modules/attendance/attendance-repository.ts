@@ -28,6 +28,8 @@ export class AttendanceRepository {
     activeFilter?: PersonnelActivityFilter;
     search?: string;
     statusFilter?: AttendanceStatus | "all";
+    /** Menüde seçili şube (yoksa erişilebilen bütün şubeler). */
+    branchId?: string | null;
   }): Promise<MonthlyAttendanceData> {
     const { data, error } = await this.supabase.rpc("get_monthly_attendance", {
       p_year: options.year,
@@ -35,6 +37,7 @@ export class AttendanceRepository {
       p_active_filter: options.activeFilter ?? "active",
       p_search: options.search?.trim() ?? "",
       p_status_filter: options.statusFilter ?? "all",
+      p_branch_id: options.branchId ?? null,
     });
 
     if (error) throw error;
@@ -130,21 +133,22 @@ export class AttendanceRepository {
     return data as { saved: number; deleted: number };
   }
 
-  async getMonthApproval(year: number, month: number): Promise<AttendanceMonthApproval | null> {
-    const { data, error } = await this.supabase.rpc("get_attendance_month_approval", { p_year: year, p_month: month });
+  /** Erişilebilen şubelerin bu ayki onay durumu (şube başına bir satır). */
+  async getMonthApprovals(year: number, month: number): Promise<AttendanceMonthApproval[]> {
+    const { data, error } = await this.supabase.rpc("get_attendance_month_approvals", { p_year: year, p_month: month });
     if (error) throw error;
-    return (data as AttendanceMonthApproval | null) ?? null;
+    return (data as AttendanceMonthApproval[] | null) ?? [];
   }
 
   /** Şantiye şefi / firma yöneticisi: ay bittikten sonra ayı onaylar ve kilitler. */
-  async approveMonth(year: number, month: number): Promise<void> {
-    const { error } = await this.supabase.rpc("approve_attendance_month", { p_year: year, p_month: month });
+  async approveMonth(year: number, month: number, branchId: string): Promise<void> {
+    const { error } = await this.supabase.rpc("approve_attendance_month", { p_year: year, p_month: month, p_branch_id: branchId });
     if (error) throw error;
   }
 
   /** Yalnızca firma yöneticisi: onayı kaldırır, ay yeniden düzenlenebilir. */
-  async reopenMonth(year: number, month: number): Promise<void> {
-    const { error } = await this.supabase.rpc("reopen_attendance_month", { p_year: year, p_month: month });
+  async reopenMonth(year: number, month: number, branchId: string): Promise<void> {
+    const { error } = await this.supabase.rpc("reopen_attendance_month", { p_year: year, p_month: month, p_branch_id: branchId });
     if (error) throw error;
   }
 

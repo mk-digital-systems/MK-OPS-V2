@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { BranchRepository } from "@/modules/branches/branch-repository";
+import { getSelectedBranchId } from "@/lib/branch-selection";
 import { ProductionRepository } from "@/modules/productions/production-repository";
 import { PersonnelRepository } from "@/modules/work-plans/personnel-repository";
 import { UserRepository } from "@/modules/users/user-repository";
@@ -16,6 +18,7 @@ export default async function ProductionsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const supabase = await createClient();
+  const branchId = await getSelectedBranchId((await new BranchRepository(supabase).getMine()).branches);
   const params = await searchParams;
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Istanbul" }).format(new Date());
   // Proje detayındaki "İmalat" etiketinden gelince o günün imalatı açılır.
@@ -27,7 +30,7 @@ export default async function ProductionsPage({
   const userRepository = new UserRepository(supabase);
   const [personnel, entries, canWrite, canSeePrices, projects, types, account] = await Promise.all([
     new PersonnelRepository(supabase).list({ activeOnly: true }),
-    productionRepository.listEntries(monthStart, monthEnd),
+    productionRepository.listEntries(monthStart, monthEnd, branchId),
     userRepository.canWrite("productions"),
     userRepository.canWrite("hakedis"),
     productionRepository.listProjectOptions(),

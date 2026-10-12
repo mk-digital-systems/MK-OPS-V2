@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { BranchRepository } from "@/modules/branches/branch-repository";
+import { getSelectedBranchId } from "@/lib/branch-selection";
 import { AttendanceRepository } from "@/modules/attendance/attendance-repository";
 import { MonthlyAttendanceTable } from "@/components/attendance/monthly-attendance-table";
 import { AttendanceMonthApprovalBar } from "@/components/attendance/attendance-month-approval";
@@ -55,19 +57,21 @@ export default async function AttendancePage({ searchParams }: Props) {
       : "all";
 
   const supabase = await createClient();
+  const branchId = await getSelectedBranchId((await new BranchRepository(supabase).getMine()).branches);
   const attendanceRepository = new AttendanceRepository(supabase);
   try {
     await attendanceRepository.ensureSundays(year, month);
   } catch {
     // Yetkisiz kullanıcılar puantajı salt okunur görüntülemeye devam edebilir.
   }
-  const [data, exportData, monthNotes, canWrite, approval, profile] = await Promise.all([
+  const [data, exportData, monthNotes, canWrite, approvals, profile] = await Promise.all([
     attendanceRepository.getMonth({
       year,
       month,
       activeFilter,
       search,
       statusFilter,
+      branchId,
     }),
     attendanceRepository.getMonth({
       year,
@@ -75,10 +79,11 @@ export default async function AttendancePage({ searchParams }: Props) {
       activeFilter: "active",
       search: "",
       statusFilter: "all",
+      branchId,
     }),
     attendanceRepository.getMonthNotes(year, month),
     new UserRepository(supabase).canWrite("attendance"),
-    attendanceRepository.getMonthApproval(year, month),
+    attendanceRepository.getMonthApprovals(year, month),
     new UserRepository(supabase).getCurrent(),
   ]);
   const canApprove = profile?.role === "site_chief" || profile?.role === "company_manager";
@@ -88,7 +93,7 @@ export default async function AttendancePage({ searchParams }: Props) {
       <AttendanceMonthApprovalBar
         year={year}
         month={month}
-        approval={approval}
+        approvals={branchId ? approvals.filter((item) => item.branch_id === branchId) : approvals}
         canApprove={canApprove}
         canReopen={profile?.role === "site_chief"}
       />
@@ -99,7 +104,7 @@ export default async function AttendancePage({ searchParams }: Props) {
         initialSearch={search}
         initialActivityFilter={activeFilter}
         initialStatusFilter={statusFilter}
-        readOnly={!canWrite || approval !== null}
+        readOnly={!canWrite || (branchId ? approvals.some((item) => item.branch_id === branchId && item.approved_at) : approvals.length > 0 && approvals.every((item) => item.approved_at))}
       />
     </div>
   );

@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { BranchRepository } from "@/modules/branches/branch-repository";
+import { getEffectiveBranchId } from "@/lib/branch-selection";
 import { PersonnelRepository } from "@/modules/work-plans/personnel-repository";
 import { VehicleRepository } from "@/modules/vehicles/vehicle-repository";
 import { ProjectRepository } from "@/modules/projects/project-repository";
@@ -11,10 +13,11 @@ export const metadata = {
 
 export default async function NewWorkPlanPage() {
   const supabase = await createClient();
+  const branchId = await getEffectiveBranchId((await new BranchRepository(supabase).getMine()).branches);
   const [personnel, vehicles, projects] = await Promise.all([
-    new PersonnelRepository(supabase).list(),
-    new VehicleRepository(supabase).list(),
-    new ProjectRepository(supabase).listActiveOptions(),
+    new PersonnelRepository(supabase).list({ branchId }),
+    new VehicleRepository(supabase).list({ branchId }),
+    new ProjectRepository(supabase).listActiveOptions(branchId),
   ]);
 
   return (
@@ -23,6 +26,7 @@ export default async function NewWorkPlanPage() {
       vehicles={vehicles}
       projects={projects}
       initialDate={tomorrowISODate()}
+      branchId={branchId}
     />
   );
 }

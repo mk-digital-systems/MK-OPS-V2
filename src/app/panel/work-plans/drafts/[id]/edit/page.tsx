@@ -14,13 +14,14 @@ export default async function EditWorkPlanDraftPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
   const repo = new WorkPlanRepository(supabase);
-  const [draft, personnel, vehicles, projects] = await Promise.all([
-    repo.getDraft(id),
-    new PersonnelRepository(supabase).list(),
-    new VehicleRepository(supabase).list(),
-    new ProjectRepository(supabase).listActiveOptions(),
-  ]);
+  const draft = await repo.getDraft(id);
   if (!draft) notFound();
+  // Taslak kendi şubesinin personeli, araçları ve projeleriyle düzenlenir.
+  const [personnel, vehicles, projects] = await Promise.all([
+    new PersonnelRepository(supabase).list({ branchId: draft.branch_id }),
+    new VehicleRepository(supabase).list({ branchId: draft.branch_id }),
+    new ProjectRepository(supabase).listActiveOptions(draft.branch_id),
+  ]);
   return (
     <WorkPlanEditor
       personnel={personnel}
@@ -31,6 +32,7 @@ export default async function EditWorkPlanDraftPage({ params }: Props) {
       initialTeams={draft.teams}
       initialAbsences={draft.absences}
       initialNotes={draft.notes}
+      branchId={draft.branch_id}
     />
   );
 }

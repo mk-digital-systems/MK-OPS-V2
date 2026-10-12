@@ -326,7 +326,9 @@ export default function GuidePage() {
           <strong>Ayarlar → Şubeler:</strong> firma yöneticisi şube açar (her firmada otomatik bir &quot;Merkez&quot; vardır).
           Proje, personel ve araç formlarında şube seçilir; menünün üstündeki şube seçimiyle listeler o şubeye göre süzülür.
           Şantiye şefi ve muhasebeye <strong>Kullanıcılar</strong> sayfasından şube atanır; yalnızca atandıkları şubelerin kayıtlarını
-          görür ve işlerler. Tek şubeli firmada şube seçimi görünmez.
+          görür ve işlerler. Her şubenin kendi günlük iş planı ve ay sonu puantaj onayı vardır; hakediş raporu, Genel Bakış ve
+          bildirimler şubeye göre süzülür. Malzeme stokunda herkes kendi şubesinin depolarını görür ve oradan çıkış yapar;
+          başka şubenin deposuna sevkiyat yapılabilir. Tek şubeli firmada şube seçimi görünmez.
         </li>
         <li>
           <strong>Ayarlar → Firma Logosu:</strong> PNG, JPG veya WEBP (en fazla 2 MB) logo yükleyin. Bütün PDF, Word ve Excel

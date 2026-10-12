@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useBranches } from "@/components/layout/branch-provider";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CalendarDays, Loader2, Plus, Search, Trash2 } from "lucide-react";
@@ -28,6 +29,7 @@ type Props = {
 };
 
 export function WorkPlansHome({ todayPlan, pastPlans, drafts, readOnly = false }: Props) {
+  const { effectiveBranchId, multiBranch, branchName } = useBranches();
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<WorkPlanSearchHit[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -57,7 +59,7 @@ export function WorkPlansHome({ todayPlan, pastPlans, drafts, readOnly = false }
     if (!window.confirm(`${label} ayındaki tüm iş planları kalıcı olarak silinsin mi?`)) return;
     setDeletingMonth(month);
     try {
-      await new WorkPlanRepository(createClient()).deletePlansByMonth(month);
+      await new WorkPlanRepository(createClient()).deletePlansByMonth(month, effectiveBranchId);
       toast.success(`${label} ayına ait iş planları silindi`);
       router.refresh();
     } catch (error) {
@@ -93,6 +95,9 @@ export function WorkPlansHome({ todayPlan, pastPlans, drafts, readOnly = false }
           <h1 className="text-3xl font-semibold tracking-tight">İş Planı</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Günlük ekip planları, geçmiş kayıtlar ve WhatsApp paylaşımı
+            {multiBranch && effectiveBranchId && (
+              <> · Şube: <strong>{branchName(effectiveBranchId)}</strong> (menüden değiştirilir)</>
+            )}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

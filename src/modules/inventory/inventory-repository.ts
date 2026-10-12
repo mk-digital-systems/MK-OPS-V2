@@ -96,8 +96,9 @@ export class InventoryRepository {
     return (data ?? []) as InventoryLocation[];
   }
 
-  async saveLocation(id: string | null, name: string): Promise<string> {
-    const { data, error } = await this.supabase.rpc("save_inventory_location", { p_id: id, p_name: name });
+  /** Yeni depo verilen şubeye (yoksa kullanıcının varsayılan şubesine) eklenir. */
+  async saveLocation(id: string | null, name: string, branchId?: string | null): Promise<string> {
+    const { data, error } = await this.supabase.rpc("save_inventory_location", { p_id: id, p_name: name, p_branch_id: id ? null : branchId ?? null });
     if (error) throw error;
     return data as string;
   }

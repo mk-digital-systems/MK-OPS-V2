@@ -5,14 +5,14 @@ import type { HakedisReport, HakedisSummary, ProjectPricing } from "@/types/hake
 export class HakedisRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
-  async getReport(start: string, end: string): Promise<HakedisReport> {
-    const { data, error } = await this.supabase.rpc("get_hakedis_report", { p_start: start, p_end: end });
+  async getReport(start: string, end: string, branchId?: string | null): Promise<HakedisReport> {
+    const { data, error } = await this.supabase.rpc("get_hakedis_report", { p_start: start, p_end: end, p_branch_id: branchId ?? null });
     if (error) throw error;
     return data as HakedisReport;
   }
 
-  async getSummary(): Promise<HakedisSummary | null> {
-    const { data, error } = await this.supabase.rpc("get_hakedis_summary");
+  async getSummary(branchId?: string | null): Promise<HakedisSummary | null> {
+    const { data, error } = await this.supabase.rpc("get_hakedis_summary", { p_branch_id: branchId ?? null });
     if (error) throw error;
     return (data as HakedisSummary | null) ?? null;
   }

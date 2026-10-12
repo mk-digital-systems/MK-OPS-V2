@@ -45,7 +45,7 @@ devam edileceği kararlaştırılır. Her adım kullanıcının onayıyla ilerle
   atama (Kullanıcılar), proje/personel/araç formunda şube, menüde şube seçici (listeler süzülür), şef ve
   muhasebe yalnızca kendi şubeleri (RLS + fonksiyon içi yazma koruması). Kararlar: personel tek şube;
   puantaj onayı şube bazında; malzeme sevkiyatı anında; proje türleri/fiyatlar firma genelinde ortak.
-- [ ] **D2 — Şubeler (devam):** günlük iş planı şube bazında (bugün firmada günde tek plan; `daily_work_plans`
+- [x] **D2 — Şubeler (devam)** (`20261022000001_branches_d2.sql`): günlük iş planı şube bazında (bugün firmada günde tek plan; `daily_work_plans`
   benzersizliği şube+tarih olacak); imalat ve onay ekranları şubeye göre; ay sonu puantaj onayı şube bazında;
   puantaj sayfasında şube süzgeci; hakediş raporu, taşeron listesi/ekstresi, Genel Bakış ve bildirimler
   şubeye göre (bu fonksiyonlar şu an firma genelini tarıyor); malzeme stoku: depo formunda şube seçimi,

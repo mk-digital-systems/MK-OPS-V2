@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { BranchRepository } from "@/modules/branches/branch-repository";
+import { getSelectedBranchId } from "@/lib/branch-selection";
 import { UserRepository } from "@/modules/users/user-repository";
 import { CompanyRepository } from "@/modules/company/company-repository";
 import { HakedisRepository } from "@/modules/hakedis/hakedis-repository";
@@ -30,7 +32,8 @@ export default async function HakedisPage({
   const periods = listPeriods(account.company.payroll_start_day, 12);
   const start = isDate(params.start) ? params.start : periods[0].start;
   const end = isDate(params.end) && params.end >= start ? params.end : periods[0].end;
-  const report = await new HakedisRepository(supabase).getReport(start, end);
+  const branchId = await getSelectedBranchId((await new BranchRepository(supabase).getMine()).branches);
+  const report = await new HakedisRepository(supabase).getReport(start, end, branchId);
 
   return (
     <HakedisReportView

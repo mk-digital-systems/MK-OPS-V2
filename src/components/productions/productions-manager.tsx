@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CompanyLogo, useReportBrand } from "@/components/layout/company-brand-provider";
+import { useBranches } from "@/components/layout/branch-provider";
 
 /** stage: projenin iş kalemi (projeye iş kaydı açar); extra: fiyatlı ek iş; note: eski serbest metin */
 type FormLine = { key: string; itemId: string | null; kind: ProductionItemKind; progressId: string; description: string; quantity: string; unit: string; unitPrice: string };
@@ -95,6 +96,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
   initialExtraPrices: Record<string, number>;
   currency: CurrencyCode;
 }) {
+  const { effectiveBranchId } = useBranches();
   const brand = useReportBrand();
   const initialDailyEntries = initialEntries.filter((entry) => entry.work_date === initialDate);
   const [date, setDate] = useState(initialDate);
@@ -153,7 +155,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
   async function fillFromWorkPlan() {
     setLoading(true);
     try {
-      const plan = await new WorkPlanRepository(createClient()).getByDate(date);
+      const plan = await new WorkPlanRepository(createClient()).getByDate(date, effectiveBranchId);
       if (!plan?.teams.length) return void toast.info(`${formatDate(date)} için kayıtlı iş planı yok`);
       const used = new Set(teams.map((team) => team.personnelId).filter(Boolean));
       const added: FormTeam[] = [];

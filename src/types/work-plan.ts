@@ -92,6 +92,8 @@ export type WorkPlanAbsenceSnapshot = {
 
 export type DailyWorkPlan = {
   id: string;
+  /** Her şubenin günde bir planı vardır. */
+  branch_id: string;
   plan_date: string;
   notes: string | null;
   created_by: string | null;
@@ -107,6 +109,7 @@ export type DailyWorkPlanWithTeams = DailyWorkPlan & {
 
 export type WorkPlanDraft = {
   id: string;
+  branch_id: string;
   plan_date: string;
   notes: string | null;
   teams: WorkPlanTeamSnapshot[];

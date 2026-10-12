@@ -14,6 +14,8 @@ export type InventoryCategory = {
 export type InventoryLocation = {
   id: string;
   name: string;
+  /** Deponun şubesi. */
+  branch_id: string;
   is_main: boolean;
   sort_order: number;
 };

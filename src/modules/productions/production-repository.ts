@@ -4,8 +4,10 @@ import type { ProjectType } from "@/types/project";
 
 export class ProductionRepository {
   constructor(private readonly supabase: SupabaseClient) {}
-  async listEntries(from: string, to: string): Promise<ProductionEntry[]> {
-    const { data, error } = await this.supabase.from("production_entries").select(`*, production_jobs(*, production_items(*))`).gte("work_date", from).lte("work_date", to).order("work_date", { ascending: false });
+  async listEntries(from: string, to: string, branchId?: string | null): Promise<ProductionEntry[]> {
+    let query = this.supabase.from("production_entries").select(`*, production_jobs(*, production_items(*))`).gte("work_date", from).lte("work_date", to).order("work_date", { ascending: false });
+    if (branchId) query = query.eq("branch_id", branchId);
+    const { data, error } = await query;
     if (error) throw error;
     return (data ?? []).map((entry) => ({ ...entry, jobs: [...(entry.production_jobs ?? [])].sort((a,b) => a.sort_order-b.sort_order).map((job) => ({ ...job, items: [...(job.production_items ?? [])].sort((a,b) => a.sort_order-b.sort_order) })) })) as ProductionEntry[];
   }
