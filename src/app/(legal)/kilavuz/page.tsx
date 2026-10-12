@@ -259,7 +259,8 @@ export default function GuidePage() {
         <li>
           <strong>İrsaliye ile Stok Girişi:</strong> tarih, irsaliye no ve teslim alanı yazın, girişin yapılacağı depoyu seçin,
           malzemeleri listeleyin. Şube kullanıcısı yalnızca kendi şubesinin depolarını, firma yöneticisi bütün şubelerin
-          depolarını seçebilir.
+          depolarını seçebilir. Şube şantiye şefinin veya muhasebenin girdiği irsaliye &quot;Onay bekliyor&quot; olarak kaydedilir;
+          firma yöneticisi veya Merkez şantiye şefi <strong>Onaylar</strong> sayfasından onaylayınca stoğa girer.
         </li>
         <li>
           <strong>Stoktan düş:</strong> malzemenin yanındaki düğmeyle, hangi depodan ne kadar çıktığını ve hangi projede
@@ -270,8 +271,8 @@ export default function GuidePage() {
           malzeme kullanılmadıysa geri alınabilir.
         </li>
         <li>
-          <strong>Malzeme Talep Listesi:</strong> ihtiyaç talebi oluşturun → onaylayın → irsaliye gelince kontrol edin → stok
-          onayıyla ana depoya alın.
+          <strong>Malzeme Talep Listesi:</strong> şubeniz için ihtiyaç talebi oluşturun → firma yöneticisi veya Merkez şantiye
+          şefi onaylar → irsaliye gelince kontrol edip giriş deposunu seçin → stok girişi onaylanınca malzeme şubenin deposuna girer.
         </li>
       </ol>
       <p>
@@ -331,7 +332,11 @@ export default function GuidePage() {
           Şantiye şefi ve muhasebeye <strong>Kullanıcılar</strong> sayfasından şube atanır; yalnızca atandıkları şubelerin kayıtlarını
           görür ve işlerler. Merkez&apos;e atanan şantiye şefi (ya da firma yöneticisinin &quot;Merkez yetkisi&quot; verdiği şef)
           firma yöneticisi gibi bütün şubeleri görür ve işler: şubelerin eklediği personel ve aracı onaylar, personeli ve aracı
-          şubeler arasında taşır, başka şubenin deposuna irsaliye girer. Şube şantiye şefi şube değiştiremez. Her şubenin kendi
+          şubeler arasında taşır, başka şubenin deposuna irsaliye girer. Şube şantiye şefi şube değiştiremez.
+          Personelin veya aracın şubesi kartından değiştirilirken bir <strong>geçiş tarihi</strong> girilir; o tarihten itibaren
+          puantaj günleri ve yakıt yeni şubeye yazılır. Puantajda ay içinde birden fazla şubede çalışan personelin altında
+          &quot;Merkez 12 gün · Bolu 5 gün&quot; gibi şube dağılımı görünür. Yakıt alımında şube seçilebilir (boş bırakılırsa aracın
+          o tarihteki şubesi); Araçlar sayfasındaki yakıt raporunda şube bazında litre toplamları görünür. Her şubenin kendi
           günlük iş planı ve ay sonu puantaj onayı vardır; hakediş raporu, Genel Bakış (Tüm Şubeler veya tek şube) ve bildirimler
           şubeye göre süzülür. Malzeme stokunda herkes kendi şubesinin depolarını görür ve oradan çıkış yapar;
           başka şubenin deposuna sevkiyat yapılabilir. Tek şubeli firmada şube seçimi görünmez.

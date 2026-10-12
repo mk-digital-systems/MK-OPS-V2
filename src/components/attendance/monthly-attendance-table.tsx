@@ -72,6 +72,8 @@ type Props = {
   historyMode?: boolean;
   archives?: AttendanceMonthArchive[];
   readOnly?: boolean;
+  /** Ay içinde birden fazla şubede çalışan personel: kimlik → "Merkez 12 gün · Bolu 5 gün". */
+  branchDays?: Record<string, string>;
 };
 
 const EMPTY_TOTALS: AttendanceTotals = {
@@ -146,6 +148,7 @@ export function MonthlyAttendanceTable({
   historyMode = false,
   archives = [],
   readOnly = false,
+  branchDays = {},
 }: Props) {
   const brand = useReportBrand();
   const router = useRouter();
@@ -889,6 +892,7 @@ export function MonthlyAttendanceTable({
                       onToggle={togglePersonnel}
                       onChange={setAttendance}
                       editable={editingEnabled}
+                      branchDays={branchDays[personnel.id]}
                     />
                   ))}
                 </Fragment>
@@ -916,6 +920,7 @@ const AttendanceRow = memo(function AttendanceRow({
   onToggle,
   onChange,
   editable,
+  branchDays,
 }: {
   personnel: MonthlyAttendancePersonnel;
   days: ReturnType<typeof getMonthDays>;
@@ -929,6 +934,7 @@ const AttendanceRow = memo(function AttendanceRow({
     status: AttendanceStatus | null
   ) => void;
   editable: boolean;
+  branchDays?: string;
 }) {
   const { totals, sundayWorked } = useMemo(() => {
     const next = { ...EMPTY_TOTALS, ...personnel.totals };
@@ -974,6 +980,11 @@ const AttendanceRow = memo(function AttendanceRow({
             <span className="block text-[10px] text-muted-foreground">
               {personnel.is_active ? "Aktif" : "Pasif"} · Çalıştı: {totals.worked} gün
             </span>
+            {branchDays && (
+              <span className="block text-[10px] font-medium text-primary" title="Şube bazında çalışılan gün">
+                {branchDays}
+              </span>
+            )}
           </span>
         </label>
       </td>

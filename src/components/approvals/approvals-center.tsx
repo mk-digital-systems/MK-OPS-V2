@@ -7,6 +7,9 @@ import { toast } from "sonner";
 import type { Personnel } from "@/types/work-plan";
 import type { Vehicle } from "@/types/vehicle";
 import type { AttendanceMonthApproval } from "@/types/attendance";
+import type { InventoryLocation, InventoryReceipt, InventoryRequest } from "@/types/inventory";
+import { formatInventoryQuantity } from "@/lib/constants/inventory";
+import { InventoryRepository } from "@/modules/inventory/inventory-repository";
 import { MONTH_NAMES } from "@/lib/constants/attendance";
 import { createClient } from "@/lib/supabase/client";
 import { PersonnelRepository } from "@/modules/work-plans/personnel-repository";
@@ -24,7 +27,9 @@ export function ApprovalsCenter({
   monthApprovals,
   year,
   month,
-  requestCounts,
+  requests,
+  receipts,
+  locations,
   currentUserId,
 }: {
   personnel: Personnel[];
@@ -32,7 +37,11 @@ export function ApprovalsCenter({
   monthApprovals: AttendanceMonthApproval[];
   year: number;
   month: number;
-  requestCounts: { requested: number; receiptReview: number };
+  /** Onay bekleyen malzeme talepleri (talep onayı veya stok girişi onayı). */
+  requests: InventoryRequest[];
+  /** Şube şefi/muhasebenin girdiği, onay bekleyen irsaliyeler. */
+  receipts: InventoryReceipt[];
+  locations: InventoryLocation[];
   currentUserId: string | null;
 }) {
   const router = useRouter();
@@ -40,8 +49,18 @@ export function ApprovalsCenter({
   const withBranch = (branchId: string, text: string | null) =>
     [multiBranch ? branchName(branchId) : null, text].filter(Boolean).join(" · ") || null;
   const openMonths = monthApprovals.filter((item) => !item.approved_at);
-  const requestTotal = requestCounts.requested + requestCounts.receiptReview;
-  const nothingPending = !personnel.length && !vehicles.length && !openMonths.length && !requestTotal;
+  const nothingPending = !personnel.length && !vehicles.length && !openMonths.length && !requests.length && !receipts.length;
+  const locationName = (id: string | null) => locations.find((item) => item.id === id)?.name ?? null;
+
+  async function stockAction(action: (repository: InventoryRepository) => Promise<unknown>, message: string) {
+    try {
+      await action(new InventoryRepository(createClient()));
+      toast.success(message);
+      router.refresh();
+    } catch (error) {
+      toast.error("İşlem tamamlanamadı", { description: (error as Error)?.message });
+    }
+  }
 
   async function review(kind: "personnel" | "vehicle", id: string, approve: boolean) {
     const supabase = createClient();
@@ -125,23 +144,74 @@ export function ApprovalsCenter({
         </Card>
       )}
 
-      {requestTotal > 0 && (
+      <PendingApprovalsCard
+        noun="irsaliye"
+        description="Şube şantiye şefinin veya muhasebenin girdiği irsaliyeler. Onaylanınca seçilen depoya stok olarak girer; reddedilen irsaliye silinir."
+        items={receipts.map((receipt) => ({
+          id: receipt.id,
+          title: `${receipt.dispatch_number} · ${receipt.received_by}`,
+          subtitle: withBranch(
+            receipt.branch_id,
+            [
+              locationName(receipt.location_id),
+              (receipt.lines ?? [])
+                .map((line) => `${line.catalog?.material_name ?? "—"}${line.material_code ? ` (${line.material_code})` : ""} ${formatInventoryQuantity(line.quantity, line.catalog?.unit ?? "piece")}`)
+                .join(", "),
+            ].filter(Boolean).join(" · ")
+          ),
+          createdBy: receipt.created_by,
+          createdAt: receipt.created_at,
+        }))}
+        canReview
+        currentUserId={currentUserId}
+        onReview={(id, approve) => stockAction((repository) => repository.reviewReceipt(id, approve), approve ? "İrsaliye onaylandı ve stoğa işlendi" : "İrsaliye reddedildi")}
+      />
+
+      {requests.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <ClipboardList className="h-4 w-4 text-amber-600" />
-              Malzeme Talepleri
+              Malzeme Talepleri ({requests.length})
             </CardTitle>
-            <CardDescription>
-              {[
-                requestCounts.requested ? `${requestCounts.requested} talep onay bekliyor` : null,
-                requestCounts.receiptReview ? `${requestCounts.receiptReview} irsaliye stok girişi onayı bekliyor` : null,
-              ].filter(Boolean).join(" · ")}
-            </CardDescription>
+            <CardDescription>Talep onaylanınca şube irsaliyeyi kontrol eder; stok girişi onaylanınca malzeme şubenin deposuna girer.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-2">
+            {requests.map((request) => {
+              const review = request.status === "receipt_review";
+              const lines = review ? request.receipt_items : request.items;
+              return (
+                <div key={request.id} className="flex flex-col gap-3 rounded-xl border bg-background px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="font-medium">
+                      {request.requested_by}
+                      <span className="ml-2 text-xs font-normal text-muted-foreground">
+                        {review ? `Stok girişi onayı · İrsaliye ${request.pending_dispatch_number ?? ""}` : "Talep onayı"}
+                      </span>
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {withBranch(request.branch_id, [
+                        review ? locationName(request.location_id) : null,
+                        lines.map((item) => `${item.catalog?.material_name ?? "—"} ${formatInventoryQuantity(item.quantity, item.catalog?.unit ?? "piece")}`).join(", "),
+                      ].filter(Boolean).join(" · "))}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      stockAction(
+                        (repository) => (review ? repository.finalizeRequestReceipt(request.id) : repository.approveRequest(request.id)),
+                        review ? "Stok girişi onaylandı" : "Talep onaylandı"
+                      )
+                    }
+                  >
+                    {review ? "Stok Girişini Onayla" : "Talebi Onayla"}
+                  </Button>
+                </div>
+              );
+            })}
             <Button asChild size="sm" variant="outline">
-              <Link href="/panel/inventory">Malzeme Stoğa Git</Link>
+              <Link href="/panel/inventory">Ayrıntılar için Malzeme Stok</Link>
             </Button>
           </CardContent>
         </Card>

@@ -64,7 +64,7 @@ export default async function AttendancePage({ searchParams }: Props) {
   } catch {
     // Yetkisiz kullanıcılar puantajı salt okunur görüntülemeye devam edebilir.
   }
-  const [data, exportData, monthNotes, canWrite, approvals, profile] = await Promise.all([
+  const [data, exportData, monthNotes, canWrite, approvals, profile, branchDays] = await Promise.all([
     attendanceRepository.getMonth({
       year,
       month,
@@ -85,6 +85,7 @@ export default async function AttendancePage({ searchParams }: Props) {
     new UserRepository(supabase).canWrite("attendance"),
     attendanceRepository.getMonthApprovals(year, month),
     new UserRepository(supabase).getCurrent(),
+    attendanceRepository.getBranchDayLabels(year, month),
   ]);
   const canApprove = profile?.role === "site_chief" || profile?.role === "company_manager";
 
@@ -104,6 +105,7 @@ export default async function AttendancePage({ searchParams }: Props) {
         initialSearch={search}
         initialActivityFilter={activeFilter}
         initialStatusFilter={statusFilter}
+        branchDays={branchDays}
         readOnly={!canWrite || (branchId ? approvals.some((item) => item.branch_id === branchId && item.approved_at) : approvals.length > 0 && approvals.every((item) => item.approved_at))}
       />
     </div>

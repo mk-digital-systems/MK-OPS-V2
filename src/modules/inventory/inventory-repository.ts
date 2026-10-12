@@ -155,8 +155,18 @@ export class InventoryRepository {
 
   async listReceipts(limit = 100): Promise<InventoryReceipt[]> {
     const { data, error } = await this.supabase.from("inventory_receipts")
-      .select("*, items:inventory_receipt_items(*, material:inventory_materials(material_name,material_code,unit,category_id,material_type,size))")
+      .select("*, items:inventory_receipt_items(*, material:inventory_materials(material_name,material_code,unit,category_id,material_type,size)), lines:inventory_receipt_lines(*, catalog:inventory_catalog(material_name,material_type,size,unit))")
       .order("receipt_date", { ascending: false }).order("created_at", { ascending: false }).limit(limit);
+    if (error) throw error;
+    return (data ?? []) as InventoryReceipt[];
+  }
+
+  /** Onay bekleyen irsaliyeler (Onaylar sayfası). */
+  async listPendingReceipts(): Promise<InventoryReceipt[]> {
+    const { data, error } = await this.supabase.from("inventory_receipts")
+      .select("*, items:inventory_receipt_items(*), lines:inventory_receipt_lines(*, catalog:inventory_catalog(material_name,material_type,size,unit))")
+      .eq("status", "pending")
+      .order("created_at");
     if (error) throw error;
     return (data ?? []) as InventoryReceipt[];
   }
@@ -174,6 +184,8 @@ export class InventoryRepository {
     request_date: string;
     requested_by: string;
     notes?: string;
+    /** Boşsa kullanıcının varsayılan şubesi. */
+    branch_id?: string | null;
     items: Array<{
       catalog_id?: string;
       quantity: number;
@@ -193,6 +205,7 @@ export class InventoryRepository {
       p_requested_by: payload.requested_by,
       p_notes: payload.notes || null,
       p_items: payload.items,
+      p_branch_id: payload.branch_id || null,
     });
     if (error) throw error;
   }
@@ -208,6 +221,8 @@ export class InventoryRepository {
     received_by: string;
     dispatch_number: string;
     notes?: string;
+    /** Talebin şubesindeki depo; boşsa şubenin deposu. */
+    location_id?: string | null;
     items: Array<{ catalog_id: string; quantity: number; material_code?: string }>;
   }): Promise<void> {
     const { error } = await this.supabase.rpc("submit_inventory_request_receipt", {
@@ -217,6 +232,7 @@ export class InventoryRepository {
       p_dispatch_number: payload.dispatch_number,
       p_notes: payload.notes || null,
       p_items: payload.items,
+      p_location_id: payload.location_id || null,
     });
     if (error) throw error;
   }
@@ -241,6 +257,12 @@ export class InventoryRepository {
       p_dispatch_number: payload.dispatch_number, p_notes: payload.notes || null, p_items: payload.items,
       p_location_id: payload.location_id,
     });
+    if (error) throw error;
+  }
+
+  /** Onay bekleyen irsaliyeyi onaylar (stoğa işler) veya reddeder (siler). Firma yöneticisi / Merkez şefi. */
+  async reviewReceipt(id: string, approve: boolean): Promise<void> {
+    const { error } = await this.supabase.rpc("review_inventory_receipt", { p_receipt_id: id, p_approve: approve });
     if (error) throw error;
   }
 

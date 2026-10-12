@@ -53,6 +53,8 @@ export type VehicleFuelLog = {
   odometer_km: number;
   liters: number;
   notes: string | null;
+  /** Yakıtın yazıldığı şube (varsayılan: aracın o tarihteki şubesi). */
+  branch_id: string;
   created_by: string | null;
   created_at: string;
 };

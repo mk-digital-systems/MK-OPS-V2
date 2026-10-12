@@ -31,6 +31,12 @@ export class BranchRepository {
     if (error) throw error;
   }
 
+  /** Personelin/aracın şubesini geçiş tarihiyle değiştirir (firma yöneticisi, Merkez şefi). */
+  async changeRecordBranch(kind: "personnel" | "vehicle", id: string, branchId: string, startDate: string): Promise<void> {
+    const { error } = await this.supabase.rpc("change_record_branch", { p_kind: kind, p_id: id, p_branch_id: branchId, p_start_date: startDate });
+    if (error) throw error;
+  }
+
   /** Şantiye şefine Merkez yetkisi verir/kaldırır (yalnızca firma yöneticisi). */
   async setHeadOffice(userId: string, enabled: boolean): Promise<void> {
     const { error } = await this.supabase.rpc("set_user_head_office", { p_user_id: userId, p_enabled: enabled });

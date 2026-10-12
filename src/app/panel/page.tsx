@@ -29,9 +29,12 @@ export default async function DashboardPage() {
   const pendingApprovals = myBranches.head_office
     ? (
         await Promise.all(
-          (["personnel", "vehicles"] as const).map((table) =>
-            supabase.from(table).select("id", { count: "exact", head: true }).eq("approval_status", "pending")
-          )
+          [
+            supabase.from("personnel").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
+            supabase.from("vehicles").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
+            supabase.from("inventory_receipts").select("id", { count: "exact", head: true }).eq("status", "pending"),
+            supabase.from("inventory_requests").select("id", { count: "exact", head: true }).in("status", ["requested", "receipt_review"]),
+          ]
         )
       ).reduce((sum, result) => sum + (result.count ?? 0), 0)
     : null;

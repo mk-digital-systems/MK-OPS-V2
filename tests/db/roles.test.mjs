@@ -87,6 +87,9 @@ const unit = (await sys(`select (enum_range(null::public.inventory_unit))[1]::te
 const catalog = (await one(owner, `select public.create_inventory_catalog_material('Kablo', null, null, null, $1::public.inventory_unit, false) id`, [unit])).id;
 e = await asErr(acc, `select public.create_inventory_receipt(current_date, 'Muhasebe', 'IRS-9', null, $1::jsonb)`, [JSON.stringify([{ catalog_id: catalog, quantity: 5 }])]);
 check("muhasebe irsaliye teslim alır", !e, e);
+const accReceipt = (await sys(`select id, status from public.inventory_receipts where dispatch_number = 'IRS-9'`)).rows[0];
+check("muhasebenin irsaliyesi onay bekler, stok değişmez", accReceipt.status === "pending" && (await one(acc, `select count(*)::int n from public.inventory_materials`)).n === 0);
+await as(owner, `select public.review_inventory_receipt($1, true)`, [accReceipt.id]);
 check("muhasebe malzeme stokunu görür", (await one(acc, `select count(*)::int n from public.inventory_materials`)).n === 1);
 check("muhasebe stok hareketlerini görür", (await one(acc, `select count(*)::int n from public.inventory_movements`)).n === 1);
 e = await asErr(acc, `select public.assign_user_role($1, 'accounting')`, [joiner]);

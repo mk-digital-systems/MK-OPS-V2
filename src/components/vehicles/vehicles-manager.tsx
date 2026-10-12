@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/client";
 import { VehicleRepository } from "@/modules/vehicles/vehicle-repository";
 import { PendingApprovalsCard } from "@/components/approvals/pending-approvals-card";
 import { BranchSelectField, useBranches } from "@/components/layout/branch-provider";
+import { BranchRepository } from "@/modules/branches/branch-repository";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -54,7 +55,9 @@ export function VehiclesManager({
   currentUserId?: string | null;
 }) {
   const brand = useReportBrand();
-  const { defaultBranchId, multiBranch, branchName, headOffice } = useBranches();
+  const { defaultBranchId, multiBranch, branchName, headOffice, branches } = useBranches();
+  const todayIso = new Date().toLocaleDateString("en-CA");
+  const [branchStartDate, setBranchStartDate] = useState(todayIso);
   const [branchId, setBranchId] = useState("");
   const [vehicles, setVehicles] = useState(initialVehicles);
   const [editing, setEditing] = useState<Vehicle | null>(null);
@@ -65,7 +68,7 @@ export function VehiclesManager({
   const [fuelVehicle, setFuelVehicle] = useState<Vehicle | null>(null);
   const [assignmentVehicle, setAssignmentVehicle] = useState<Vehicle | null>(null);
   const [assignedPersonnelId, setAssignedPersonnelId] = useState("none");
-  const [fuelForm, setFuelForm] = useState({ date: new Date().toISOString().slice(0, 10), km: "", liters: "", notes: "" });
+  const [fuelForm, setFuelForm] = useState({ date: new Date().toISOString().slice(0, 10), km: "", liters: "", notes: "", branch_id: "" });
   const currentMonth = new Date().toISOString().slice(0, 7);
   const [reportMonth, setReportMonth] = useState(currentMonth);
   const [dateFrom, setDateFrom] = useState(`${currentMonth}-01`);
@@ -101,6 +104,7 @@ export function VehiclesManager({
   function openEdit(vehicle: Vehicle) {
     setEditing(vehicle);
     setBranchId(vehicle.branch_id);
+    setBranchStartDate(todayIso);
     form.reset({
       plate: vehicle.plate,
       brand: vehicle.brand,
@@ -115,7 +119,7 @@ export function VehiclesManager({
 
   function openFuel(vehicle: Vehicle) {
     setFuelVehicle(vehicle);
-    setFuelForm({ date: new Date().toISOString().slice(0, 10), km: String(vehicle.current_km), liters: "", notes: "" });
+    setFuelForm({ date: new Date().toISOString().slice(0, 10), km: String(vehicle.current_km), liters: "", notes: "", branch_id: "" });
   }
 
   function openAssignment(vehicle: Vehicle) {
@@ -145,7 +149,7 @@ export function VehiclesManager({
     setLoading(true);
     try {
       const repository = new VehicleRepository(createClient());
-      const created = await repository.recordFuelPurchase({ vehicle_id: fuelVehicle.id, fuel_date: fuelForm.date, odometer_km: km, liters, notes: fuelForm.notes });
+      const created = await repository.recordFuelPurchase({ vehicle_id: fuelVehicle.id, fuel_date: fuelForm.date, odometer_km: km, liters, notes: fuelForm.notes, branch_id: fuelForm.branch_id || null });
       setFuelLogs((current) => [created, ...current]);
       setVehicles((current) => current.map((vehicle) => vehicle.id === fuelVehicle.id ? { ...vehicle, current_km: Math.max(vehicle.current_km, km) } : vehicle));
       setFuelVehicle(null); toast.success("Yakıt ve kilometre kaydı eklendi");
@@ -164,6 +168,10 @@ export function VehiclesManager({
 
       const repository = new VehicleRepository(supabase);
       if (editing) {
+        // Şube değişikliği geçiş tarihiyle kaydedilir (yakıt o tarihten itibaren yeni şubeye yazılır).
+        if (branchId && branchId !== editing.branch_id) {
+          await new BranchRepository(supabase).changeRecordBranch("vehicle", editing.id, branchId, branchStartDate);
+        }
         const updated = await repository.update(editing.id, {
           ...values,
           branch_id: branchId || undefined,
@@ -240,12 +248,21 @@ export function VehiclesManager({
     const lastKm = periodLogs.at(-1)?.odometer_km ?? firstKm;
     const distance = Math.max(0, lastKm - firstKm);
     const liters = periodLogs.reduce((sum, log) => sum + Number(log.liters), 0);
-    return { vehicle, logs: periodLogs, distance, liters, consumption: distance > 0 ? liters / distance * 100 : null };
+    const byBranch = new Map<string, number>();
+    for (const log of periodLogs) byBranch.set(log.branch_id, (byBranch.get(log.branch_id) ?? 0) + Number(log.liters));
+    return { vehicle, logs: periodLogs, distance, liters, byBranch, consumption: distance > 0 ? liters / distance * 100 : null };
   }).filter((item) => item.logs.length > 0), [dateFrom, dateTo, fuelLogs, vehicles]);
   const periodFuelLogs = useMemo(() => fuelLogs
     .filter((log) => log.fuel_date >= dateFrom && log.fuel_date <= dateTo)
     .sort((a, b) => b.fuel_date.localeCompare(a.fuel_date) || b.created_at.localeCompare(a.created_at)),
   [dateFrom, dateTo, fuelLogs]);
+  // Seçilen tarihlerde şube bazında toplam yakıt.
+  const branchFuelTotals = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const log of periodFuelLogs) totals.set(log.branch_id, (totals.get(log.branch_id) ?? 0) + Number(log.liters));
+    return [...totals.entries()];
+  }, [periodFuelLogs]);
+  const formatLiters = (value: number) => `${value.toLocaleString("tr-TR", { maximumFractionDigits: 3 })} L`;
 
   function applyMonth(month: string) {
     setReportMonth(month);
@@ -299,14 +316,16 @@ export function VehiclesManager({
             <div className="space-y-2"><Label>Bitiş Tarihi</Label><Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} /></div>
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {fuelSummary.map(({ vehicle, logs, distance, liters, consumption }) => <div key={vehicle.id} className="rounded-xl border p-4">
+            {multiBranch && branchFuelTotals.length > 0 && <div className="flex flex-wrap gap-2 md:col-span-2 xl:col-span-3">{branchFuelTotals.map(([id, total]) => <span key={id} className="rounded-full border bg-muted/40 px-3 py-1 text-sm">{branchName(id) ?? "Diğer şube"}: <strong>{formatLiters(total)}</strong></span>)}</div>}
+            {fuelSummary.map(({ vehicle, logs, distance, liters, byBranch, consumption }) => <div key={vehicle.id} className="rounded-xl border p-4">
               <p className="font-semibold">{vehicle.plate}</p><p className="text-xs text-muted-foreground">{logs.length} yakıt kaydı</p>
               <div className="mt-3 grid grid-cols-2 gap-2 text-sm"><span>Gidilen: <strong>{distance.toLocaleString("tr-TR")} km</strong></span><span>Yakıt: <strong>{liters.toLocaleString("tr-TR", { maximumFractionDigits: 3 })} L</strong></span></div>
+              {multiBranch && byBranch.size > 0 && <p className="mt-2 text-xs">{[...byBranch.entries()].map(([id, total]) => `${branchName(id) ?? "Diğer şube"}: ${formatLiters(total)}`).join(" · ")}</p>}
               <p className="mt-2 text-xs text-muted-foreground">Ortalama: {consumption === null ? "Hesaplanamadı" : `${consumption.toLocaleString("tr-TR", { maximumFractionDigits: 2 })} L/100 km`}</p>
             </div>)}
             {!fuelSummary.length && <p className="text-sm text-muted-foreground">Seçilen tarihlerde yakıt kaydı yok.</p>}
           </div>
-          {periodFuelLogs.length > 0 && <div className="overflow-x-auto border-t pt-4"><table className="w-full min-w-[620px] text-left text-sm"><thead><tr className="border-b text-muted-foreground"><th className="px-3 py-2">Tarih</th><th className="px-3 py-2">Araç</th><th className="px-3 py-2">Kilometre</th><th className="px-3 py-2">Yakıt</th><th className="px-3 py-2">Not</th></tr></thead><tbody>{periodFuelLogs.map((log) => <tr key={log.id} className="border-b last:border-0"><td className="px-3 py-2">{formatDate(log.fuel_date)}</td><td className="px-3 py-2 font-medium">{vehicles.find((vehicle) => vehicle.id === log.vehicle_id)?.plate || "—"}</td><td className="px-3 py-2">{Number(log.odometer_km).toLocaleString("tr-TR")} km</td><td className="px-3 py-2">{Number(log.liters).toLocaleString("tr-TR", { maximumFractionDigits: 3 })} L</td><td className="px-3 py-2">{log.notes || "—"}</td></tr>)}</tbody></table></div>}
+          {periodFuelLogs.length > 0 && <div className="overflow-x-auto border-t pt-4"><table className="w-full min-w-[620px] text-left text-sm"><thead><tr className="border-b text-muted-foreground"><th className="px-3 py-2">Tarih</th><th className="px-3 py-2">Araç</th>{multiBranch && <th className="px-3 py-2">Şube</th>}<th className="px-3 py-2">Kilometre</th><th className="px-3 py-2">Yakıt</th><th className="px-3 py-2">Not</th></tr></thead><tbody>{periodFuelLogs.map((log) => <tr key={log.id} className="border-b last:border-0"><td className="px-3 py-2">{formatDate(log.fuel_date)}</td><td className="px-3 py-2 font-medium">{vehicles.find((vehicle) => vehicle.id === log.vehicle_id)?.plate || "—"}</td>{multiBranch && <td className="px-3 py-2">{branchName(log.branch_id) ?? "Diğer şube"}</td>}<td className="px-3 py-2">{Number(log.odometer_km).toLocaleString("tr-TR")} km</td><td className="px-3 py-2">{Number(log.liters).toLocaleString("tr-TR", { maximumFractionDigits: 3 })} L</td><td className="px-3 py-2">{log.notes || "—"}</td></tr>)}</tbody></table></div>}
         </CardContent>
       </Card>
 
@@ -410,6 +429,13 @@ export function VehiclesManager({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             {/* Şubeyi yalnızca firma yöneticisi ve Merkez şantiye şefi değiştirir. */}
             <BranchSelectField value={branchId} onChange={setBranchId} disabled={Boolean(editing) && !headOffice} />
+            {editing && headOffice && branchId && branchId !== editing.branch_id && (
+              <div className="space-y-2">
+                <Label htmlFor="vehicle_branch_start">Şube geçiş tarihi</Label>
+                <Input id="vehicle_branch_start" type="date" value={branchStartDate} onChange={(event) => setBranchStartDate(event.target.value)} />
+                <p className="text-xs text-muted-foreground">Bu tarihten itibaren yakıt kayıtları yeni şubeye yazılır.</p>
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="plate">Araç Plakası</Label>
@@ -469,6 +495,7 @@ export function VehiclesManager({
       <Dialog open={Boolean(fuelVehicle)} onOpenChange={(value) => !value && setFuelVehicle(null)}>
         <DialogContent><DialogHeader><DialogTitle>Yakıt Alımı · {fuelVehicle?.plate}</DialogTitle></DialogHeader>
           <div className="space-y-4">
+            {branches.length > 1 && <div className="space-y-2"><Label>Şube</Label><select className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm" value={fuelForm.branch_id} onChange={(event) => setFuelForm((value) => ({ ...value, branch_id: event.target.value }))}><option value="">Otomatik (aracın o tarihteki şubesi)</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></div>}
             <div className="space-y-2"><Label>Yakıt Tarihi</Label><Input type="date" max={new Date().toISOString().slice(0, 10)} value={fuelForm.date} onChange={(event) => setFuelForm((value) => ({ ...value, date: event.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3"><div className="space-y-2"><Label>Yeni Kilometre</Label><Input type="number" min={fuelVehicle?.current_km ?? 0} step="1" value={fuelForm.km} onChange={(event) => setFuelForm((value) => ({ ...value, km: event.target.value }))} /></div>
               <div className="space-y-2"><Label>Alınan Yakıt (Litre)</Label><Input type="number" min="0.001" step="0.001" value={fuelForm.liters} onChange={(event) => setFuelForm((value) => ({ ...value, liters: event.target.value }))} /></div></div>

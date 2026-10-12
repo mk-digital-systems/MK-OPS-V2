@@ -196,6 +196,7 @@ check("şef başka şubenin taşeronunu görmez", (await one(chief, `select publ
 const autoDepots = (await sys(`select id, name from public.inventory_locations where branch_id = $1`, [branchA])).rows;
 check("yeni şubeye otomatik depo açılır", autoDepots.length === 1 && autoDepots[0].name === "Şube A Depo", JSON.stringify(autoDepots));
 const aDepot = autoDepots[0].id;
+const mainDepotIdEarly = (await sys(`select id from public.inventory_locations where company_id = $1 and is_main`, [company.id])).rows[0].id;
 const extraDepot = (await one(chief, `select public.save_inventory_location(null, 'Şube A Saha') id`)).id;
 check("şefin açtığı depo kendi şubesinde", (await sys(`select branch_id from public.inventory_locations where id = $1`, [extraDepot])).rows[0].branch_id === branchA);const unit = (await sys(`select (enum_range(null::public.inventory_unit))[1]::text u`)).rows[0].u;
 const catalog = (await one(owner, `select public.create_inventory_catalog_material('Kablo', null, null, null, $1::public.inventory_unit, false) id`, [unit])).id;
@@ -205,6 +206,32 @@ e = await asErr(chief, `select public.record_inventory_movement($1, 'out', 1, nu
 check("şef Merkez deposundan çıkış yapamaz", /erişiminiz olmayan/.test(e ?? ""), e);
 e = await asErr(chief, `select public.create_inventory_receipt(current_date, 'Şef', 'IRS-2', null, $1::jsonb, $2)`, [JSON.stringify([{ catalog_id: catalog, quantity: 4 }]), aDepot]);
 check("şef kendi deposuna irsaliye girer", !e, e);
+const chiefReceipt = (await sys(`select id, status, branch_id from public.inventory_receipts where dispatch_number = 'IRS-2'`)).rows[0];
+check("şube şefinin irsaliyesi onay bekler, stok değişmez", chiefReceipt.status === "pending" && chiefReceipt.branch_id === branchA
+  && (await sys(`select count(*)::int n from public.inventory_location_stocks where location_id = $1`, [aDepot])).rows[0].n === 0);
+check("şef bekleyen irsaliyesini ve satırlarını görür", (await one(chief, `select count(*)::int n from public.inventory_receipt_lines where receipt_id = $1`, [chiefReceipt.id])).n === 1);
+e = await asErr(chief, `select public.review_inventory_receipt($1, true)`, [chiefReceipt.id]);
+check("şube şefi kendi irsaliyesini onaylayamaz", /Merkez/.test(e ?? ""), e);
+check("şef Merkez'in irsaliyesini görmez", (await one(chief, `select count(*)::int n from public.inventory_receipts where dispatch_number = 'IRS-1'`)).n === 0);
+check("Merkez şefi onay bildirimi alır (irsaliye)", (await one(hq, `select public.get_my_notifications() n`)).n.some((x) => x.key === `pending_receipt:${chiefReceipt.id}` && x.title === "Şube A şubesine malzeme girişi"));
+e = await asErr(hq, `select public.review_inventory_receipt($1, true)`, [chiefReceipt.id]);
+check("Merkez şefi onaylayınca şube deposuna girer", !e && Number((await sys(`select quantity from public.inventory_location_stocks where location_id = $1`, [aDepot])).rows[0]?.quantity) === 4, e);
+
+// Malzeme talebi şubeye bağlı; talebi ve stok girişini Merkez onaylar, malzeme şube deposuna girer.
+const reqId = (await one(chief, `select public.create_inventory_request(current_date, 'Şef', null, $1::jsonb) id`, [JSON.stringify([{ catalog_id: catalog, quantity: 3 }])])).id;
+check("şefin talebi kendi şubesinde", (await sys(`select branch_id from public.inventory_requests where id = $1`, [reqId])).rows[0].branch_id === branchA);
+check("firma yöneticisi şubenin talebini görür", (await one(owner, `select count(*)::int n from public.inventory_requests where id = $1`, [reqId])).n === 1);
+e = await asErr(chief, `select public.approve_inventory_request($1)`, [reqId]);
+check("şube şefi talebi onaylayamaz", /Merkez/.test(e ?? ""), e);
+await as(owner, `select public.approve_inventory_request($1)`, [reqId]);
+e = await asErr(chief, `select public.submit_inventory_request_receipt($1, current_date, 'Şef', 'IRS-T1', null, $2::jsonb, $3)`, [reqId, JSON.stringify([{ catalog_id: catalog, quantity: 3 }]), mainDepotIdEarly]);
+check("talep başka şubenin deposuna alınamaz", !!e, e);
+e = await asErr(chief, `select public.submit_inventory_request_receipt($1, current_date, 'Şef', 'IRS-T1', null, $2::jsonb)`, [reqId, JSON.stringify([{ catalog_id: catalog, quantity: 3 }])]);
+check("şef talebin irsaliyesini kontrol eder", !e, e);
+e = await asErr(chief, `select public.approve_inventory_request_receipt($1)`, [reqId]);
+check("şube şefi stok girişini onaylayamaz", /Merkez/.test(e ?? ""), e);
+await as(owner, `select public.approve_inventory_request_receipt($1)`, [reqId]);
+check("talep malzemesi şube deposuna girer", Number((await sys(`select quantity from public.inventory_location_stocks where location_id = $1`, [aDepot])).rows[0]?.quantity) === 7);
 e = await asErr(hq, `select public.create_inventory_receipt(current_date, 'Merkez Şefi', 'IRS-3', null, $1::jsonb, $2)`, [JSON.stringify([{ catalog_id: catalog, quantity: 2 }]), aDepot]);
 check("Merkez şefi başka şubenin deposuna irsaliye girer", !e, e);
 const mainDepotId = (await sys(`select id from public.inventory_locations where company_id = $1 and is_main`, [company.id])).rows[0].id;
@@ -227,6 +254,26 @@ check("kaydı olan şube silinemez", !!e, e);
 await as(owner, `select public.assign_user_role($1, 'site_chief')`, [chief]);
 check("firma yöneticisi olan kullanıcının şube ataması kalkar", (await sys(`select count(*)::int n from public.user_branches where user_id = $1`, [chief])).rows[0].n === 0);
 check("firma yöneticisi olunca bütün personeli görür", (await one(chief, `select count(*)::int n from public.personnel`)).n === 2);
+
+// Şube geçmişi: kartından geçiş tarihiyle değişir; puantaj günleri ve yakıt o tarihteki şubeye yazılır.
+const histPerson = (await one(owner, `insert into public.personnel (full_name, employment_start_date) values ('Gezici Usta', '2026-01-01') returning id`)).id;
+e = await asErr(acc, `select public.change_record_branch('personnel', $1, $2, '2026-09-10')`, [histPerson, branchA]);
+check("muhasebe şube değiştiremez", !!e, e);
+e = await asErr(owner, `select public.change_record_branch('personnel', $1, $2, '2026-09-10')`, [histPerson, branchA]);
+check("firma yöneticisi geçiş tarihiyle şube değiştirir", !e && (await sys(`select branch_id from public.personnel where id = $1`, [histPerson])).rows[0].branch_id === branchA, e);
+await sys(`insert into public.attendance_records (company_id, personnel_id, attendance_date, status) values ($1, $2, '2026-09-03', 'worked'), ($1, $2, '2026-09-04', 'worked'), ($1, $2, '2026-09-15', 'worked')`, [company.id, histPerson]);
+const branchDays = (await one(owner, `select public.get_attendance_branch_days(2026, 9) r`)).r.filter((x) => x.personnel_id === histPerson);
+check("puantajda şube bazında gün", branchDays.find((x) => x.branch_id === merkez.id)?.worked === 2 && branchDays.find((x) => x.branch_id === branchA)?.worked === 1, JSON.stringify(branchDays));
+check("şube geçmişi görünür", (await one(owner, `select count(*)::int n from public.personnel_branch_history where personnel_id = $1`, [histPerson])).n === 2);
+const vehHist = (await one(owner, `insert into public.vehicles (plate, brand, model) values ('17 GZC 01', 'Fiat', 'Doblo') returning id`)).id;
+const d = (n) => new Date(Date.now() - n * 86400000).toLocaleDateString("en-CA", { timeZone: "Europe/Istanbul" });
+await as(owner, `select public.change_record_branch('vehicle', $1, $2, $3::date)`, [vehHist, branchA, d(5)]);
+await as(owner, `select public.record_vehicle_fuel_purchase($1, $2::date, 1000, 40)`, [vehHist, d(10)]);
+await as(owner, `select public.record_vehicle_fuel_purchase($1, $2::date, 1200, 30)`, [vehHist, d(1)]);
+await as(owner, `select public.record_vehicle_fuel_purchase($1, $2::date, 1300, 10, null, $3)`, [vehHist, d(0), merkez.id]);
+const fuel = (await sys(`select branch_id, liters::float l from public.vehicle_fuel_logs where vehicle_id = $1 order by odometer_km`, [vehHist])).rows;
+check("yakıt aracın o tarihteki şubesine yazılır", fuel[0].branch_id === merkez.id && fuel[1].branch_id === branchA, JSON.stringify(fuel));
+check("yakıt kaydında şube seçilebilir", fuel[2].branch_id === merkez.id);
 
 if (failures) {
   console.log(`\n${failures} kontrol başarısız`);

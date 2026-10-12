@@ -153,6 +153,8 @@ export class VehicleRepository {
     odometer_km: number;
     liters: number;
     notes?: string;
+    /** Boşsa aracın o tarihteki şubesi. */
+    branch_id?: string | null;
   }): Promise<VehicleFuelLog> {
     const { data, error } = await this.supabase.rpc("record_vehicle_fuel_purchase", {
       p_vehicle_id: payload.vehicle_id,
@@ -160,6 +162,7 @@ export class VehicleRepository {
       p_odometer_km: payload.odometer_km,
       p_liters: payload.liters,
       p_notes: payload.notes || null,
+      p_branch_id: payload.branch_id || null,
     });
     if (error) throw error;
     return data as VehicleFuelLog;

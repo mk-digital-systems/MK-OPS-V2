@@ -133,6 +133,19 @@ export class AttendanceRepository {
     return data as { saved: number; deleted: number };
   }
 
+  /**
+   * Personelin ay içinde hangi şubede kaç gün çalıştığı (şube geçmişine göre).
+   * Dönüş: personel kimliği → "Merkez 12 gün · Bolu 5 gün" (yalnızca birden fazla şubede çalışanlar).
+   */
+  async getBranchDayLabels(year: number, month: number): Promise<Record<string, string>> {
+    const { data, error } = await this.supabase.rpc("get_attendance_branch_days", { p_year: year, p_month: month });
+    if (error) throw error;
+    const rows = (data as { personnel_id: string; branch_name: string; worked: number }[] | null) ?? [];
+    const grouped = new Map<string, string[]>();
+    for (const row of rows) grouped.set(row.personnel_id, [...(grouped.get(row.personnel_id) ?? []), `${row.branch_name} ${row.worked} gün`]);
+    return Object.fromEntries([...grouped].filter(([, parts]) => parts.length > 1).map(([id, parts]) => [id, parts.join(" · ")]));
+  }
+
   /** Erişilebilen şubelerin bu ayki onay durumu (şube başına bir satır). */
   async getMonthApprovals(year: number, month: number): Promise<AttendanceMonthApproval[]> {
     const { data, error } = await this.supabase.rpc("get_attendance_month_approvals", { p_year: year, p_month: month });

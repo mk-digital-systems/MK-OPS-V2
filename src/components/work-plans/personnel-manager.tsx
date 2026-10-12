@@ -34,6 +34,7 @@ import { InventoryRepository } from "@/modules/inventory/inventory-repository";
 import { useReportBrand } from "@/components/layout/company-brand-provider";
 import { PendingApprovalsCard } from "@/components/approvals/pending-approvals-card";
 import { BranchSelectField, useBranches } from "@/components/layout/branch-provider";
+import { BranchRepository } from "@/modules/branches/branch-repository";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -109,6 +110,8 @@ export function PersonnelManager({
   const router = useRouter();
   const brand = useReportBrand();
   const { defaultBranchId, multiBranch, branchName, headOffice } = useBranches();
+  const todayIso = new Date().toLocaleDateString("en-CA");
+  const [branchStartDate, setBranchStartDate] = useState(todayIso);
   const [branchId, setBranchId] = useState("");
   const [items, setItems] = useState(initialPersonnel);
   const [open, setOpen] = useState(false);
@@ -167,6 +170,7 @@ export function PersonnelManager({
     const ownSub = subcontractors.find((sub) => sub.personnel_id === person.id && sub.is_active);
     setEditing(person);
     setBranchId(person.branch_id);
+    setBranchStartDate(todayIso);
     form.reset({
       full_name: person.full_name,
       job_title: person.job_title ?? "",
@@ -377,6 +381,10 @@ export function PersonnelManager({
       if (editing && wasSelf && !isSelf) await repo.setSubcontractor(editing.id, false);
       let saved: Personnel;
       if (editing) {
+        // Şube değişikliği geçiş tarihiyle kaydedilir (puantaj günleri o tarihten itibaren yeni şubeye sayılır).
+        if (branchId && branchId !== editing.branch_id) {
+          await new BranchRepository(createClient()).changeRecordBranch("personnel", editing.id, branchId, branchStartDate);
+        }
         saved = await repo.update(editing.id, {
           ...personValues,
           branch_id: branchId || undefined,
@@ -752,6 +760,13 @@ export function PersonnelManager({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             {/* Şubeyi yalnızca firma yöneticisi ve Merkez şantiye şefi değiştirir. */}
             <BranchSelectField value={branchId} onChange={setBranchId} disabled={Boolean(editing) && !headOffice} />
+            {editing && headOffice && branchId && branchId !== editing.branch_id && (
+              <div className="space-y-2">
+                <Label htmlFor="personnel_branch_start">Şube geçiş tarihi</Label>
+                <Input id="personnel_branch_start" type="date" value={branchStartDate} onChange={(event) => setBranchStartDate(event.target.value)} />
+                <p className="text-xs text-muted-foreground">Bu tarihten itibaren puantaj günleri yeni şubeye sayılır.</p>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="full_name">Ad Soyad</Label>
               <Input id="full_name" {...form.register("full_name")} />

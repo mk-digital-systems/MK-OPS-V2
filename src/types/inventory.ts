@@ -113,14 +113,32 @@ export type InventoryReceiptItem = {
   material?: Pick<InventoryMaterial, "material_name" | "material_code" | "unit" | "category_id" | "material_type" | "size"> | null;
 };
 
+/** Onay bekleyen irsaliyenin satırı (onayda stoğa işlenir). */
+export type InventoryReceiptLine = {
+  id: string;
+  receipt_id: string;
+  catalog_id: string;
+  material_code: string | null;
+  quantity: number;
+  catalog?: Pick<InventoryCatalog, "material_name" | "material_type" | "size" | "unit"> | null;
+};
+
 export type InventoryReceipt = {
   id: string;
   receipt_date: string;
   received_by: string;
   dispatch_number: string;
   notes: string | null;
+  /** Girişin yapıldığı depo ve şubesi. */
+  location_id: string;
+  branch_id: string;
+  /** pending: şube şefi/muhasebe girdi, firma yöneticisi/Merkez şefi onayı bekliyor (stok değişmedi). */
+  status: "pending" | "approved";
+  approved_at: string | null;
+  created_by: string | null;
   created_at: string;
   items: InventoryReceiptItem[];
+  lines?: InventoryReceiptLine[];
 };
 
 export type InventoryRequestStatus = "requested" | "approved" | "receipt_review" | "received";
@@ -138,6 +156,9 @@ export type InventoryRequest = {
   request_date: string;
   requested_by: string;
   status: InventoryRequestStatus;
+  /** Talebin şubesi ve malzemenin gireceği depo (irsaliye kontrolünde seçilir). */
+  branch_id: string;
+  location_id: string | null;
   notes: string | null;
   approved_at: string | null;
   received_at: string | null;

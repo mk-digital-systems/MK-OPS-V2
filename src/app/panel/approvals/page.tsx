@@ -17,11 +17,14 @@ export default async function ApprovalsPage() {
   const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
   const year = lastMonth.getFullYear();
   const month = lastMonth.getMonth() + 1;
-  const [personnel, vehicles, monthApprovals, requests, profile] = await Promise.all([
+  const inventory = new InventoryRepository(supabase);
+  const [personnel, vehicles, monthApprovals, requests, receipts, locations, profile] = await Promise.all([
     new PersonnelRepository(supabase).list({ includePending: true }),
     new VehicleRepository(supabase).list({ includePending: true }),
     new AttendanceRepository(supabase).getMonthApprovals(year, month),
-    new InventoryRepository(supabase).listRequests(),
+    inventory.listRequests(),
+    inventory.listPendingReceipts(),
+    inventory.listLocations(),
     new UserRepository(supabase).getCurrent(),
   ]);
 
@@ -32,10 +35,9 @@ export default async function ApprovalsPage() {
       monthApprovals={monthApprovals}
       year={year}
       month={month}
-      requestCounts={{
-        requested: requests.filter((request) => request.status === "requested").length,
-        receiptReview: requests.filter((request) => request.status === "receipt_review").length,
-      }}
+      requests={requests.filter((request) => request.status === "requested" || request.status === "receipt_review")}
+      receipts={receipts}
+      locations={locations}
       currentUserId={profile?.id ?? null}
     />
   );

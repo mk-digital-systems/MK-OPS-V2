@@ -25,9 +25,12 @@ export function PendingApprovalsCard({
   currentUserId,
   onReview,
   onEdit,
+  description,
 }: {
-  /** "personel", "araç" */
+  /** "personel", "araç", "irsaliye" */
   noun: string;
+  /** Varsayılan açıklama yerine (ör. irsaliye için). */
+  description?: string;
   items: PendingApprovalItem[];
   canReview: boolean;
   currentUserId: string | null;
@@ -55,9 +58,9 @@ export function PendingApprovalsCard({
           Onay Bekleyen {noun.charAt(0).toLocaleUpperCase("tr-TR") + noun.slice(1)} ({items.length})
         </CardTitle>
         <CardDescription>
-          {canReview
+          {description ?? (canReview
             ? `Şube şantiye şefinin veya muhasebenin eklediği kayıtlar. Onaylanana kadar puantajda, iş planında ve seçim listelerinde görünmez.`
-            : `Eklenen kayıtlar firma yöneticisi veya Merkez şantiye şefi onaylayınca kullanıma açılır.`}
+            : `Eklenen kayıtlar firma yöneticisi veya Merkez şantiye şefi onaylayınca kullanıma açılır.`)}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">

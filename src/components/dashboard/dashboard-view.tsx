@@ -18,7 +18,7 @@ type Props = {
   vehicleAlerts: VehicleDeadlineAlert[];
   canManageTypes: boolean;
   hakedis: HakedisSummary | null;
-  /** Onay bekleyen personel + araç (yalnızca firma yöneticisi ve Merkez şantiye şefi); null = gösterilmez. */
+  /** Onay bekleyen personel, araç, irsaliye ve malzeme talebi (yalnızca firma yöneticisi ve Merkez şantiye şefi); null = gösterilmez. */
   pendingApprovals: number | null;
 };
 
@@ -49,7 +49,7 @@ export function DashboardView({ stats, overview, vehicleAlerts, canManageTypes, 
         >
           <ClipboardCheck className="h-5 w-5 shrink-0 text-amber-600" />
           <span className="flex-1">
-            <strong>{pendingApprovals}</strong> personel / araç kaydı onayınızı bekliyor
+            <strong>{pendingApprovals}</strong> kayıt onayınızı bekliyor (personel, araç, irsaliye, malzeme talebi)
           </span>
           <span className="font-medium text-primary">Onaylara git</span>
         </Link>
