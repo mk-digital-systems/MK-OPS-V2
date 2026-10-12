@@ -11,6 +11,7 @@ import { formatMoney } from "@/lib/hakedis";
 import { cn, formatDate } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { PozRepository, priceAt } from "@/modules/poz/poz-repository";
+import { normalizeNumberText } from "@/lib/bulk-import";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,11 +28,8 @@ type Props = {
   companyId: string | null;
 };
 
-/** "1.250,50" ve "12,5" (Türkçe) ile "12.50" kabul edilir: virgül varsa nokta binlik ayırıcıdır. */
-const normalizeAmount = (value: string) => {
-  const text = value.trim().replace(/\s/g, "");
-  return text.includes(",") ? text.replace(/\./g, "").replace(",", ".") : text;
-};
+/** "1.250,50", "1.250", "12,5" ve "12.50" kabul edilir (bkz. normalizeNumberText). */
+const normalizeAmount = normalizeNumberText;
 const toNumber = (value: string) => (value.trim() ? Number(normalizeAmount(value)) : null);
 const lower = (value: string | null | undefined) => (value ?? "").trim().toLocaleLowerCase("tr-TR");
 

@@ -28,11 +28,22 @@ export function parseDateCell(value: string): string | null | undefined {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-/** Tutar / sayı: "25.000,50", "25000,5", "25000.5" kabul edilir. Boşsa null; okunamazsa undefined. */
-export function parseNumberCell(value: string): number | null | undefined {
+/**
+ * Türkçe sayı metnini makinenin okuyacağı biçime çevirir: "25.000,50" → "25000.50", "35.000" → "35000",
+ * "1.250.000" → "1250000", "12,5" → "12.5", "12.50" → "12.50". Virgül varsa ondalıktır ve noktalar binliktir;
+ * virgül yoksa yalnızca üçlü gruplanmış noktalar binlik sayılır.
+ */
+export function normalizeNumberText(value: string): string {
   const text = value.trim().replace(/\s/g, "").replace(/₺|TL/gi, "");
+  if (text.includes(",")) return text.replace(/\./g, "").replace(",", ".");
+  if (/^-?\d{1,3}(\.\d{3})+$/.test(text)) return text.replace(/\./g, "");
+  return text;
+}
+
+/** Tutar / sayı hücresi (bkz. normalizeNumberText). Boşsa null; okunamazsa undefined. */
+export function parseNumberCell(value: string): number | null | undefined {
+  const text = normalizeNumberText(value);
   if (!text) return null;
-  const normalized = text.includes(",") ? text.replace(/\./g, "").replace(",", ".") : text;
-  const number = Number(normalized);
+  const number = Number(text);
   return Number.isFinite(number) ? number : undefined;
 }

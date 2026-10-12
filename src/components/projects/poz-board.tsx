@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import type { HpSheet, ProjectProgressData } from "@/types/project";
 import type { PozItem } from "@/types/poz";
 import { formatQuantity, stageLabel } from "@/lib/constants/project";
+import { normalizeNumberText } from "@/lib/bulk-import";
 import { cn, formatDate } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { ProjectRepository } from "@/modules/projects/project-repository";
@@ -19,9 +20,8 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 
 const toNumber = (value: string) => {
-  const text = value.trim().replace(/\s/g, "");
-  if (!text) return null;
-  return Number(text.includes(",") ? text.replace(/\./g, "").replace(",", ".") : text);
+  const text = normalizeNumberText(value);
+  return text ? Number(text) : null;
 };
 
 /**
