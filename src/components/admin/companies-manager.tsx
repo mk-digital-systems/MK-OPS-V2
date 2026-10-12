@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { addMonths } from "date-fns";
 import { Ban, Loader2, Play, Search, Settings2, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
-import { PROJECT_ADDONS, type AdminCompany, type AdminCompanyUser, type ProjectAddon } from "@/types/admin";
+import type { AdminCompany, AdminCompanyUser, Catalog } from "@/types/admin";
 import { USER_ROLE_LABELS, type CompanyAccessStatus } from "@/types/auth";
 import { ACCESS_STATUS_CLASSES, ACCESS_STATUS_LABELS, PLAN_DURATION_MONTHS, PLAN_PRESETS } from "@/lib/constants/plans";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
@@ -36,7 +36,7 @@ export function StatusBadge({ status }: { status: CompanyAccessStatus }) {
   return <Badge className={ACCESS_STATUS_CLASSES[status]}>{ACCESS_STATUS_LABELS[status]}</Badge>;
 }
 
-export function CompaniesManager({ initialCompanies }: { initialCompanies: AdminCompany[] }) {
+export function CompaniesManager({ initialCompanies, catalogs }: { initialCompanies: AdminCompany[]; catalogs: Catalog[] }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<CompanyAccessStatus | "all">("all");
@@ -118,11 +118,13 @@ export function CompaniesManager({ initialCompanies }: { initialCompanies: Admin
                         {company.open_requests} açık talep
                       </Badge>
                     )}
-                    {PROJECT_ADDONS.filter((addon) => company.project_addons?.includes(addon.key)).map((addon) => (
-                      <Badge key={addon.key} className="bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200">
-                        {addon.label}
-                      </Badge>
-                    ))}
+                    {catalogs
+                      .filter((catalog) => catalog.company_ids.includes(company.id))
+                      .map((catalog) => (
+                        <Badge key={catalog.id} className="bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200">
+                          {catalog.name}
+                        </Badge>
+                      ))}
                   </div>
                   <p className="truncate text-sm text-muted-foreground">
                     {company.owner_name || "—"} · {company.owner_email || "—"}
@@ -168,6 +170,7 @@ export function CompaniesManager({ initialCompanies }: { initialCompanies: Admin
       {selected && (
         <ManageCompanyDialog
           company={selected}
+          catalogs={catalogs}
           onClose={() => setSelected(null)}
           onChanged={() => {
             setSelected(null);
@@ -181,10 +184,12 @@ export function CompaniesManager({ initialCompanies }: { initialCompanies: Admin
 
 function ManageCompanyDialog({
   company,
+  catalogs,
   onClose,
   onChanged,
 }: {
   company: AdminCompany;
+  catalogs: Catalog[];
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -192,8 +197,10 @@ function ManageCompanyDialog({
   const [planEndsAt, setPlanEndsAt] = useState(toDateInput(company.plan_ends_at));
   const [userLimit, setUserLimit] = useState(company.user_limit?.toString() ?? "");
   const [trialEndsAt, setTrialEndsAt] = useState(toDateTimeInput(company.trial_ends_at));
-  const [addons, setAddons] = useState<ProjectAddon[]>(company.project_addons ?? []);
-  const [busy, setBusy] = useState<"save" | "addons" | "suspend" | "delete" | null>(null);
+  const [catalogIds, setCatalogIds] = useState<string[]>(
+    catalogs.filter((catalog) => catalog.company_ids.includes(company.id)).map((catalog) => catalog.id)
+  );
+  const [busy, setBusy] = useState<"save" | "catalogs" | "suspend" | "delete" | null>(null);
   const [users, setUsers] = useState<AdminCompanyUser[] | null>(null);
   const [confirmName, setConfirmName] = useState("");
   const repository = () => new AdminRepository(createClient());
@@ -238,11 +245,11 @@ function ManageCompanyDialog({
     }
   }
 
-  async function saveAddons() {
-    setBusy("addons");
+  async function saveCatalogs() {
+    setBusy("catalogs");
     try {
-      await repository().setProjectAddons(company.id, addons);
-      toast.success("Proje ayarları kaydedildi");
+      await repository().setCompanyCatalogs(company.id, catalogIds);
+      toast.success("Kataloglar kaydedildi; türler firmaya kuruldu");
       onChanged();
     } catch (error) {
       toast.error("Kaydedilemedi", { description: (error as Error)?.message });
@@ -383,38 +390,42 @@ function ManageCompanyDialog({
 
         <section className="space-y-3">
           <div>
-            <h3 className="text-sm font-semibold">Proje ayarları</h3>
+            <h3 className="text-sm font-semibold">Kataloglar (sektörler)</h3>
             <p className="text-xs text-muted-foreground">
-              Açılan eklentiler bu şirketin proje türlerinde seçilebilir. Kapalıyken şirket standart proje ekranını
-              kullanır.
+              Seçilen katalogların proje türleri firmaya kurulur. Kaldırılan kataloğun türleri arşivlenir; projeler etkilenmez.
             </p>
           </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {PROJECT_ADDONS.map((addon) => (
-              <label
-                key={addon.key}
-                className="flex cursor-pointer items-start gap-3 rounded-lg border bg-muted/30 p-3"
-              >
-                <input
-                  type="checkbox"
-                  className="mt-0.5 h-4 w-4 accent-primary"
-                  checked={addons.includes(addon.key)}
-                  onChange={(event) =>
-                    setAddons((current) =>
-                      event.target.checked ? [...current, addon.key] : current.filter((key) => key !== addon.key)
-                    )
-                  }
-                />
-                <span>
-                  <span className="block text-sm font-medium">{addon.label}</span>
-                  <span className="block text-xs text-muted-foreground">{addon.description}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-          <Button variant="outline" onClick={saveAddons} disabled={busy !== null}>
-            {busy === "addons" && <Loader2 className="h-4 w-4 animate-spin" />}
-            Proje ayarlarını kaydet
+          {catalogs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Henüz katalog yok. <Link href="/admin/kataloglar" className="font-medium text-primary underline">Kataloglar</Link> sayfasından oluşturun.
+            </p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {catalogs.map((catalog) => (
+                <label key={catalog.id} className="flex cursor-pointer items-start gap-3 rounded-lg border bg-muted/30 p-3">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4 accent-primary"
+                    checked={catalogIds.includes(catalog.id)}
+                    onChange={(event) =>
+                      setCatalogIds((current) =>
+                        event.target.checked ? [...current, catalog.id] : current.filter((id) => id !== catalog.id)
+                      )
+                    }
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium">{catalog.name}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      {catalog.types.length ? catalog.types.map((type) => type.name).join(", ") : "Tür yok"}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+          <Button variant="outline" onClick={saveCatalogs} disabled={busy !== null || catalogs.length === 0}>
+            {busy === "catalogs" && <Loader2 className="h-4 w-4 animate-spin" />}
+            Katalogları kaydet
           </Button>
         </section>
 

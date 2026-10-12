@@ -1,6 +1,6 @@
 # MK OPS — Geliştirme Planı
 
-Son güncelleme: 12 Ekim 2026 akşam (şubeler D3: Merkez yetkisi, onaylar, şube irsaliyesi, şube geçmişi)
+Son güncelleme: 12 Ekim 2026 gece (HP ve Kurumsal eklentileri canlıda; F — sektör yapısı ve poz listesi planı)
 
 Bu dosya, üzerinde çalışılacak geliştirmelerin listesidir. Eski MK-OPS projesi
 (`PORTFÖY/PANEL/MK-OPS`) silindiği için oradan alınacak fikirlerin iş mantığı
@@ -19,7 +19,130 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 devam edileceği kararlaştırılır. Her adım kullanıcının onayıyla ilerler; migration önce
 `tests/db` ile denenir, sonra `supabase/migrations` klasörüne konur.
 
-### 📍 Kaldığımız yer (12 Ekim 2026 akşam)
+### 📍 Kaldığımız yer (12 Ekim 2026 gece)
+
+- **Bugün canlıya çıkanlar** (`20261029000001` … `20261102000001`, hepsi kurulu, `main`'de):
+  - Süper admin → Yönet → **Proje ayarları**: şirket bazında proje eklentileri (HP odaklı / Kurumsal).
+  - **HP odaklı proje**: pafta no, HP adedi, adres, görsel ve not ile toplu pafta girişi (Excel'den yapıştırma); pafta
+    durumu ve ekip başı; proje durumu paftalardan; **HP raporu** (genel, proje bazında, tarih aralığında tamamlanan HP).
+    HP (home pass) yalnızca bilgidir, hakedişe girmez. **Henüz iş kalemi yok**; F'de kalemli olacak.
+  - **Kurumsal proje**: durum elle (Başlamadı / Devam ediyor / Kazı izni bekliyor / Bitti), ekip başı, toplam proje
+    tarihi, öncelik, lokasyon filtresi.
+  - **Projeye göre iş kalemleri ve poz** ("şablondaki hepsi" ya da "projeye göre düzenle"); poz elle, 3–5 karakter.
+    F'de bu yapı yeniden ele alınacak.
+  - **İmalattaki özel iş kalemi (ek iş)**: fiyatı hakediş yetkilisi Onaylar'da girip onaylar; o zamana kadar hakedişe girmez.
+  - BGFD (kabin) türü yapılmayacak: eski, iptal olmuş bir proje türü.
+- **Sıradaki iş: F — Sektör yapısı, proje türleri ve poz listesi** (aşağıda). Panel karıştığı için önce bu düzenlenecek.
+
+### F — Sektör yapısı, proje türleri ve poz listesi (12 Ekim 2026 kararı)
+
+**Neden:** proje türleri, şablonlar, eklentiler ve otomatik gelen kalemler birbirine girdi; panel kullanıcı için
+karışık hale geldi. Önce hedef sektörler netleştirildi, sonra yapı yeniden kurulacak.
+
+**Kararlar (kullanıcı):**
+- Hedef sektörler — ana halka: telekom, doğalgaz, elektrik (dağıtım), su ve kanalizasyon, yol/asfalt/kaldırım altyapısı;
+  ikinci halka: inşaat alt yüklenicileri, elektrik-mekanik tesisat, GES kurulum. Hedef dışı: bakım/servis firmaları,
+  büyük genel müteahhitler.
+- Firma kurulurken sektör seçer; **birden fazla** seçebilir.
+- **Biz yalnızca proje türü şablonlarını veririz** (kalemsiz). Firma kabul ederse eklenir; kendi türünü de açabilir.
+  Telekom: HP odaklı ve Kurumsal.
+- **İş kalemlerini her sektörde firma kendisi girer, pozuyla.** Hiçbir kalem otomatik yüklenmez; biz en fazla öneri sunarız.
+- **Poz listesi sektöre göre:** telekomda tek liste bütün telekom türlerinde kullanılır; inşaatta kalemler türe göre
+  değişir (kaba: duvar, betonarme; ince: sıva, boya, fayans), bu yüzden bir poz belirli türlerle sınırlanabilir.
+  İşverene göre ayrı liste yok.
+- **Fiyat:** poz başına tek birim fiyat.
+- **Poz biçimi:** elle girilir, "grup/sıra" gibi (örn. 1/1, 2/1, 12/2); 3–5 karakter, projede tekil.
+- **Projede kalemler seçilir:** HP'de kablo ve ek hemen her projede olur; kazı, direk dikimi, ek odası yalnız bazılarında.
+  Kalemler proje açılırken seçilir, sonradan eklenip çıkarılır.
+
+**Güncelleme (aynı gün, kullanıcı kararı — aşağıdaki hedef yapının 3. ve 4. maddesini değiştirir):**
+- Biz yalnızca **proje türlerini** gireriz; proje türlerinin altında iş kalemi **yoktur**.
+- **Poz listesi / iş kalemleri İmalatlar'da** kullanılır ve sektöre göre ayrılır: iki sektör seçen firmada telekom ve
+  inşaat imalatları ayrıdır, telekom kalemleri inşaat işinde gösterilmez.
+- **Poz listesinin kurulumunu biz yaparız:** müşteri geldiğinde poz listesini alır, **süper admin panelinden** firmaya
+  yükleriz. Kurulumun bize ait olması satışta avantaj.
+
+**Son kararlar (aynı gün):**
+- **Bütün sektörlerin proje türleri süper admin'den gelir;** firma tür tanımlamaz. **Sektörü de süper admin'den biz seçeriz.**
+- **Keşif projede isteğe bağlı** (ör. 2.000 m kablo, 40 ek, 5 dolap):
+  - **Keşif girilmişse:** ilerleme imalatlardan hesaplanır. Keşifteki bir kaleme ilk imalat girilince proje
+    kendiliğinden "Devam ediyor" olur.
+  - **Keşif yoksa:** imalatlar projede ne yapıldığının dökümünü verir; durum elle seçilir (Devam ediyor / Tamamlandı).
+  - Elle "Tamamlandı" her durumda seçilebilir.
+- **Poz listesi yetkisi:**
+  - İlk yüklemeyi biz süper admin'den yaparız.
+  - Firma yöneticisi ve Merkez şantiye şefi poz ekler ve günceller.
+  - Firma isterse listesini kendisi de yükleyebilir.
+
+- **Katalog:** "sektör" süper admin'in yönettiği bir katalogdur. Bizim hazırladıklarımız (telekom, inşaat…) dışında
+  süper admin sisteme uyan her müşteri için yeni katalog kurar (ör. çok şubeli kuaför, fabrika): katalog, türleri ve
+  önerilen kalemleri oluşturup firmaya atar.
+- **Canlıda gerçek müşteri verisi yok;** yalnızca demo / kendi hesaplarımız var. Geçiş buna göre sade tutulur; demo
+  verisi bile sorulmadan silinmez.
+
+- **Poz listesi yetkileri ve fiyat (kullanıcı onayı):**
+  - **Düzenleme:** süper admin, firma yöneticisi ve Merkez şantiye şefi (`is_head_office`).
+  - **Diğer roller:** şube şefi, muhasebe ve ekip başı yalnızca görür ve imalatta kullanır.
+  - **Silme:** imalatta kullanılmış poz silinmez, **pasife alınır**; pasif poz yeni imalatta listelenmez.
+  - **Fiyat:** yalnızca hakediş yetkisi olan görür ve değiştirir. Merkez şefinde bu yetki yoksa fiyatsız düzenler.
+  - **Eskalasyon (aylık):** fiyatlar tek tek ya da **toplu yüzdeyle** güncellenir. Yüzde isteğe bağlı olarak bir kataloğa veya
+    gruba uygulanır; eski/yeni fiyat önizlemesi gösterilir, kuruşa yuvarlanır, denetim kaydına yazılır.
+  - **Yürürlük tarihli fiyat:** zam "şu tarihten itibaren" girilir, fiyat geçmişi tutulur. İş kaydı, imalatta girilen iş
+    tarihindeki fiyatı alır. Kaydedilmiş hakediş tutarları sonradan değişmez (bugünkü fiyat sabitleme korunur).
+
+#### F — Veri tasarımı (taslak)
+
+Prensip: mevcut tablolar yeniden kullanılır; kalem kimlikleri korunur, böylece iş kayıtları, hakediş fiyatları ve
+imalat bağlantıları kırılmaz. Tablo adları değişmez (fonksiyonlar adla çağırıyor); ekranda "poz" denir.
+
+| Katman | Tablo | Ne olur |
+|---|---|---|
+| Platform | `catalogs` (yeni) | Katalog: ad, açıklama, hazır mı / özel mi. Yalnızca süper admin. |
+| Platform | `catalog_project_types` (yeni) | Katalogdaki türler: ad, renk, ekran tipi (standart / HP pafta / kurumsal). |
+| Platform | `catalog_poz_items` (yeni) | Katalogdaki önerilen kalemler: grup, poz no (boş olabilir), ad, birim. |
+| Firma | `company_catalogs` (yeni) | Firmaya atanan kataloglar (çoklu). `companies.project_addons` bunun yerine geçer. |
+| Firma | `project_types` | Katalogdan kurulan türler (`catalog_type_id` bağı). Firma ekleyemez/düzenleyemez. |
+| Firma | `project_type_stages` | **Firmanın poz listesi**: türden bağımsız, katalog (sektör) bağlı; poz no, ad, birim, grup. |
+| Firma | `hakedis_stage_prices` | Poz birim fiyatı (değişmez). |
+| Proje | `project_stage_progress` | **Keşif / iş satırı**: otomatik oluşmaz; keşif girilince ya da o pozdan ilk imalatta oluşur. Hedef miktar = keşif. |
+| Proje | `project_stage_logs` | İmalattan gelen miktar; HP'de isteğe bağlı pafta (`sheet_id`). |
+| Kalkan | `project_stages`, `projects.stage_mode`, tür kalem editörü, "projeye göre düzenle" | Yeni yapıda gereksiz; demo verisi poz listesine taşınıp kaldırılır. |
+
+**Durum kuralı:** keşif varsa otomatik (ilk imalat → Devam ediyor, keşif dolunca → Tamamlandı); keşif yoksa elle.
+Elle "Tamamlandı" her zaman seçilebilir. HP projesinde durum paftalardan (bugünkü gibi).
+
+**Adımlar:**
+- **F1 (yapıldı, `20261103000001_catalogs.sql`)** Katalog yapısı ve süper admin ekranı: katalog / tür / önerilen kalem oluşturma, firmaya katalog atama ve türleri kurma;
+  firmada tür oluşturma ve düzenleme kapanır; HP / Kurumsal eklentisi kataloğa bağlanır.
+- **F2** Firma poz listesi: süper admin'den ve firmada (yönetici + Merkez şefi) Excel'den yükleme, ekleme, güncelleme, fiyat;
+  katalogdaki önerilen kalemlerden seçerek ekleme.
+- **F3** Keşif (proje sayfası) ve İmalatlar'da projenin kataloğuna göre poz seçimi; HP'de isteğe bağlı pafta; durum kuralı.
+- **F4** Eski ekranların ve tabloların kaldırılması; demo verisinin taşınması.
+- **F5** Katalog içerikleri: önce telekom (HP odaklı, Kurumsal), sonra diğerleri.
+
+**Hedef yapı (ilk taslak; yukarıdaki kararlar ve veri tasarımı önceliklidir):**
+1. **Sektör seçimi:** kurulumda ve Ayarlar'da, çoklu.
+2. **Proje türü şablonları:** sektöre göre, kalemsiz; ekran tipiyle (standart / HP pafta / kurumsal).
+3. **Poz listesi sayfası** (firma geneli): poz no, kalem adı, birim, birim fiyat, isteğe bağlı grup başlığı, sektör ve
+   isteğe bağlı tür sınırı; Excel'den yapıştırma; önerilen kalemleri seçerek ekleme.
+4. **Projede kalem seçimi:** türde kullanılabilen pozlardan seçilir; poz no veya adla arama. HP projesi de kalemli olur
+   (paftalar + kalemler); iş kaydı girilirken pafta seçmek **isteğe bağlı** (proje toplamı + pafta dökümü).
+5. **Hakediş:** miktar × poz birim fiyatı; projeye özel fiyat (bugünkü yapı) kalır.
+6. **Geçiş:** bugünkü tür kalemleri ve projeye özel kalemler firmanın poz listesine taşınır; iş kayıtları, ilerleme ve
+   hakediş kayıtları korunur. Mevcut kalem tablosunun genişletilmesi mi, yeni tablo mu: F1'de, en az kırılmayla kararlaştırılır.
+
+**Sıra (güncel):** F1 veri tasarımı ve geçiş planı → F2 süper admin'de firma poz listesi kurulumu (sektörlü, Excel'den) →
+F3 İmalatlar'da sektöre göre poz seçimi (HP'de isteğe bağlı pafta) → F4 sektör seçimi ve telekom tür şablonları →
+F5 diğer sektörler.
+
+**Açık konular:**
+- Bölge (müteahhitlik) katsayısı gerçekte var mı? Bilinmiyor; şimdilik eklenmiyor.
+- HP / Kurumsal ekranlarını bugünkü gibi süper admin mi açar, yoksa telekom sektörü seçilince mi açılır?
+- Telekom öneri listesi: kullanıcının kontrolüyle, poz kodsuz ve kurum adı geçmeden hazırlanacak. İnternetten veya
+  yapay zekâdan alınan "Türk Telekom poz listesi" gerçek kaynak değildir; kodları uydurmadır, kullanılmaz.
+- Resmi kurumların birim fiyat listeleri (inşaat, yol, su, elektrik) F5'te kaynak ve kullanım şartlarıyla değerlendirilecek.
+
+### Önceki durum (12 Ekim 2026 akşam)
 
 - **Şubeler D3 tamamlandı ve canlıda** (`20261023000001` … `20261028000001`, hepsi kurulu, `main`'de):
   - Her şubeye otomatik "<Şube> Depo"; stokun görünmeme hatası (depo listesi `branch_id` çekmiyordu) düzeldi.
@@ -92,7 +215,7 @@ devam edileceği kararlaştırılır. Her adım kullanıcının onayıyla ilerle
   ekibi ve kendi imalatı; fiyat görmez; imalat "onay bekliyor" gider, şef/firma yöneticisi onaylar
   ya da gerekçeyle reddeder; onaylanana kadar ilerlemeye, hakedişe ve taşeron hesabına işlenmez.
   Açık sorular: geçmiş günlere giriş (öneri: son 3 gün), fotoğraf (öneri: sonra).
-- [ ] **İş kalemi notu:** kullanıcıya sorulacak — (a) proje türünde olmayan bir iş kalemi imalatta
+- [x] ~~**İş kalemi notu:**~~ F (sektör yapısı ve poz listesi) ile yeniden ele alınıyor. Eski not: kullanıcıya sorulacak — (a) proje türünde olmayan bir iş kalemi imalatta
   listeden seçilip projeye eklensin mi, yoksa (b) bölümlü projede bölüm açılmadan iş kalemi
   seçilebilsin mi? (Bugün türdeki bütün kalemler projede otomatik hazır; türde olmayan iş "Ek İş" ile girilir.)
 - [ ] Taşeron detayındaki "Pay %" rozeti kaldırılsın mı? (Kullanıcıya sorulacak; Excel'de yüzde yok.)

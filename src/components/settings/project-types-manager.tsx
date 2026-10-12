@@ -22,6 +22,8 @@ import { TypeDot } from "@/components/projects/project-status-indicators";
 
 type Draft = Omit<ProjectTypeFormValues, "stages"> & {
   id: string | null;
+  /** Katalogdan kurulan türün adı, rengi ve bölüm ayarı süper admin'de değişir. */
+  fromCatalog?: boolean;
   stages: { id: string | null; name: string; unit: string; poz_code: string; unit_price: string }[];
 };
 
@@ -46,6 +48,7 @@ const fromTemplate = (template: ProjectTypeTemplate, index: number): Draft => ({
 });
 
 const fromType = (type: ProjectType, prices: Record<string, number>): Draft => ({
+  fromCatalog: !!type.catalog_type_id,
   id: type.id,
   name: type.name,
   description: type.description ?? "",
@@ -73,12 +76,15 @@ export function ProjectTypesManager({
   stagePrices,
   currency,
   addons = [],
+  legacyCreation = false,
 }: {
   types: ProjectType[];
   stagePrices: Record<string, number>;
   currency: CurrencyCode;
   /** Süper adminin açtığı proje eklentileri. */
   addons?: ProjectAddon[];
+  /** Eski akış: firmanın kendisi tür açar (katalogsuz). Kataloglarla kapalı. */
+  legacyCreation?: boolean;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -122,9 +128,11 @@ export function ProjectTypesManager({
         <div>
           <CardTitle>Proje Türleri</CardTitle>
           <CardDescription>
-            Firmanızın yaptığı iş türlerini ve her türün iş kalemlerini (aşamalarını) birim ve birim fiyatıyla tanımlayın. Projeler, İmalatlar ve hakediş bu kalemlere göre işler.
+            Proje türleri firmanızın sektörüne göre MK OPS tarafından kurulur. Yeni bir tür gerekiyorsa Destek sayfasından bize
+            yazın. Türlerin iş kalemlerini, birimlerini ve birim fiyatlarını buradan düzenleyebilirsiniz.
           </CardDescription>
         </div>
+        {!legacyCreation ? null : (
         <div className="flex flex-wrap gap-2">
           {addons.includes("hp") && (
             <Button
@@ -169,11 +177,12 @@ export function ProjectTypesManager({
             Yeni tür
           </Button>
         </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-3">
         {types.length === 0 && (
           <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-            Henüz proje türü yok. Hazır bir şablonla başlayabilir veya kendi türünüzü oluşturabilirsiniz.
+            Henüz proje türü yok. Türler firmanızın sektörüne göre MK OPS tarafından kurulur; Destek sayfasından bize yazın.
           </div>
         )}
         {types.map((type) => (
@@ -191,6 +200,7 @@ export function ProjectTypesManager({
               )}
               {type.is_archived && <span className="rounded-md bg-muted px-2 py-0.5 text-xs">Arşivde</span>}
               <div className="ml-auto flex gap-1">
+                {type.screen !== "standard" ? null : (
                 <Button
                   size="icon"
                   variant="ghost"
@@ -203,12 +213,15 @@ export function ProjectTypesManager({
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
+                )}
                 <Button size="icon" variant="ghost" onClick={() => toggleArchive(type)} disabled={busyId === type.id} aria-label="Arşivle">
                   {type.is_archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
                 </Button>
-                <Button size="icon" variant="ghost" onClick={() => remove(type)} disabled={busyId === type.id} aria-label="Sil">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {!type.catalog_type_id && (
+                  <Button size="icon" variant="ghost" onClick={() => remove(type)} disabled={busyId === type.id} aria-label="Sil">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
             {type.description && <p className="mt-1 text-sm text-muted-foreground">{type.description}</p>}
@@ -420,7 +433,7 @@ function TypeEditor({ draft: initial, currency, onClose }: { draft: Draft; curre
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label>Tür adı</Label>
-            <Input value={draft.name} onChange={(event) => set("name", event.target.value)} placeholder="Örn. Doğalgaz Hattı" />
+            <Input value={draft.name} onChange={(event) => set("name", event.target.value)} placeholder="Örn. Doğalgaz Hattı" disabled={draft.fromCatalog} />
           </div>
           <div className="space-y-2">
             <Label>Renk</Label>

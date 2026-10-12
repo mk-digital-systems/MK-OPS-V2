@@ -14,15 +14,19 @@ export class CompanyRepository {
     return (data as AccountInfo | null) ?? { is_super_admin: false, company: null };
   }
 
-  /** Süper adminin bu firma için açtığı proje eklentileri (hp, corporate). */
+  /**
+   * Firmada açık HP / Kurumsal ekranları: firmaya atanan kataloglardaki türlerin ekran tipleri
+   * (geçiş için eski eklenti listesi de sayılır).
+   */
   async getProjectAddons(): Promise<ProjectAddon[]> {
-    const { data, error } = await this.supabase.from("companies").select("project_addons").maybeSingle();
-    if (error) {
-      // Migration kurulmadan önce sütun yok: eklenti kapalı say.
-      if (error.code === "42703") return [];
-      throw error;
-    }
-    return ((data?.project_addons as ProjectAddon[] | null) ?? []);
+    const [company, catalogTypes] = await Promise.all([
+      this.supabase.from("companies").select("project_addons").maybeSingle(),
+      this.supabase.from("catalog_project_types").select("screen").neq("screen", "standard"),
+    ]);
+    // Migration'lar kurulmadan önce sütun / tablo yoksa kapalı say.
+    const legacy = company.error ? [] : ((company.data?.project_addons as ProjectAddon[] | null) ?? []);
+    const fromCatalogs = catalogTypes.error ? [] : (catalogTypes.data ?? []).map((row) => row.screen as ProjectAddon);
+    return [...new Set([...legacy, ...fromCatalogs])];
   }
 
   async createCompany(name: string): Promise<AccountInfo> {

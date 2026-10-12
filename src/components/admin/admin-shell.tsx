@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Building2, LifeBuoy, LogOut, ShieldCheck } from "lucide-react";
+import { Building2, LibraryBig, LifeBuoy, LogOut, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants/brand";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 
 const LINKS = [
   { href: "/admin", label: "Şirketler", icon: Building2 },
+  { href: "/admin/kataloglar", label: "Kataloglar", icon: LibraryBig },
   { href: "/admin/support", label: "Destek Talepleri", icon: LifeBuoy },
 ];
 

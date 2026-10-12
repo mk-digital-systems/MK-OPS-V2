@@ -8,6 +8,7 @@ export const metadata = {
 
 export default async function AdminCompaniesPage() {
   const supabase = await createClient();
-  const companies = await new AdminRepository(supabase).listCompanies();
-  return <CompaniesManager initialCompanies={companies} />;
+  const repository = new AdminRepository(supabase);
+  const [companies, catalogs] = await Promise.all([repository.listCompanies(), repository.listCatalogs().catch(() => [])]);
+  return <CompaniesManager initialCompanies={companies} catalogs={catalogs} />;
 }

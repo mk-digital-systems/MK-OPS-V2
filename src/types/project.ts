@@ -42,6 +42,8 @@ export type ProjectType = {
   sort_order: number;
   is_archived: boolean;
   screen: ProjectScreen;
+  /** Doluysa tür süper admin kataloğundan kurulmuştur (firma düzenleyemez) */
+  catalog_type_id?: string | null;
   stages: ProjectTypeStage[];
 };
 

@@ -35,6 +35,41 @@ export const PROJECT_ADDONS: { key: ProjectAddon; label: string; description: st
   },
 ];
 
+export type CatalogType = {
+  id: string;
+  name: string;
+  description: string | null;
+  screen: "standard" | ProjectAddon;
+  color: string | null;
+  sort_order: number;
+};
+
+export type CatalogItem = {
+  id?: string;
+  group_name: string | null;
+  poz_code: string | null;
+  name: string;
+  unit: string | null;
+  sort_order?: number;
+};
+
+export type Catalog = {
+  id: string;
+  name: string;
+  description: string | null;
+  is_builtin: boolean;
+  sort_order: number;
+  types: CatalogType[];
+  items: CatalogItem[];
+  company_ids: string[];
+};
+
+export const SCREEN_LABELS: Record<CatalogType["screen"], string> = {
+  standard: "Standart",
+  hp: "HP odaklı (paftalı)",
+  corporate: "Kurumsal (elle durum)",
+};
+
 export type AdminCompanyUser = {
   id: string;
   full_name: string | null;

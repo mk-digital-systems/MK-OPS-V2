@@ -20,6 +20,7 @@ node tests/db/vault.test.mjs # tek dosya, ayrıntılı çıktı
 | `onboarding` | Firma kurma, kodla katılma, deneme süresi, erişim durumu |
 | `projects` | Proje türleri, iş kalemleri, bölümler, metraj |
 | `project-stage-lists` | Projeye göre iş kalemleri (şablondan seçim, projeye özel kalem), poz kodu |
+| `catalogs` | Süper admin katalogları, türlerin firmaya kurulması, eklentiden geçiş |
 | `corporate-projects` | Kurumsal proje eklentisi, elle durum, ekip başı, toplam proje tarihi |
 | `hp-projects` | Süper admin proje eklentisi, HP odaklı tür, paftalar, paftadan proje durumu, HP raporu |
 | `hakedis` | Birim fiyat, fiyat sabitleme, rapor, yetki |
