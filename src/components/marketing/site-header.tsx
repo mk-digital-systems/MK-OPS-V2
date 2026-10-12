@@ -4,11 +4,11 @@ import { BrandLogo } from "@/components/layout/brand-logo";
 import { Button } from "@/components/ui/button";
 
 const LINKS = [
-  { href: "/#ozellikler", label: "Özellikler" },
+  { href: "/santiye-takip-programi", label: "Şantiye Programı" },
   { href: "/cozumler", label: "Çözümler" },
-  { href: "/#nasil-calisir", label: "Nasıl Çalışır" },
+  { href: "/#bir-gunun-akisi", label: "Nasıl Çalışır" },
   { href: "/#fiyatlandirma", label: "Fiyatlandırma" },
-  { href: "/#sss", label: "SSS" },
+  { href: "/ucretsiz-sablonlar/puantaj-excel-sablonu", label: "Ücretsiz Şablon" },
 ];
 
 export function SiteHeader({ signedIn }: { signedIn: boolean }) {

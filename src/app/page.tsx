@@ -28,22 +28,24 @@ import {
   COMPANY_LEGAL_NAME,
   SITE_URL,
   SUPPORT_EMAIL,
+  SUPPORT_WHATSAPP,
   whatsappUrl,
 } from "@/lib/constants/brand";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { SiteFooter } from "@/components/marketing/site-footer";
 import {
   AttendanceMockup,
-  DashboardMockup,
   InventoryMockup,
   WorkPlanMockup,
 } from "@/components/marketing/mockups";
+import { ConnectedSystemMap } from "@/components/marketing/connected-system-map";
+import { PanelScreenshot } from "@/components/marketing/panel-screenshot";
 import { Button } from "@/components/ui/button";
 
 // Arama sonucunda görünen başlık; aranan ifadeyi ("şantiye/saha yönetim programı") içerir.
 const SEO_TITLE = `${APP_NAME} — Şantiye ve Saha Yönetim Programı`;
 const DESCRIPTION =
-  "Şantiye ve saha yönetim programı: hakediş, günlük iş planı, imalat, puantaj, malzeme stoku, araç ve ekipman takibi tek panelde. 48 saat ücretsiz deneyin.";
+  "Şantiye takip programı: iş planından imalata, hakedişten taşeron payına; puantajdan şube ve depo onayına tüm saha operasyonu birbirine bağlı.";
 
 export const metadata: Metadata = {
   title: { absolute: SEO_TITLE },
@@ -73,6 +75,7 @@ const STRUCTURED_DATA = {
         "@type": "ContactPoint",
         contactType: "customer support",
         email: SUPPORT_EMAIL,
+        telephone: `+${SUPPORT_WHATSAPP}`,
         availableLanguage: "Turkish",
       },
     },
@@ -168,6 +171,33 @@ const STEPS = [
   },
 ];
 
+const DAY_FLOW = [
+  {
+    time: "07:30",
+    title: "Ekip ve araç planlanır",
+    text: "Şube, personeli ve aracı projeyle eşleştirir; aynı kişi veya araç iki ekibe yazılamaz.",
+    href: "/cozumler/gunluk-is-takibi",
+  },
+  {
+    time: "18:00",
+    title: "İmalat tek kayıttan girilir",
+    text: "Sabahın ekipleri forma hazır gelir. Yalnızca yapılan iş ve miktar eklenir.",
+    href: "/cozumler/gunluk-is-takibi",
+  },
+  {
+    time: "18:05",
+    title: "Proje ve hakediş güncellenir",
+    text: "Metraj proje ilerlemesine, işin parasal değeri hakediş raporuna kendiliğinden düşer.",
+    href: "/cozumler/hakedis-takibi",
+  },
+  {
+    time: "Ay sonu",
+    title: "Puantaj ve taşeron ekstresi hazırdır",
+    text: "Şube günleri, çalışma kayıtları ve taşeron payları aynı operasyon kaydından izlenir.",
+    href: "/taseron-takibi",
+  },
+];
+
 const FAQ = [
   {
     question: "Hangi firmalar için uygun?",
@@ -233,11 +263,11 @@ export default async function LandingPage() {
                 Sahada ekibi olan firmalar için
               </p>
               <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-                Ekiplerinizi, işlerinizi ve kaynaklarınızı <span className="text-primary">tek panelden</span> yönetin
+                Şantiyenizi A&apos;dan Z&apos;ye tek yerden yönetin: <span className="text-primary">sahadaki ekipten Merkez&apos;deki onaya</span>
               </h1>
               <p className="max-w-xl text-lg text-muted-foreground">
-                İş takibi, günlük plan, puantaj, malzeme stoku ve araçlar aynı yerde. Excel dosyaları ve mesaj
-                gruplarında dağılan bilgiyi tek kayda toplayın; ofis ve saha aynı bilgiyle çalışsın.
+                İş planı imalatı, imalat hakedişi, puantaj şube günlerini, irsaliye stoğu besler. Aynı bilgiyi tekrar
+                yazmadan şubeleri, taşeronları, depoları ve araçları birbirine bağlı yönetin.
               </p>
               <div className="flex flex-wrap gap-3">
                 <PrimaryCta signedIn={signedIn} />
@@ -258,8 +288,37 @@ export default async function LandingPage() {
               </ul>
             </div>
             <div className="lg:-mr-8">
-              <DashboardMockup />
+              <PanelScreenshot
+                src="/images/panel/dash.png"
+                alt="MK OPS şantiye takip programı genel bakış ekranı"
+                caption="Projeler, hakediş ve yaklaşan araç tarihleri aynı genel bakışta."
+                priority
+              />
             </div>
+          </div>
+        </section>
+
+        <section id="bir-gunun-akisi" className="scroll-mt-20 py-16 md:py-20">
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-[.16em] text-primary">Bir günün akışı</p>
+              <h2 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Sabah yazılan plan, akşam dört ayrı işi hazırlar</h2>
+              <p className="mt-4 text-muted-foreground">MK OPS&apos;un farkı modül sayısı değil, kayıtların birbirini takip etmesidir.</p>
+            </div>
+            <ol className="mt-10 grid gap-4 md:grid-cols-4">
+              {DAY_FLOW.map((item, index) => (
+                <li key={item.title} className="relative rounded-2xl border bg-card p-5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-primary">{item.time}</span>
+                    <span className="text-xs text-muted-foreground">0{index + 1}</span>
+                  </div>
+                  <h3 className="mt-6 font-semibold">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.text}</p>
+                  <Link href={item.href} className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">Akışı inceleyin <ArrowRight className="h-3.5 w-3.5" /></Link>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-8"><ConnectedSystemMap /></div>
           </div>
         </section>
 

@@ -5,8 +5,57 @@ import { ArrowRight, CheckCircle2, MessageCircle } from "lucide-react";
 import { APP_NAME, SITE_URL, whatsappUrl } from "@/lib/constants/brand";
 import { SOLUTIONS, getSolution } from "@/lib/constants/solutions";
 import { Button } from "@/components/ui/button";
+import { PanelScreenshot } from "@/components/marketing/panel-screenshot";
 
 type Params = { params: Promise<{ slug: string }> };
+
+const PAGE_PROOF: Record<string, { src: string; alt: string; caption: string }> = {
+  "hakedis-takibi": { src: "/images/panel/dash.png", alt: "Hakediş toplamlarını gösteren MK OPS genel bakış ekranı", caption: "Günlük imalatların parasal karşılığı bugün, bu hafta ve dönem toplamında görünür." },
+  "gunluk-is-takibi": { src: "/images/panel/plan.png", alt: "Ekip, araç ve projelerin yer aldığı günlük iş planı ekranı", caption: "Personel, araç, ekip türü ve proje tek günlük planda birleşir." },
+  "irsaliye-malzeme-takibi": { src: "/images/panel/stok.png", alt: "Merkez ve saha depolarını gösteren malzeme stok ekranı", caption: "Toplam stok ile Merkez ve saha depolarındaki dağılım aynı satırda izlenir." },
+  "proje-metraj-takibi": { src: "/images/panel/proje.png", alt: "Proje ilerleme ve metraj takip ekranı", caption: "İş kalemleri ilerledikçe projenin tamamlanma oranı güncellenir." },
+  "puantaj-personel-takibi": { src: "/images/panel/puantaj.png", alt: "Aylık personel puantaj takip tablosu", caption: "Çalışma, izin, rapor ve hafta tatili günleri ay boyunca tek tabloda." },
+  "arac-ekipman-takibi": { src: "/images/panel/zimmet.png", alt: "Araç ve personele ekipman zimmetleme ekranı", caption: "Ekipmanın depodan araca veya personele uzanan zimmet geçmişi kayıt altında." },
+  "denetim-gunlugu": { src: "/images/panel/dash-tall.png", alt: "MK OPS yönetim paneli ve bildirimleri", caption: "Operasyon kayıtları yetki ve işlem geçmişiyle birlikte yönetilir." },
+};
+
+const CONNECTIONS: Record<string, { title: string; href: string; text: string }[]> = {
+  "hakedis-takibi": [
+    { title: "Günlük imalat", href: "/cozumler/gunluk-is-takibi", text: "Girilen miktar hakediş satırını oluşturur." },
+    { title: "Proje metrajı", href: "/cozumler/proje-metraj-takibi", text: "Aynı kayıt proje ilerlemesini günceller." },
+    { title: "Taşeron ekstresi", href: "/taseron-takibi", text: "Taşerona bağlı ekiplerin payı ayrı izlenir." },
+  ],
+  "gunluk-is-takibi": [
+    { title: "Personel kartı", href: "/cozumler/puantaj-personel-takibi", text: "Plana yalnızca güncel personel gelir." },
+    { title: "İmalat ve hakediş", href: "/cozumler/hakedis-takibi", text: "Akşam girilen miktar parasal değere dönüşür." },
+    { title: "Araçlar", href: "/cozumler/arac-ekipman-takibi", text: "Araç aynı gün iki ekibe atanamaz." },
+  ],
+  "irsaliye-malzeme-takibi": [
+    { title: "Şube deposu", href: "/cok-subeli-santiye-yonetimi", text: "Giriş hangi şubeye yapıldıysa stok orada artar." },
+    { title: "Merkez onayı", href: "/cok-subeli-santiye-yonetimi", text: "Talep ve irsaliye kontrolü onay akışında ilerler." },
+    { title: "Proje çıkışı", href: "/cozumler/proje-metraj-takibi", text: "Stoktan düşüm proje ve teslim alanla kaydedilir." },
+  ],
+  "proje-metraj-takibi": [
+    { title: "Günlük imalat", href: "/cozumler/gunluk-is-takibi", text: "Sahadaki miktar ilerleme yüzdesini besler." },
+    { title: "Hakediş", href: "/cozumler/hakedis-takibi", text: "Metraj, kayıt tarihindeki fiyatla hesaplanır." },
+    { title: "Malzeme çıkışı", href: "/cozumler/irsaliye-malzeme-takibi", text: "Projeye teslim edilen malzeme izlenir." },
+  ],
+  "puantaj-personel-takibi": [
+    { title: "Personel kartı", href: "/cozumler/puantaj-personel-takibi", text: "İşe giriş, görev ve aktiflik bilgisi kaynağıdır." },
+    { title: "Şube günleri", href: "/cok-subeli-santiye-yonetimi", text: "Ay içinde hangi şubede kaç gün çalıştığı görünür." },
+    { title: "Taşeron kesintisi", href: "/taseron-takibi", text: "Taşeron personeli ve SGK sorumluluğu ayrıştırılır." },
+  ],
+  "arac-ekipman-takibi": [
+    { title: "İş planı", href: "/cozumler/gunluk-is-takibi", text: "Araç günlük ekibe bağlanır." },
+    { title: "Şube yakıtı", href: "/santiye-yakit-takibi", text: "Yakıt ve kilometre kayıtları şube bağlamında izlenir." },
+    { title: "Zimmet", href: "/cozumler/arac-ekipman-takibi", text: "Ekipman araca, personele veya ekibe aktarılır." },
+  ],
+  "denetim-gunlugu": [
+    { title: "Yetkiler", href: "/cok-subeli-santiye-yonetimi", text: "Kimin hangi şubeyi ve modülü göreceği belirlenir." },
+    { title: "Hakediş fiyatları", href: "/cozumler/hakedis-takibi", text: "Fiyat değişiklikleri önceki ve sonraki değerle saklanır." },
+    { title: "Stok hareketleri", href: "/cozumler/irsaliye-malzeme-takibi", text: "Hareketi yapan kişi ve zaman bilgisi korunur." },
+  ],
+};
 
 export function generateStaticParams() {
   return SOLUTIONS.map((item) => ({ slug: item.slug }));
@@ -36,6 +85,8 @@ export default async function SolutionPage({ params }: Params) {
   const solution = getSolution((await params).slug);
   if (!solution) notFound();
   const related = solution.related.map(getSolution).filter((item) => item !== null);
+  const proof = PAGE_PROOF[solution.slug];
+  const connections = CONNECTIONS[solution.slug] ?? [];
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -83,6 +134,8 @@ export default async function SolutionPage({ params }: Params) {
         </Button>
       </div>
 
+      {proof ? <div className="mt-10"><PanelScreenshot {...proof} priority /></div> : null}
+
       <section className="mt-12 rounded-2xl border bg-muted/30 p-6">
         <h2 className="text-xl font-semibold text-foreground">{solution.problem.title}</h2>
         <ul className="mt-3 list-disc space-y-1 pl-6">
@@ -118,6 +171,21 @@ export default async function SolutionPage({ params }: Params) {
           {solution.audience.map((item) => <li key={item}>{item}</li>)}
         </ul>
       </section>
+
+      {connections.length > 0 ? (
+        <section className="mt-12 rounded-[2rem] bg-slate-950 p-6 text-slate-300 sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-[.18em] text-sky-300">Bağlı sistem</p>
+          <h2 className="mt-2 text-2xl font-semibold text-white">Bu modül neye bağlı?</h2>
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            {connections.map((item) => (
+              <Link key={`${item.title}-${item.text}`} href={item.href} className="rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:border-sky-400/60">
+                <span className="font-semibold text-white">{item.title}</span>
+                <span className="mt-2 block text-sm leading-6">{item.text}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="mt-12">
         <h2 className="text-xl font-semibold text-foreground">Sık sorulan sorular</h2>

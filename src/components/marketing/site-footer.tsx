@@ -45,20 +45,28 @@ export function SiteFooter() {
           </ul>
         </div>
         <div className="space-y-2">
-          <p className="text-sm font-semibold">Yasal</p>
+          <p className="text-sm font-semibold">Rehberler</p>
           <ul className="space-y-1 text-sm">
-            {LEGAL_LINKS.map((link) => (
+            {[
+              ["/santiye-takip-programi", "Şantiye takip programı"],
+              ["/cok-subeli-santiye-yonetimi", "Çok şubeli yönetim"],
+              ["/taseron-takibi", "Taşeron takibi"],
+              ["/santiye-yakit-takibi", "Şantiye yakıt takibi"],
+              ["/karsilastirma/excel-mi-bagli-sistem-mi", "Excel mi, bağlı sistem mi?"],
+              ["/ucretsiz-sablonlar/puantaj-excel-sablonu", "Ücretsiz puantaj şablonu"],
+            ].map(([href, label]) => <li key={href}><Link href={href} className="text-muted-foreground hover:text-foreground">{label}</Link></li>)}
+          </ul>
+        </div>
+        <div className="space-y-2">
+          <p className="text-sm font-semibold">İletişim ve yasal</p>
+          <ul className="space-y-1 text-sm">
+            {LEGAL_LINKS.slice(0, 3).map((link) => (
               <li key={link.href}>
                 <Link href={link.href} className="text-muted-foreground hover:text-foreground">
                   {link.label}
                 </Link>
               </li>
             ))}
-          </ul>
-        </div>
-        <div className="space-y-2">
-          <p className="text-sm font-semibold">İletişim</p>
-          <ul className="space-y-1 text-sm">
             <li>
               <a href={`mailto:${SUPPORT_EMAIL}`} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground">
                 <Mail className="h-4 w-4" />

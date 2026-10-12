@@ -11,7 +11,7 @@ export default async function LegalLayout({ children }: { children: React.ReactN
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <SiteHeader signedIn={!!user} />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-12">{children}</main>
       <SiteFooter />
     </div>
   );
