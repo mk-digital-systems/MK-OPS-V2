@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { BranchRepository } from "@/modules/branches/branch-repository";
+import { getSelectedBranchId } from "@/lib/branch-selection";
 import { PersonnelRepository } from "@/modules/work-plans/personnel-repository";
 import { AttendanceRepository } from "@/modules/attendance/attendance-repository";
 import { PersonnelManager } from "@/components/work-plans/personnel-manager";
@@ -46,10 +48,11 @@ export default async function PersonnelPage({ searchParams }: Props) {
       : null;
 
   const supabase = await createClient();
+  const branchId = await getSelectedBranchId((await new BranchRepository(supabase).getMine()).branches);
   const attendanceRepository = new AttendanceRepository(supabase);
   const userRepository = new UserRepository(supabase);
   const [personnel, attendanceSummary, personnelSummaries, assignedVehicles, canWrite, profile] = await Promise.all([
-    new PersonnelRepository(supabase).list({ includePending: true }),
+    new PersonnelRepository(supabase).list({ includePending: true, branchId }),
     validPersonnelId
       ? attendanceRepository.getPersonnelSummary(
           validPersonnelId,

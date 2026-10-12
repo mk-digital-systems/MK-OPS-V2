@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { BranchRepository } from "@/modules/branches/branch-repository";
+import { getSelectedBranchId } from "@/lib/branch-selection";
 import { ProjectRepository } from "@/modules/projects/project-repository";
 import { parseProjectSearchParams } from "@/lib/search-params";
 import { ProjectsTable } from "@/components/projects/projects-table";
@@ -20,6 +22,7 @@ async function ProjectsContent({ searchParams }: Props) {
   if (filters.search?.trim() && !params.scope) filters.archiveScope = "all";
 
   const supabase = await createClient();
+  filters.branchId = await getSelectedBranchId((await new BranchRepository(supabase).getMine()).branches);
   const repository = new ProjectRepository(supabase);
   const userRepository = new UserRepository(supabase);
   const [result, exportResult, types, locations, canWrite, profile] = await Promise.all([

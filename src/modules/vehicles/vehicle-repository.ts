@@ -17,9 +17,10 @@ export class VehicleRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
   /** Varsayılan olarak onay bekleyen araçlar listelenmez (iş planı, ekipman, seçim listeleri). */
-  async list(options?: { includePending?: boolean }): Promise<Vehicle[]> {
+  async list(options?: { includePending?: boolean; branchId?: string | null }): Promise<Vehicle[]> {
     let query = this.supabase.from("vehicles").select("*").order("plate");
     if (!options?.includePending) query = query.eq("approval_status", "approved");
+    if (options?.branchId) query = query.eq("branch_id", options.branchId);
     const { data, error } = await query;
     if (error) throw error;
     return (data ?? []) as Vehicle[];
@@ -84,6 +85,7 @@ export class VehicleRepository {
         notes: emptyToNull(payload.notes),
         inspection_date: emptyToNull(payload.inspection_date),
         insurance_date: emptyToNull(payload.insurance_date),
+        ...(payload.branch_id ? { branch_id: payload.branch_id } : {}),
         created_by: payload.created_by ?? null,
         updated_by: payload.updated_by ?? null,
       })
@@ -113,6 +115,7 @@ export class VehicleRepository {
       updatePayload.inspection_date = emptyToNull(payload.inspection_date);
     if (payload.insurance_date !== undefined)
       updatePayload.insurance_date = emptyToNull(payload.insurance_date);
+    if (payload.branch_id) updatePayload.branch_id = payload.branch_id;
 
     const { data, error } = await this.supabase
       .from("vehicles")

@@ -10,6 +10,7 @@ export type Vehicle = {
   inspection_date: string | null;
   insurance_date: string | null;
   assigned_personnel_id: string | null;
+  branch_id: string;
   /** Muhasebenin eklediği araç şef/firma yöneticisi onaylayana kadar "pending". */
   approval_status: RecordApprovalStatus;
   approved_by: string | null;
@@ -28,6 +29,7 @@ export type VehicleInput = {
   notes?: string | null;
   inspection_date?: string | null;
   insurance_date?: string | null;
+  branch_id?: string | null;
   created_by?: string | null;
   updated_by?: string | null;
 };

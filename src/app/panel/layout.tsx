@@ -7,6 +7,9 @@ import { NotesRepository } from "@/modules/notes/notes-repository";
 import { CompanyRepository } from "@/modules/company/company-repository";
 import { hasAppAccess, resolveAccountHome } from "@/lib/account-routing";
 import { CompanyBrandProvider } from "@/components/layout/company-brand-provider";
+import { BranchProvider } from "@/components/layout/branch-provider";
+import { BranchRepository } from "@/modules/branches/branch-repository";
+import { getSelectedBranchId } from "@/lib/branch-selection";
 import { companyLogoUrl, DEFAULT_REPORT_BRAND } from "@/lib/report-brand";
 
 export default async function AppLayout({
@@ -19,11 +22,13 @@ export default async function AppLayout({
   if (!profile) redirect("/login");
   const account = await new CompanyRepository(supabase).getMyAccount();
   if (!hasAppAccess(profile, account)) redirect(resolveAccountHome(profile, account));
-  const [avatarUrl, notes, writableModules] = await Promise.all([
+  const [avatarUrl, notes, writableModules, myBranches] = await Promise.all([
     new UserRepository(supabase).createAvatarUrl(profile.avatar_path),
     new NotesRepository(supabase).list(),
     new UserRepository(supabase).getWritableModules(),
+    new BranchRepository(supabase).getMine(),
   ]);
+  const selectedBranchId = await getSelectedBranchId(myBranches.branches);
   const pathname = (await headers()).get("x-app-pathname") || "/panel";
   const permissionModule = pathname.startsWith("/panel/projects") ? "projects"
     : pathname.startsWith("/panel/work-plans") ? "work_plans"
@@ -66,6 +71,7 @@ export default async function AppLayout({
 
   return (
     <CompanyBrandProvider brand={brand}>
+      <BranchProvider branches={myBranches.branches} totalCount={myBranches.total_count} selectedId={selectedBranchId}>
       <AppShell
         profile={profile}
         avatarUrl={avatarUrl}
@@ -75,6 +81,7 @@ export default async function AppLayout({
       >
         {children}
       </AppShell>
+      </BranchProvider>
     </CompanyBrandProvider>
   );
 }

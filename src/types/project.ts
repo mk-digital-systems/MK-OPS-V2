@@ -30,6 +30,7 @@ export type Project = {
   location: string;
   team_name: string | null;
   description: string | null;
+  branch_id: string;
   image_url: string | null;
   status: ProjectStatus;
   hold_reason: string | null;
@@ -110,6 +111,8 @@ export type ProjectFilters = {
   pageSize?: number;
   sortBy?: "updated_at" | "created_at" | "estimated_end_date" | "project_code" | "progress_percent";
   sortOrder?: "asc" | "desc";
+  /** Menüde seçili şube (yoksa erişilebilen bütün şubeler). */
+  branchId?: string | null;
 };
 
 export type PaginatedResult<T> = {
@@ -132,6 +135,8 @@ export type ProjectInput = {
   start_date?: string | null;
   estimated_end_date?: string | null;
   priority_order?: number | null;
+  /** Verilmezse kullanıcının varsayılan şubesi (Merkez ya da ilk şubesi). */
+  branch_id?: string | null;
 };
 
 export type DashboardStats = {

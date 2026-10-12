@@ -41,6 +41,7 @@ export class ProjectRepository {
     if (filters.status && filters.status !== "all") query = query.eq("status", filters.status);
     if (filters.projectTypeId && filters.projectTypeId !== "all") query = query.eq("project_type_id", filters.projectTypeId);
     if (filters.location && filters.location !== "all") query = query.eq("location", filters.location);
+    if (filters.branchId) query = query.eq("branch_id", filters.branchId);
 
     const search = filters.search?.trim().replace(/[%,()]/g, " ");
     if (search) {
@@ -86,6 +87,7 @@ export class ProjectRepository {
       start_date: emptyToNull(payload.start_date),
       estimated_end_date: emptyToNull(payload.estimated_end_date),
       priority_order: payload.priority_order ?? null,
+      ...(payload.branch_id ? { branch_id: payload.branch_id } : {}),
     };
   }
 

@@ -1,6 +1,6 @@
 # MK OPS — Geliştirme Planı
 
-Son güncelleme: 10 Ekim 2026 (taşeron personel kartından; C aşaması ertelendi; sıradaki işler listelendi)
+Son güncelleme: 12 Ekim 2026 (şubeler D1)
 
 Bu dosya, üzerinde çalışılacak geliştirmelerin listesidir. Eski MK-OPS projesi
 (`PORTFÖY/PANEL/MK-OPS`) silindiği için oradan alınacak fikirlerin iş mantığı
@@ -41,10 +41,16 @@ devam edileceği kararlaştırılır. Her adım kullanıcının onayıyla ilerle
 
 ### Ürün geliştirme
 
-- [ ] **D — Şubeler** (en büyük iş): şube tablosu; personel, proje, araç ve depo şubeye bağlı; şefe
-  ve muhasebeye şube atama (bir şef birden fazla şube, firma yöneticisi atar); şef yalnızca kendi
-  şubesini görür (veritabanında kısıt); şubeler arası malzeme gönderme / teslim alma. Netleşecek:
-  personel aynı ay iki şubede çalışırsa ne olur (öneri: tek şube, gerekirse şube değiştirilir).
+- [x] **D1 — Şubeler** (`20261021000001_branches.sql`): Merkez + şube açma (Ayarlar), şef/muhasebeye şube
+  atama (Kullanıcılar), proje/personel/araç formunda şube, menüde şube seçici (listeler süzülür), şef ve
+  muhasebe yalnızca kendi şubeleri (RLS + fonksiyon içi yazma koruması). Kararlar: personel tek şube;
+  puantaj onayı şube bazında; malzeme sevkiyatı anında; proje türleri/fiyatlar firma genelinde ortak.
+- [ ] **D2 — Şubeler (devam):** günlük iş planı şube bazında (bugün firmada günde tek plan; `daily_work_plans`
+  benzersizliği şube+tarih olacak); imalat ve onay ekranları şubeye göre; ay sonu puantaj onayı şube bazında;
+  puantaj sayfasında şube süzgeci; hakediş raporu, taşeron listesi/ekstresi, Genel Bakış ve bildirimler
+  şubeye göre (bu fonksiyonlar şu an firma genelini tarıyor); malzeme stoku: depo formunda şube seçimi,
+  stok miktarlarının şubeye göre görünmesi, şef yalnızca kendi şubesinin deposundan gönderir; proje
+  listesinde şube rozeti.
 - [ ] **E — "Bugün" özeti** (firma yöneticisinin açılış ekranı): hangi ekip nerede, ne yaptı,
   bekleyen onaylar, şube bazında kısa özet.
 - [ ] **C — Ekip başı ve saha paneli** (ertelendi). Taslak: ekip başı kullanıcısı personel kaydına

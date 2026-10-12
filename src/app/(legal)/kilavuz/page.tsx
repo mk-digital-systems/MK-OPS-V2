@@ -323,6 +323,12 @@ export default function GuidePage() {
       <h2 id="ayarlar">{SECTIONS[9].title}</h2>
       <ul>
         <li>
+          <strong>Ayarlar → Şubeler:</strong> firma yöneticisi şube açar (her firmada otomatik bir &quot;Merkez&quot; vardır).
+          Proje, personel ve araç formlarında şube seçilir; menünün üstündeki şube seçimiyle listeler o şubeye göre süzülür.
+          Şantiye şefi ve muhasebeye <strong>Kullanıcılar</strong> sayfasından şube atanır; yalnızca atandıkları şubelerin kayıtlarını
+          görür ve işlerler. Tek şubeli firmada şube seçimi görünmez.
+        </li>
+        <li>
           <strong>Ayarlar → Firma Logosu:</strong> PNG, JPG veya WEBP (en fazla 2 MB) logo yükleyin. Bütün PDF, Word ve Excel
           çıktılarında ve iş planı görselinde {APP_NAME} yerine firmanızın adı ve logosu görünür.
         </li>

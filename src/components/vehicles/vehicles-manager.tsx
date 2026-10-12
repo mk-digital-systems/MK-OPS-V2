@@ -18,6 +18,7 @@ import { formatDate } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { VehicleRepository } from "@/modules/vehicles/vehicle-repository";
 import { PendingApprovalsCard } from "@/components/approvals/pending-approvals-card";
+import { BranchSelectField, useBranches } from "@/components/layout/branch-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -53,6 +54,8 @@ export function VehiclesManager({
   currentUserId?: string | null;
 }) {
   const brand = useReportBrand();
+  const { defaultBranchId, multiBranch, branchName } = useBranches();
+  const [branchId, setBranchId] = useState("");
   const [vehicles, setVehicles] = useState(initialVehicles);
   const [editing, setEditing] = useState<Vehicle | null>(null);
   const [open, setOpen] = useState(false);
@@ -82,6 +85,7 @@ export function VehiclesManager({
 
   function openCreate() {
     setEditing(null);
+    setBranchId(defaultBranchId ?? "");
     form.reset({
       plate: "",
       brand: "",
@@ -96,6 +100,7 @@ export function VehiclesManager({
 
   function openEdit(vehicle: Vehicle) {
     setEditing(vehicle);
+    setBranchId(vehicle.branch_id);
     form.reset({
       plate: vehicle.plate,
       brand: vehicle.brand,
@@ -161,6 +166,7 @@ export function VehiclesManager({
       if (editing) {
         const updated = await repository.update(editing.id, {
           ...values,
+          branch_id: branchId || undefined,
           updated_by: user.id,
         });
         setVehicles((current) =>
@@ -172,6 +178,7 @@ export function VehiclesManager({
       } else {
         const created = await repository.create({
           ...values,
+          branch_id: branchId || undefined,
           created_by: user.id,
           updated_by: user.id,
         });
@@ -326,6 +333,7 @@ export function VehiclesManager({
                       <p className="font-semibold">{vehicle.plate}</p>
                       <p className="text-sm text-muted-foreground">
                         {vehicle.brand} {vehicle.model}
+                        {multiBranch && branchName(vehicle.branch_id) ? ` · ${branchName(vehicle.branch_id)}` : ""}
                       </p>
                     </div>
                   </div>
@@ -400,6 +408,7 @@ export function VehiclesManager({
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <BranchSelectField value={branchId} onChange={setBranchId} />
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="plate">Araç Plakası</Label>

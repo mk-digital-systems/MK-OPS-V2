@@ -22,6 +22,8 @@ import { formatDateTime } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { UserRepository } from "@/modules/users/user-repository";
 import { CompanyRepository } from "@/modules/company/company-repository";
+import { BranchRepository, branchErrorMessage } from "@/modules/branches/branch-repository";
+import type { Branch } from "@/types/branch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -94,6 +96,8 @@ export function UserRoleManager({
   userLimit,
   companyName,
   joinCode,
+  branches = [],
+  branchAssignments = [],
 }: {
   initialUsers: UserProfile[];
   initialPermissions: CompanyManagerPermissions[];
@@ -103,6 +107,9 @@ export function UserRoleManager({
   userLimit: number | null;
   companyName: string;
   joinCode: string | null;
+  /** Firma yöneticisine bütün şubeler; şube ataması yalnızca birden fazla şube varsa gösterilir. */
+  branches?: Branch[];
+  branchAssignments?: { user_id: string; branch_id: string }[];
 }) {
   const isManager = viewerRole === "site_chief";
   const [users, setUsers] = useState(initialUsers);
@@ -116,6 +123,29 @@ export function UserRoleManager({
   const permissionUserValues = permissionUser
     ? permissions.find((item) => item.user_id === permissionUser.id) ?? emptyPermissions(permissionUser.id)
     : null;
+
+  const [assignments, setAssignments] = useState(branchAssignments);
+  const [savingBranches, setSavingBranches] = useState<string | null>(null);
+  const showBranches = isManager && branches.length > 1;
+
+  async function toggleBranch(userId: string, branchId: string) {
+    const current = assignments.filter((item) => item.user_id === userId).map((item) => item.branch_id);
+    const next = current.includes(branchId) ? current.filter((id) => id !== branchId) : [...current, branchId];
+    if (next.length === 0) {
+      toast.error("En az bir şube seçili kalmalı");
+      return;
+    }
+    setSavingBranches(userId);
+    try {
+      await new BranchRepository(createClient()).setUserBranches(userId, next);
+      setAssignments((items) => [...items.filter((item) => item.user_id !== userId), ...next.map((id) => ({ user_id: userId, branch_id: id }))]);
+      toast.success("Şubeler güncellendi");
+    } catch (error) {
+      toast.error("Şubeler güncellenemedi", { description: branchErrorMessage(error) });
+    } finally {
+      setSavingBranches(null);
+    }
+  }
 
   const counts = useMemo(() => {
     const approved = users.filter((user) => user.is_approved);
@@ -356,6 +386,36 @@ Katılım kodu: ${joinCode}`);
                       </div>
                     )}
                   </div>
+
+                  {showBranches && user.is_approved && (user.role === "company_manager" || user.role === "accounting") && (
+                    <div className="mt-4 border-t pt-4">
+                      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Şubeler {savingBranches === user.id && <Loader2 className="ml-1 inline h-3 w-3 animate-spin" />}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {branches.map((branch) => {
+                          const checked = assignments.some((item) => item.user_id === user.id && item.branch_id === branch.id);
+                          return (
+                            <label
+                              key={branch.id}
+                              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-1.5 text-sm ${checked ? "border-primary bg-primary/10" : ""}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                disabled={savingBranches === user.id}
+                                onChange={() => toggleBranch(user.id, branch.id)}
+                              />
+                              {branch.name}
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {user.role === "company_manager" ? "Şantiye şefi" : "Muhasebe"} yalnızca seçili şubelerin kayıtlarını görür ve işler.
+                      </p>
+                    </div>
+                  )}
 
                   {showPermissions && (
                     <div className="mt-4 border-t pt-4">

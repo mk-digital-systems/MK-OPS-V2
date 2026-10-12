@@ -16,6 +16,7 @@ export type Personnel = {
   approved_at: string | null;
   /** Taşeron personeli ise bağlı olduğu taşeron; ana firmanın maaş dökümüne girmez. */
   subcontractor_id: string | null;
+  branch_id: string;
   /** Taşeron personelinin SGK primi ana firma üzerinden yatıyor. */
   sgk_paid_by_main: boolean;
   created_by: string | null;
@@ -39,6 +40,7 @@ export type PersonnelInsert = {
   notes?: string | null;
   subcontractor_id?: string | null;
   sgk_paid_by_main?: boolean;
+  branch_id?: string | null;
   created_by?: string | null;
   updated_by?: string | null;
 };

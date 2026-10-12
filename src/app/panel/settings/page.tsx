@@ -10,6 +10,8 @@ import { CompanyVaultCard } from "@/components/settings/company-vault-card";
 import { KvkkCard } from "@/components/settings/kvkk-card";
 import { CompanyVaultRepository } from "@/modules/notes/company-vault-repository";
 import { HakedisSettingsCard } from "@/components/settings/hakedis-settings-card";
+import { BranchesCard } from "@/components/settings/branches-card";
+import { BranchRepository } from "@/modules/branches/branch-repository";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
@@ -24,14 +26,17 @@ export default async function SettingsPage() {
   ]);
   if (profile?.role !== "site_chief" || !account.company) notFound();
 
-  const vaultStatus = await new CompanyVaultRepository(supabase).status();
+  const [vaultStatus, myBranches] = await Promise.all([
+    new CompanyVaultRepository(supabase).status(),
+    new BranchRepository(supabase).getMine(),
+  ]);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Ayarlar</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Hakediş, firma logosu, gizli alan şifresi ve firma bilgileri. Proje türleri Projeler sayfasında.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Şubeler, hakediş, firma logosu, gizli alan şifresi ve firma bilgileri. Proje türleri Projeler sayfasında.</p>
         </div>
         <Button asChild variant="outline">
           <Link href="/panel/settings/islem-gecmisi">
@@ -40,6 +45,7 @@ export default async function SettingsPage() {
           </Link>
         </Button>
       </div>
+      <BranchesCard initialBranches={myBranches.branches} />
       <HakedisSettingsCard company={account.company} />
       <CompanyLogoCard company={account.company} />
       <CompanyVaultCard configured={vaultStatus.configured} />

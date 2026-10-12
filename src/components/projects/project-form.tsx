@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BranchSelectField, useBranches } from "@/components/layout/branch-provider";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -28,6 +29,8 @@ type Props = {
 export function ProjectForm({ mode, project, types, locations }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const { defaultBranchId } = useBranches();
+  const [branchId, setBranchId] = useState(project?.branch_id ?? defaultBranchId ?? "");
   const form = useForm<ProjectFormValues, unknown, ProjectFormOutput>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -60,6 +63,7 @@ export function ProjectForm({ mode, project, types, locations }: Props) {
       const payload = {
         ...values,
         priority_order: values.priority_order ? Number(values.priority_order) : null,
+        branch_id: branchId || undefined,
       };
       const saved =
         mode === "create" ? await repository.create(payload, user.id) : await repository.update(project!.id, payload, user.id);
@@ -91,6 +95,7 @@ export function ProjectForm({ mode, project, types, locations }: Props) {
 
   return (
     <form onSubmit={form.handleSubmit(submit)} className="space-y-6">
+      <BranchSelectField value={branchId} onChange={setBranchId} />
       <Card>
         <CardContent className="grid gap-4 p-6 sm:grid-cols-2">
           <Field label="Proje türü" error={errors.project_type_id?.message} className="sm:col-span-2">

@@ -30,6 +30,8 @@ export class PersonnelRepository {
     activeOnly?: boolean;
     search?: string;
     includePending?: boolean;
+    /** Menüde seçili şube. */
+    branchId?: string | null;
   }): Promise<Personnel[]> {
     let query = this.supabase
       .from("personnel")
@@ -42,6 +44,10 @@ export class PersonnelRepository {
 
     if (!options?.includePending) {
       query = query.eq("approval_status", "approved");
+    }
+
+    if (options?.branchId) {
+      query = query.eq("branch_id", options.branchId);
     }
 
     if (options?.search?.trim()) {
@@ -77,6 +83,7 @@ export class PersonnelRepository {
         monthly_salary: payload.monthly_salary ?? 0,
         notes: emptyToNull(payload.notes),
         subcontractor_id: payload.subcontractor_id || null,
+        ...(payload.branch_id ? { branch_id: payload.branch_id } : {}),
         sgk_paid_by_main: payload.subcontractor_id ? payload.sgk_paid_by_main ?? false : false,
         created_by: payload.created_by ?? null,
         updated_by: payload.updated_by ?? null,
@@ -123,6 +130,7 @@ export class PersonnelRepository {
       updatePayload.notes = emptyToNull(payload.notes);
     if (payload.monthly_salary !== undefined)
       updatePayload.monthly_salary = payload.monthly_salary;
+    if (payload.branch_id) updatePayload.branch_id = payload.branch_id;
     if (payload.subcontractor_id !== undefined) {
       updatePayload.subcontractor_id = payload.subcontractor_id || null;
       updatePayload.sgk_paid_by_main = payload.subcontractor_id ? payload.sgk_paid_by_main ?? false : false;

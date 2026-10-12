@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { UserRepository } from "@/modules/users/user-repository";
 import { CompanyRepository } from "@/modules/company/company-repository";
 import { UserRoleManager } from "@/components/users/user-role-manager";
+import { BranchRepository } from "@/modules/branches/branch-repository";
 
 export const metadata = {
   title: "Kullanıcılar",
@@ -14,10 +15,11 @@ export default async function UsersPage() {
   const current = await repository.getCurrent();
   if (!current?.is_approved || (current.role !== "site_chief" && current.role !== "company_manager")) notFound();
 
-  const [users, permissions, account] = await Promise.all([
+  const [users, permissions, account, myBranches] = await Promise.all([
     repository.list(),
     current.role === "site_chief" ? repository.listCompanyManagerPermissions() : Promise.resolve([]),
     new CompanyRepository(supabase).getMyAccount(),
+    new BranchRepository(supabase).getMine(),
   ]);
   return (
     <UserRoleManager
@@ -29,6 +31,8 @@ export default async function UsersPage() {
       userLimit={account.company?.user_limit ?? null}
       companyName={account.company?.name ?? ""}
       joinCode={account.company?.join_code ?? null}
+      branches={myBranches.branches}
+      branchAssignments={myBranches.assignments ?? []}
     />
   );
 }

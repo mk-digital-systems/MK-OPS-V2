@@ -42,6 +42,7 @@ import { APP_NAME, APP_TAGLINE } from "@/lib/constants/brand";
 import { TrialBanner } from "@/components/layout/trial-banner";
 import { useReportBrand } from "@/components/layout/company-brand-provider";
 import { NotificationBell } from "@/components/layout/notification-bell";
+import { useBranches } from "@/components/layout/branch-provider";
 
 type NavItem = {
   href: string;
@@ -113,6 +114,7 @@ export function AppShell({
   const brand = useReportBrand();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { branches, multiBranch, selectedId, select } = useBranches();
 
   async function handleLogout() {
     const supabase = createClient();
@@ -140,6 +142,29 @@ export function AppShell({
   }
 
   const isActive = (href: string) => (href === "/panel" ? pathname === "/panel" : pathname.startsWith(href));
+
+  // Birden fazla şubesi olan kullanıcı listeleri şubeye göre süzer; tek şubesi olan şefe şubesinin adı görünür.
+  const branchPicker = multiBranch ? (
+    <div className="px-3 pb-1">
+      {branches.length > 1 ? (
+        <select
+          aria-label="Şube"
+          className="h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+          value={selectedId ?? ""}
+          onChange={(event) => select(event.target.value || null)}
+        >
+          <option value="">Tüm şubeler</option>
+          {branches.map((branch) => (
+            <option key={branch.id} value={branch.id}>
+              {branch.name}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">Şube: {branches[0]?.name ?? "—"}</p>
+      )}
+    </div>
+  ) : null;
 
   const nav = (
     <nav className="flex flex-col gap-5 px-3 py-2">
@@ -255,6 +280,7 @@ export function AppShell({
             </div>
             <NotificationBell className="-mr-2 shrink-0" />
           </div>
+          {branchPicker}
           <div className="min-h-0 flex-1 overflow-y-auto">{nav}</div>
           {account}
         </aside>
@@ -303,6 +329,7 @@ export function AppShell({
                 exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden border-b border-border/70 bg-background md:hidden"
               >
+                {branchPicker}
                 {nav}
                 {account}
               </motion.div>

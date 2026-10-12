@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { BranchRepository } from "@/modules/branches/branch-repository";
+import { getSelectedBranchId } from "@/lib/branch-selection";
 import { VehicleRepository } from "@/modules/vehicles/vehicle-repository";
 import { VehiclesManager } from "@/components/vehicles/vehicles-manager";
 import { UserRepository } from "@/modules/users/user-repository";
@@ -11,9 +13,10 @@ export const metadata = {
 
 export default async function VehiclesPage() {
   const supabase = await createClient();
+  const branchId = await getSelectedBranchId((await new BranchRepository(supabase).getMine()).branches);
   const userRepository = new UserRepository(supabase);
   const [vehicles, equipmentBalances, fuelLogs, personnel, canWrite, profile] = await Promise.all([
-    new VehicleRepository(supabase).list({ includePending: true }),
+    new VehicleRepository(supabase).list({ includePending: true, branchId }),
     new InventoryRepository(supabase).listVehicleCustodyBalances(),
     new VehicleRepository(supabase).listFuelLogs(),
     new PersonnelRepository(supabase).list(),

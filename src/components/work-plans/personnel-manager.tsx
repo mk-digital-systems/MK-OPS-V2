@@ -33,6 +33,7 @@ import { PersonnelRepository } from "@/modules/work-plans/personnel-repository";
 import { InventoryRepository } from "@/modules/inventory/inventory-repository";
 import { useReportBrand } from "@/components/layout/company-brand-provider";
 import { PendingApprovalsCard } from "@/components/approvals/pending-approvals-card";
+import { BranchSelectField, useBranches } from "@/components/layout/branch-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -104,6 +105,8 @@ export function PersonnelManager({
 }: Props) {
   const router = useRouter();
   const brand = useReportBrand();
+  const { defaultBranchId, multiBranch, branchName } = useBranches();
+  const [branchId, setBranchId] = useState("");
   const [items, setItems] = useState(initialPersonnel);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Personnel | null>(null);
@@ -138,6 +141,7 @@ export function PersonnelManager({
 
   function openCreate() {
     setEditing(null);
+    setBranchId(defaultBranchId ?? "");
     form.reset({
       full_name: "",
       job_title: "",
@@ -159,6 +163,7 @@ export function PersonnelManager({
   function openEdit(person: Personnel) {
     const ownSub = subcontractors.find((sub) => sub.personnel_id === person.id && sub.is_active);
     setEditing(person);
+    setBranchId(person.branch_id);
     form.reset({
       full_name: person.full_name,
       job_title: person.job_title ?? "",
@@ -371,6 +376,7 @@ export function PersonnelManager({
       if (editing) {
         saved = await repo.update(editing.id, {
           ...personValues,
+          branch_id: branchId || undefined,
           ...(isSelf ? {} : { subcontractor_id: workFor || null }),
           job_title: values.job_title || null,
           phone: values.phone || null,
@@ -381,6 +387,7 @@ export function PersonnelManager({
       } else {
         saved = await repo.create({
           ...personValues,
+          branch_id: branchId || undefined,
           subcontractor_id: isSelf ? null : workFor || null,
           job_title: values.job_title || null,
           phone: values.phone || null,
@@ -631,6 +638,9 @@ export function PersonnelManager({
                             {assignedVehicle.plate}
                           </Badge>
                         )}
+                        {multiBranch && branchName(person.branch_id) && (
+                          <Badge className="border bg-background text-muted-foreground">{branchName(person.branch_id)}</Badge>
+                        )}
                         {person.subcontractor_id && (
                           <Badge className="bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-200">
                             Taşeron{subcontractors.find((sub) => sub.id === person.subcontractor_id)?.name ? `: ${subcontractors.find((sub) => sub.id === person.subcontractor_id)?.name}` : ""}
@@ -736,6 +746,7 @@ export function PersonnelManager({
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <BranchSelectField value={branchId} onChange={setBranchId} />
             <div className="space-y-2">
               <Label htmlFor="full_name">Ad Soyad</Label>
               <Input id="full_name" {...form.register("full_name")} />
