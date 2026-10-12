@@ -39,7 +39,8 @@ export class PozRepository {
     return data as string;
   }
 
-  async importItems(catalogId: string, rows: PozImportRow[], validFrom: string): Promise<{ count: number; priced: number }> {
+  /** validFrom null: ilk fiyatı olan pozlarda başlangıçtan, fiyatı olanlarda bugünden geçerli. */
+  async importItems(catalogId: string, rows: PozImportRow[], validFrom: string | null): Promise<{ count: number; priced: number }> {
     const { data, error } = await this.supabase.rpc("import_poz_items", {
       p_company_id: this.companyId,
       p_catalog_id: catalogId,
@@ -55,8 +56,8 @@ export class PozRepository {
     if (error) throw error;
   }
 
-  /** unitPrice null: o tarihteki fiyat kaydı silinir. */
-  async setPrice(stageId: string, unitPrice: number | null, validFrom: string): Promise<void> {
+  /** unitPrice null: o tarihteki fiyat kaydı silinir. validFrom null: ilk fiyatsa başlangıçtan, değilse bugünden. */
+  async setPrice(stageId: string, unitPrice: number | null, validFrom: string | null): Promise<void> {
     const { error } = await this.supabase.rpc("set_poz_price", {
       p_company_id: this.companyId,
       p_stage_id: stageId,

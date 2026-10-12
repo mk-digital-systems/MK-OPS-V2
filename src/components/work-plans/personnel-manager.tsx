@@ -27,6 +27,7 @@ import type { PersonnelListSummary } from "@/types/attendance";
 import { MONTH_NAMES } from "@/lib/constants/attendance";
 import { formatEmploymentDuration } from "@/lib/personnel";
 import { formatDate } from "@/lib/utils";
+import { NativeSelect } from "@/components/ui/native-select";
 import {
   personnelSchema,
   type PersonnelFormValues,
@@ -115,7 +116,12 @@ export function PersonnelManager({
 }: Props) {
   const router = useRouter();
   const brand = useReportBrand();
-  const { defaultBranchId, multiBranch, branchName, headOffice } = useBranches();
+  const { defaultBranchId, multiBranch, branchName, headOffice, branches } = useBranches();
+  // Şube sırası: önce Merkez, sonra şubelerin oluşturulma sırası.
+  const orderedBranches = [...branches].sort(
+    (a, b) => Number(b.is_main) - Number(a.is_main) || a.sort_order - b.sort_order || a.name.localeCompare(b.name, "tr")
+  );
+  const [printBranch, setPrintBranch] = useState("all");
   const todayIso = new Date().toLocaleDateString("en-CA");
   const [branchStartDate, setBranchStartDate] = useState(todayIso);
   const [branchId, setBranchId] = useState("");
@@ -496,16 +502,38 @@ export function PersonnelManager({
     personnelSummaries.map((summary) => [summary.personnel_id, summary])
   );
 
+  /** Personeli şubelere ayırır (önce Merkez, sonra oluşturulma sırası); tek şubede tek bölüm. */
+  function branchSections(people: Personnel[]) {
+    const present = new Set(people.map((person) => person.branch_id));
+    if (!multiBranch || present.size < 2) return [{ id: "all", name: null as string | null, people }];
+    const known = orderedBranches.filter((branch) => present.has(branch.id));
+    const sections = known.map((branch) => ({ id: branch.id, name: branch.name as string | null, people: people.filter((person) => person.branch_id === branch.id) }));
+    const rest = people.filter((person) => !known.some((branch) => branch.id === person.branch_id));
+    return rest.length ? [...sections, { id: "other", name: "Diğer", people: rest }] : sections;
+  }
+
   function printPersonnelList() {
-    const rows = filtered
-      .map(
-        (person) =>
-          `<tr><td>${escapeHtml(person.full_name)}</td><td>${escapeHtml(
-            person.phone || "—"
-          )}</td><td>${person.is_active ? "Aktif" : "Pasif"}</td><td>${escapeHtml(
-            person.employment_start_date || "—"
-          )}</td><td>${escapeHtml(person.employment_end_date || "—")}</td></tr>`
-      )
+    const people = printBranch === "all" ? filtered : filtered.filter((person) => person.branch_id === printBranch);
+    if (!people.length) {
+      toast.error("Yazdırılacak personel yok");
+      return;
+    }
+    const sections = printBranch === "all" ? branchSections(people) : [{ id: printBranch, name: branchName(printBranch) ?? null, people }];
+    const html = sections
+      .map((section, index) => {
+        const rows = section.people
+          .map(
+            (person) =>
+              `<tr><td>${escapeHtml(person.full_name)}</td><td>${escapeHtml(person.job_title || "—")}</td><td>${escapeHtml(
+                person.phone || "—"
+              )}</td><td>${person.is_active ? "Aktif" : "Pasif"}</td><td>${escapeHtml(
+                person.employment_start_date ? formatDate(person.employment_start_date) : "—"
+              )}</td><td>${escapeHtml(person.employment_end_date ? formatDate(person.employment_end_date) : "—")}</td></tr>`
+          )
+          .join("");
+        const title = section.name ? `${escapeHtml(section.name)} · ${section.people.length} personel` : `${section.people.length} personel`;
+        return `<section${index > 0 ? ' style="page-break-before:always"' : ""}><h2>${title}</h2><table><thead><tr><th>Ad Soyad</th><th>Görev</th><th>Telefon</th><th>Durum</th><th>İşe Giriş</th><th>İşten Ayrılış</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+      })
       .join("");
     const printWindow = window.open("", "_blank", "noopener,noreferrer");
     if (!printWindow) {
@@ -513,7 +541,7 @@ export function PersonnelManager({
       return;
     }
     printWindow.document.write(
-      `<!doctype html><html><head><title>Personel Listesi</title><style>body{font-family:Arial,sans-serif;padding:24px}h1{font-size:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #bbb;padding:8px;text-align:left}th{background:#eee}</style></head><body><h1>${escapeHtml(brand.name)} — Personel Listesi</h1><table><thead><tr><th>Ad Soyad</th><th>Telefon</th><th>Durum</th><th>İşe Giriş</th><th>İşten Ayrılış</th></tr></thead><tbody>${rows}</tbody></table></body></html>`
+      `<!doctype html><html><head><title>Personel Listesi</title><style>body{font-family:Arial,sans-serif;padding:24px}h1{font-size:20px}h2{font-size:16px;margin:18px 0 8px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #bbb;padding:8px;text-align:left}th{background:#eee}</style></head><body><h1>${escapeHtml(brand.name)} — ${showPassive ? "Pasif" : "Aktif"} Personel Listesi</h1>${html}</body></html>`
     );
     printWindow.document.close();
     printWindow.focus();
@@ -544,6 +572,16 @@ export function PersonnelManager({
               ? `Aktif Personeller (${activeCount})`
               : `Pasif Personeller (${passiveCount})`}
           </Button>
+          {multiBranch && orderedBranches.length > 1 && (
+            <NativeSelect value={printBranch} onChange={(event) => setPrintBranch(event.target.value)} className="w-auto" aria-label="Çıktı şubesi">
+              <option value="all">Çıktı: bütün şubeler (şube şube)</option>
+              {orderedBranches.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  Çıktı: {branch.name}
+                </option>
+              ))}
+            </NativeSelect>
+          )}
           <Button variant="outline" onClick={printPersonnelList}>
             <Printer className="h-4 w-4" />
             Listeyi Yazdır
@@ -663,13 +701,23 @@ export function PersonnelManager({
                 Personel bulunamadı.
               </p>
             ) : (
-              groupBySubcontractor(filtered, subcontractors).map(({ person, header, indent }) => {
+              branchSections(filtered)
+                .flatMap((section) =>
+                  groupBySubcontractor(section.people, subcontractors).map((row, index) => ({
+                    ...row,
+                    branchHeader: index === 0 && section.name ? `${section.name} · ${section.people.length} personel` : null,
+                  }))
+                )
+                .map(({ person, header, indent, branchHeader }) => {
                 const summary = summaryByPersonnel.get(person.id);
                 const assignedVehicle = assignedVehicles.find(
                   (vehicle) => vehicle.assigned_personnel_id === person.id
                 );
                 return (
                 <Fragment key={person.id}>
+                {branchHeader && (
+                  <h3 className="border-b pb-1 pt-4 text-sm font-semibold first:pt-0">{branchHeader}</h3>
+                )}
                 {header && (
                   <p className="px-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{header}</p>
                 )}

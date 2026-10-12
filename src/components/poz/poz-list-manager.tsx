@@ -30,6 +30,10 @@ type Props = {
 
 /** "1.250,50", "1.250", "12,5" ve "12.50" kabul edilir (bkz. normalizeNumberText). */
 const normalizeAmount = normalizeNumberText;
+/** "Başlangıçtan itibaren" fiyatın tarihi: önceki bütün işler bu fiyattan hesaplanır. */
+const FROM_START = "2000-01-01";
+const sinceLabel = (date: string) => (date <= FROM_START ? "başlangıçtan beri" : `${formatDate(date)}'den`);
+
 const toNumber = (value: string) => (value.trim() ? Number(normalizeAmount(value)) : null);
 const lower = (value: string | null | undefined) => (value ?? "").trim().toLocaleLowerCase("tr-TR");
 
@@ -206,10 +210,12 @@ export function PozListManager({ data, currency, companyId }: Props) {
                               {current ? (
                                 <>
                                   <span className="font-medium tabular-nums">{formatMoney(current.unit_price, currency)}</span>
-                                  <span className="block text-[11px] text-muted-foreground">{formatDate(current.valid_from)}&apos;den</span>
+                                  <span className="block text-[11px] text-muted-foreground">{sinceLabel(current.valid_from)}</span>
                                 </>
                               ) : (
-                                <span className="text-amber-700">Fiyat yok</span>
+                                <Button size="sm" variant="outline" className="h-7 border-amber-300 text-amber-800 dark:text-amber-300" onClick={() => setDialog({ kind: "price", item })}>
+                                  Fiyat gir
+                                </Button>
                               )}
                               {upcoming && (
                                 <span className="block text-[11px] text-sky-700 dark:text-sky-300">
@@ -258,7 +264,7 @@ export function PozListManager({ data, currency, companyId }: Props) {
       </p>
 
       {dialog?.kind === "item" && (
-        <ItemDialog item={dialog.item} catalogId={catalogId} catalogs={data.catalogs} groups={groups} canPrice={data.can_price && !dialog.item} currency={currency} repository={repository} onClose={() => setDialog(null)} onSaved={refresh} />
+        <ItemDialog item={dialog.item} prices={dialog.item ? pricesByStage.get(dialog.item.id) ?? [] : []} catalogId={catalogId} catalogs={data.catalogs} groups={groups} canPrice={data.can_price} currency={currency} repository={repository} onClose={() => setDialog(null)} onSaved={refresh} />
       )}
       {dialog?.kind === "price" && (
         <PriceDialog item={dialog.item} prices={pricesByStage.get(dialog.item.id) ?? []} currency={currency} repository={repository} onClose={() => setDialog(null)} onSaved={refresh} />
@@ -309,8 +315,58 @@ function Footer({ saving, onClose, onSave, label = "Kaydet", disabled = false }:
   );
 }
 
+type PriceMode = "start" | "date";
+
+/**
+ * Fiyat ve geçerlilik: "Başlangıçtan itibaren" yalnızca pozun ilk fiyatında (ya da başlangıç kaydı düzeltilirken)
+ * seçilebilir; sonraki fiyatlar (zam) bir tarihten itibaren geçerlidir.
+ */
+function PriceFields({
+  label,
+  price,
+  mode,
+  date,
+  allowStart,
+  currency,
+  onChange,
+  autoFocus,
+}: {
+  label: string;
+  price: string;
+  mode: PriceMode;
+  date: string;
+  allowStart: boolean;
+  currency: CurrencyCode;
+  onChange: (patch: { price?: string; mode?: PriceMode; date?: string }) => void;
+  autoFocus?: boolean;
+}) {
+  return (
+    <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2">
+      <div className="space-y-2">
+        <Label>
+          {label} ({currency})
+        </Label>
+        <Input value={price} onChange={(event) => onChange({ price: event.target.value })} inputMode="decimal" autoFocus={autoFocus} />
+      </div>
+      <div className="space-y-2">
+        <Label>Geçerlilik</Label>
+        {allowStart ? (
+          <NativeSelect value={mode} onChange={(event) => onChange({ mode: event.target.value as PriceMode })}>
+            <option value="start">Başlangıçtan itibaren (önceki işler dahil)</option>
+            <option value="date">Şu tarihten itibaren…</option>
+          </NativeSelect>
+        ) : null}
+        {(!allowStart || mode === "date") && (
+          <Input type="date" value={date} onChange={(event) => onChange({ date: event.target.value })} />
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ItemDialog({
   item,
+  prices,
   catalogId,
   catalogs,
   groups,
@@ -321,6 +377,7 @@ function ItemDialog({
   onSaved,
 }: {
   item: PozItem | null;
+  prices: PozPrice[];
   catalogId: string;
   catalogs: PozList["catalogs"];
   groups: string[];
@@ -337,18 +394,21 @@ function ItemDialog({
     name: item?.name ?? "",
     unit: item?.unit ?? "",
     price: "",
+    mode: (prices.length ? "date" : "start") as PriceMode,
     validFrom: todayISODate(),
   });
   const { saving, run } = useSave(onSaved);
+  const current = priceAt(prices, todayISODate());
 
   function save() {
     if (!form.name.trim()) return toast.error("Kalem adı zorunlu");
     if (form.pozCode.trim() && !isValidPoz(form.pozCode)) return toast.error("Poz no 3–5 karakter olmalı");
     const price = toNumber(form.price);
     if (price !== null && (Number.isNaN(price) || price < 0)) return toast.error("Birim fiyat geçersiz");
+    if (price !== null && form.mode === "date" && !form.validFrom) return toast.error("Fiyatın geçerlilik tarihini girin");
     void run(async () => {
       const id = await repository().saveItem({ id: item?.id ?? null, catalogId: form.catalogId, groupName: form.groupName, pozCode: form.pozCode, name: form.name, unit: form.unit });
-      if (canPrice && price !== null) await repository().setPrice(id, price, form.validFrom);
+      if (canPrice && price !== null) await repository().setPrice(id, price, form.mode === "start" ? FROM_START : form.validFrom);
     }, item ? "Poz güncellendi" : "Poz eklendi");
   }
 
@@ -387,14 +447,35 @@ function ItemDialog({
           </div>
           {canPrice && (
             <>
-              <div className="space-y-2">
-                <Label>Birim fiyat ({currency}, isteğe bağlı)</Label>
-                <Input value={form.price} onChange={(event) => setForm({ ...form, price: event.target.value })} inputMode="decimal" />
-              </div>
-              <div className="space-y-2">
-                <Label>Fiyatın yürürlük tarihi</Label>
-                <Input type="date" value={form.validFrom} onChange={(event) => setForm({ ...form, validFrom: event.target.value })} />
-              </div>
+              {item && (
+                <p className="text-sm text-muted-foreground sm:col-span-2">
+                  Güncel fiyat:{" "}
+                  {current ? (
+                    <strong className="text-foreground">
+                      {formatMoney(current.unit_price, currency)} ({sinceLabel(current.valid_from)})
+                    </strong>
+                  ) : (
+                    <strong className="text-amber-700">yok</strong>
+                  )}
+                  . Eski fiyatı düzeltmek için tablodaki fiyat geçmişini kullanın.
+                </p>
+              )}
+              <PriceFields
+                label={item && current ? "Yeni birim fiyat (boşsa değişmez)" : "Birim fiyat (isteğe bağlı)"}
+                price={form.price}
+                mode={form.mode}
+                date={form.validFrom}
+                allowStart={prices.length === 0}
+                currency={currency}
+                onChange={(patch) =>
+                  setForm({
+                    ...form,
+                    ...(patch.price !== undefined ? { price: patch.price } : {}),
+                    ...(patch.mode ? { mode: patch.mode } : {}),
+                    ...(patch.date !== undefined ? { validFrom: patch.date } : {}),
+                  })
+                }
+              />
             </>
           )}
         </div>
@@ -406,15 +487,35 @@ function ItemDialog({
 
 function PriceDialog({ item, prices, currency, repository, onClose, onSaved }: { item: PozItem; prices: PozPrice[]; currency: CurrencyCode; repository: RepoFactory; onClose: () => void; onSaved: () => void }) {
   const [price, setPrice] = useState("");
+  const [mode, setMode] = useState<PriceMode>(prices.length ? "date" : "start");
   const [validFrom, setValidFrom] = useState(todayISODate());
+  const [editing, setEditing] = useState<PozPrice | null>(null);
   const { saving, run } = useSave(onSaved);
   const history = [...prices].sort((a, b) => b.valid_from.localeCompare(a.valid_from));
+  // Başlangıç kaydı yalnızca ilk fiyatta ya da o kayıt düzeltilirken seçilebilir.
+  const allowStart = prices.length === 0 || (editing?.valid_from ?? "") <= FROM_START && !!editing;
+
+  function startEdit(entry: PozPrice) {
+    setEditing(entry);
+    setPrice(String(entry.unit_price).replace(".", ","));
+    if (entry.valid_from <= FROM_START) setMode("start");
+    else {
+      setMode("date");
+      setValidFrom(entry.valid_from);
+    }
+  }
 
   function save() {
     const value = toNumber(price);
     if (value === null || Number.isNaN(value) || value < 0) return toast.error("Geçerli bir birim fiyat girin");
-    if (!validFrom) return toast.error("Yürürlük tarihini girin");
-    void run(() => repository().setPrice(item.id, value, validFrom), "Fiyat kaydedildi");
+    const date = allowStart && mode === "start" ? FROM_START : validFrom;
+    if (!date) return toast.error("Geçerlilik tarihini girin");
+    if (!editing && history.some((entry) => entry.valid_from === date) && !window.confirm(`${sinceLabel(date)} geçerli fiyat zaten var; yenisiyle değiştirilsin mi?`)) return;
+    void run(async () => {
+      // Tarihi değişen kayıt: eski tarihteki fiyat kaldırılır, yeni tarihe yazılır.
+      if (editing && editing.valid_from !== date) await repository().setPrice(item.id, null, editing.valid_from);
+      await repository().setPrice(item.id, value, date);
+    }, editing ? "Fiyat düzeltildi" : "Fiyat kaydedildi");
   }
 
   return (
@@ -423,17 +524,37 @@ function PriceDialog({ item, prices, currency, repository, onClose, onSaved }: {
         <DialogHeader>
           <DialogTitle>{item.poz_code ? `${item.poz_code} · ` : ""}{item.name}</DialogTitle>
         </DialogHeader>
+        {editing && (
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm dark:border-sky-900 dark:bg-sky-950/40">
+            <span>
+              {sinceLabel(editing.valid_from)} geçerli {formatMoney(editing.unit_price, currency)} düzeltiliyor
+            </span>
+            <Button size="sm" variant="ghost" onClick={() => { setEditing(null); setPrice(""); setMode(prices.length ? "date" : "start"); setValidFrom(todayISODate()); }}>
+              Vazgeç
+            </Button>
+          </div>
+        )}
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Yeni birim fiyat ({currency})</Label>
-            <Input value={price} onChange={(event) => setPrice(event.target.value)} inputMode="decimal" autoFocus />
-          </div>
-          <div className="space-y-2">
-            <Label>Yürürlük tarihi</Label>
-            <Input type="date" value={validFrom} onChange={(event) => setValidFrom(event.target.value)} />
-          </div>
+          <PriceFields
+            label={editing ? "Doğru birim fiyat" : prices.length ? "Yeni birim fiyat (zam)" : "Birim fiyat"}
+            price={price}
+            mode={mode}
+            date={validFrom}
+            allowStart={allowStart}
+            currency={currency}
+            onChange={(patch) => {
+              if (patch.price !== undefined) setPrice(patch.price);
+              if (patch.mode) setMode(patch.mode);
+              if (patch.date !== undefined) setValidFrom(patch.date);
+            }}
+            autoFocus
+          />
         </div>
-        <p className="text-xs text-muted-foreground">Bu tarihten itibaren yapılan işler yeni fiyattan hesaplanır; önceki tarihlerin fiyatı değişmez.</p>
+        <p className="text-xs text-muted-foreground">
+          {prices.length === 0
+            ? "İlk fiyat başlangıçtan geçerli olursa, fiyat girilmeden önce yapılmış imalatlar da bu fiyattan hesaplanır."
+            : "Zam bir tarihten itibaren geçerli olur; önceki işlerin tutarı değişmez. Yanlış girilmiş bir fiyatı düzeltmek için geçmişteki kaydın kalem simgesini kullanın."}
+        </p>
         <div className="space-y-1">
           <Label>Fiyat geçmişi</Label>
           {history.length === 0 ? (
@@ -441,17 +562,21 @@ function PriceDialog({ item, prices, currency, repository, onClose, onSaved }: {
           ) : (
             <ul className="divide-y rounded-lg border text-sm">
               {history.map((entry) => (
-                <li key={entry.valid_from} className="flex items-center justify-between gap-2 px-3 py-2">
-                  <span>{formatDate(entry.valid_from)}&apos;den itibaren</span>
+                <li key={entry.valid_from} className={cn("flex items-center justify-between gap-2 px-3 py-2", editing?.valid_from === entry.valid_from && "bg-sky-50 dark:bg-sky-950/40")}>
+                  <span>{sinceLabel(entry.valid_from)}</span>
                   <span className="flex items-center gap-1">
                     <span className="font-medium tabular-nums">{formatMoney(entry.unit_price, currency)}</span>
+                    <Button size="icon" variant="ghost" aria-label="Bu fiyatı düzelt" title="Düzelt" disabled={saving} onClick={() => startEdit(entry)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                     <Button
                       size="icon"
                       variant="ghost"
                       aria-label="Bu fiyat kaydını sil"
+                      title="Sil"
                       disabled={saving}
                       onClick={() =>
-                        window.confirm(`${formatDate(entry.valid_from)} tarihli fiyat silinsin mi?`) &&
+                        window.confirm(`${sinceLabel(entry.valid_from)} geçerli fiyat silinsin mi?`) &&
                         void run(() => repository().setPrice(item.id, null, entry.valid_from), "Fiyat kaydı silindi")
                       }
                     >
@@ -463,7 +588,7 @@ function PriceDialog({ item, prices, currency, repository, onClose, onSaved }: {
             </ul>
           )}
         </div>
-        <Footer saving={saving} onClose={onClose} onSave={save} label="Fiyatı kaydet" />
+        <Footer saving={saving} onClose={onClose} onSave={save} label={editing ? "Düzeltmeyi kaydet" : "Fiyatı kaydet"} />
       </DialogContent>
     </Dialog>
   );
@@ -490,6 +615,7 @@ function ImportDialog({ catalogId, catalogs, canPrice, repository, onClose, onSa
   const [target, setTarget] = useState(catalogId);
   const [text, setText] = useState("");
   const [validFrom, setValidFrom] = useState(todayISODate());
+  const [dateMode, setDateMode] = useState<"auto" | "date">("auto");
   const { saving, run } = useSave(onSaved);
   const rows = parseRows(text, canPrice);
   const badPoz = rows.find((row) => row.poz_code && !isValidPoz(row.poz_code));
@@ -500,7 +626,7 @@ function ImportDialog({ catalogId, catalogs, canPrice, repository, onClose, onSa
     if (badPoz) return toast.error(`Poz no 3–5 karakter olmalı: ${badPoz.poz_code}`);
     if (badPrice) return toast.error(`Fiyat okunamadı: ${badPrice.name} (${badPrice.unit_price})`);
     void run(async () => {
-      const result = await repository().importItems(target, rows, validFrom);
+      const result = await repository().importItems(target, rows, dateMode === "auto" ? null : validFrom);
       toast.message(`${result.count} poz işlendi${result.priced ? `, ${result.priced} fiyat yazıldı` : ""}`);
     }, "Poz listesi aktarıldı");
   }
@@ -527,8 +653,12 @@ function ImportDialog({ catalogId, catalogs, canPrice, repository, onClose, onSa
           )}
           {canPrice && (
             <div className="space-y-2">
-              <Label>Fiyatların yürürlük tarihi</Label>
-              <Input type="date" value={validFrom} onChange={(event) => setValidFrom(event.target.value)} />
+              <Label>Fiyatların geçerliliği</Label>
+              <NativeSelect value={dateMode} onChange={(event) => setDateMode(event.target.value as "auto" | "date")}>
+                <option value="auto">Otomatik: yeni pozlarda başlangıçtan, fiyatı olanlarda bugünden</option>
+                <option value="date">Hepsi şu tarihten itibaren…</option>
+              </NativeSelect>
+              {dateMode === "date" && <Input type="date" value={validFrom} onChange={(event) => setValidFrom(event.target.value)} />}
             </div>
           )}
         </div>
