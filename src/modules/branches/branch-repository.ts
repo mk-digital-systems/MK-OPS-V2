@@ -38,6 +38,13 @@ export class BranchRepository {
   }
 
   /** Şantiye şefine Merkez yetkisi verir/kaldırır (yalnızca firma yöneticisi). */
+  /** Toplu şube tayini: hepsi ya birlikte taşınır ya hiçbiri. */
+  async changeRecordsBranch(kind: "personnel" | "vehicle", ids: string[], branchId: string, startDate: string): Promise<number> {
+    const { data, error } = await this.supabase.rpc("change_records_branch", { p_kind: kind, p_ids: ids, p_branch_id: branchId, p_start_date: startDate });
+    if (error) throw error;
+    return data as number;
+  }
+
   async setHeadOffice(userId: string, enabled: boolean): Promise<void> {
     const { error } = await this.supabase.rpc("set_user_head_office", { p_user_id: userId, p_enabled: enabled });
     if (error) throw error;

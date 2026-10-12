@@ -15,6 +15,9 @@ import {
   UserPlus,
   UserRound,
   Trash2,
+  FileSpreadsheet,
+  ArrowRightLeft,
+  HardHat,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Personnel } from "@/types/work-plan";
@@ -34,6 +37,9 @@ import { InventoryRepository } from "@/modules/inventory/inventory-repository";
 import { useReportBrand } from "@/components/layout/company-brand-provider";
 import { PendingApprovalsCard } from "@/components/approvals/pending-approvals-card";
 import { BranchSelectField, useBranches } from "@/components/layout/branch-provider";
+import { PersonnelImportDialog } from "@/components/bulk/record-import-dialogs";
+import { BulkBranchDialog } from "@/components/bulk/bulk-branch-dialog";
+import { BulkSubcontractorDialog } from "@/components/bulk/bulk-subcontractor-dialog";
 import { BranchRepository } from "@/modules/branches/branch-repository";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,6 +131,22 @@ export function PersonnelManager({
   const [reactivating, setReactivating] = useState<Personnel | null>(null);
   const [reactivationDate, setReactivationDate] = useState("");
   const [deleting, setDeleting] = useState<Personnel | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [subOpen, setSubOpen] = useState(false);
+  // Toplu şube tayini: firma yöneticisi / Merkez şantiye şefi, birden çok şube varsa.
+  const canTransfer = headOffice && multiBranch && !readOnly;
+  // Toplu taşeron / firma çalışanı ataması: taşeron tanımlıysa.
+  const canAssignSub = !readOnly && subcontractors.length > 0;
+  const canSelect = canTransfer || canAssignSub;
+  const toggleSelected = (id: string, checked: boolean) =>
+    setSelected((current) => {
+      const next = new Set(current);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
 
   const form = useForm<PersonnelFormValues>({
     resolver: zodResolver(personnelSchema),
@@ -527,6 +549,12 @@ export function PersonnelManager({
             Listeyi Yazdır
           </Button>
           {canCreate && (
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <FileSpreadsheet className="h-4 w-4" />
+              Excel&apos;den toplu ekle
+            </Button>
+          )}
+          {canCreate && (
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4" />
               Personel Ekle
@@ -600,6 +628,34 @@ export function PersonnelManager({
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
+          {canSelect && filtered.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-muted/30 px-3 py-2 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary"
+                  checked={filtered.every((person) => selected.has(person.id))}
+                  onChange={(event) => setSelected(event.target.checked ? new Set(filtered.map((person) => person.id)) : new Set())}
+                />
+                Görünenlerin tümünü seç
+              </label>
+              <span className="text-muted-foreground">{selected.size} seçili</span>
+              <div className="ml-auto flex flex-wrap gap-2">
+                {canAssignSub && (
+                  <Button size="sm" variant="outline" disabled={selected.size === 0} onClick={() => setSubOpen(true)}>
+                    <HardHat className="h-4 w-4" />
+                    Taşerona / firmaya geçir
+                  </Button>
+                )}
+                {canTransfer && (
+                  <Button size="sm" variant="outline" disabled={selected.size === 0} onClick={() => setTransferOpen(true)}>
+                    <ArrowRightLeft className="h-4 w-4" />
+                    Seçilenleri şubeye taşı
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             {filtered.length === 0 ? (
@@ -625,6 +681,15 @@ export function PersonnelManager({
                   }`}
                 >
                   <div className="flex min-w-0 items-start gap-3">
+                    {canSelect && (
+                      <input
+                        type="checkbox"
+                        className="mt-2.5 h-4 w-4 shrink-0 accent-primary"
+                        checked={selected.has(person.id)}
+                        onChange={(event) => toggleSelected(person.id, event.target.checked)}
+                        aria-label={`${person.full_name} seç`}
+                      />
+                    )}
                     <div className="mt-0.5 rounded-xl bg-muted p-2">
                       <UserRound className="h-4 w-4 text-muted-foreground" />
                     </div>
@@ -1061,6 +1126,42 @@ export function PersonnelManager({
           </div>
         </DialogContent>
       </Dialog>
+      {importOpen && (
+        <PersonnelImportDialog
+          existing={items}
+          approvalNote={!canApprove}
+          onClose={() => setImportOpen(false)}
+          onImported={(created) => {
+            setItems((current) => [...created, ...current]);
+            router.refresh();
+          }}
+        />
+      )}
+      {subOpen && (
+        <BulkSubcontractorDialog
+          ids={[...selected]}
+          subcontractors={subcontractors}
+          onClose={() => setSubOpen(false)}
+          onDone={(subcontractorId, changedIds) => {
+            const changed = new Set(changedIds);
+            setItems((current) => current.map((person) => (changed.has(person.id) ? { ...person, subcontractor_id: subcontractorId } : person)));
+            setSelected(new Set());
+            setSubOpen(false);
+          }}
+        />
+      )}
+      {transferOpen && (
+        <BulkBranchDialog
+          kind="personnel"
+          ids={[...selected]}
+          onClose={() => setTransferOpen(false)}
+          onDone={(branchId) => {
+            setItems((current) => current.map((person) => (selected.has(person.id) ? { ...person, branch_id: branchId } : person)));
+            setSelected(new Set());
+            setTransferOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

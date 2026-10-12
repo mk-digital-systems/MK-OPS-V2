@@ -95,6 +95,29 @@ export class PersonnelRepository {
     return data as Personnel;
   }
 
+  /** Excel'den toplu ekleme: tek seferde (biri hatalıysa hiçbiri eklenmez). Muhasebe / şube şefinin eklediği onaya düşer. */
+  async createMany(rows: PersonnelInsert[]): Promise<Personnel[]> {
+    const { data, error } = await this.supabase
+      .from("personnel")
+      .insert(
+        rows.map((row) => ({
+          full_name: row.full_name.trim(),
+          job_title: emptyToNull(row.job_title),
+          phone: emptyToNull(row.phone),
+          tc_identity_number: emptyToNull(row.tc_identity_number),
+          is_active: true,
+          employment_start_date: emptyToNull(row.employment_start_date),
+          monthly_salary: row.monthly_salary ?? 0,
+          ...(row.branch_id ? { branch_id: row.branch_id } : {}),
+          created_by: row.created_by ?? null,
+          updated_by: row.updated_by ?? null,
+        }))
+      )
+      .select("*");
+    if (error) throw error;
+    return (data ?? []) as Personnel[];
+  }
+
   async update(id: string, payload: PersonnelUpdate): Promise<Personnel> {
     const updatePayload: Record<string, unknown> = {
       updated_by: payload.updated_by ?? null,
@@ -227,6 +250,12 @@ export class PersonnelRepository {
       p_iban: details?.iban ?? null,
       p_tax_number: details?.tax_number ?? null,
     });
+    if (error) throw error;
+  }
+
+  /** Toplu: seçilen personeli bir taşerona bağlar ya da (null) firma çalışanı yapar; tek seferde. */
+  async setSubcontractorMany(ids: string[], subcontractorId: string | null): Promise<void> {
+    const { error } = await this.supabase.from("personnel").update({ subcontractor_id: subcontractorId }).in("id", ids);
     if (error) throw error;
   }
 

@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CarFront, Download, Fuel, Gauge, Loader2, Pencil, Plus, UserRound } from "lucide-react";
+import { ArrowRightLeft, CarFront, Download, FileSpreadsheet, Fuel, Gauge, Loader2, Pencil, Plus, UserRound } from "lucide-react";
+import { VehicleImportDialog } from "@/components/bulk/record-import-dialogs";
+import { BulkBranchDialog } from "@/components/bulk/bulk-branch-dialog";
 import { toast } from "sonner";
 import type { Vehicle, VehicleFuelLog } from "@/types/vehicle";
 import type { Personnel } from "@/types/work-plan";
@@ -68,6 +70,18 @@ export function VehiclesManager({
   const [fuelVehicle, setFuelVehicle] = useState<Vehicle | null>(null);
   const [assignmentVehicle, setAssignmentVehicle] = useState<Vehicle | null>(null);
   const [assignedPersonnelId, setAssignedPersonnelId] = useState("none");
+  const [importOpen, setImportOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [transferOpen, setTransferOpen] = useState(false);
+  // Toplu şube tayini: firma yöneticisi / Merkez şantiye şefi, birden çok şube varsa.
+  const canTransfer = headOffice && multiBranch && !readOnly;
+  const toggleSelected = (id: string, checked: boolean) =>
+    setSelected((current) => {
+      const next = new Set(current);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
   const [fuelForm, setFuelForm] = useState({ date: new Date().toISOString().slice(0, 10), km: "", liters: "", notes: "", branch_id: "" });
   const currentMonth = new Date().toISOString().slice(0, 7);
   const [reportMonth, setReportMonth] = useState(currentMonth);
@@ -282,10 +296,16 @@ export function VehiclesManager({
           </p>
         </div>
         {canCreate && (
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            Araç Ekle
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <FileSpreadsheet className="h-4 w-4" />
+              Excel&apos;den toplu ekle
+            </Button>
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" />
+              Araç Ekle
+            </Button>
+          </div>
         )}
       </div>
 
@@ -339,12 +359,39 @@ export function VehiclesManager({
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Plaka, marka veya model ara..."
           />
+          {canTransfer && filtered.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-muted/30 px-3 py-2 text-sm">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary"
+                  checked={filtered.every((vehicle) => selected.has(vehicle.id))}
+                  onChange={(event) => setSelected(event.target.checked ? new Set(filtered.map((vehicle) => vehicle.id)) : new Set())}
+                />
+                Görünenlerin tümünü seç
+              </label>
+              <span className="text-muted-foreground">{selected.size} seçili</span>
+              <Button size="sm" variant="outline" className="ml-auto" disabled={selected.size === 0} onClick={() => setTransferOpen(true)}>
+                <ArrowRightLeft className="h-4 w-4" />
+                Seçilenleri şubeye taşı
+              </Button>
+            </div>
+          )}
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((vehicle) => (
               <div key={vehicle.id} className="rounded-2xl border p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
+                    {canTransfer && (
+                      <input
+                        type="checkbox"
+                        className="mt-2.5 h-4 w-4 shrink-0 accent-primary"
+                        checked={selected.has(vehicle.id)}
+                        onChange={(event) => toggleSelected(vehicle.id, event.target.checked)}
+                        aria-label={`${vehicle.plate} seç`}
+                      />
+                    )}
                     <div className="rounded-xl bg-primary/10 p-2 text-primary">
                       <CarFront className="h-5 w-5" />
                     </div>
@@ -512,6 +559,26 @@ export function VehiclesManager({
           </div><Button className="w-full" disabled={loading} onClick={saveAssignment}>{loading && <Loader2 className="h-4 w-4 animate-spin" />}Atamayı Kaydet</Button></div>
         </DialogContent>
       </Dialog>
+      {importOpen && (
+        <VehicleImportDialog
+          existing={vehicles}
+          approvalNote={!canReview}
+          onClose={() => setImportOpen(false)}
+          onImported={(created) => setVehicles((current) => [...created, ...current])}
+        />
+      )}
+      {transferOpen && (
+        <BulkBranchDialog
+          kind="vehicle"
+          ids={[...selected]}
+          onClose={() => setTransferOpen(false)}
+          onDone={(branchId) => {
+            setVehicles((current) => current.map((vehicle) => (selected.has(vehicle.id) ? { ...vehicle, branch_id: branchId } : vehicle)));
+            setSelected(new Set());
+            setTransferOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

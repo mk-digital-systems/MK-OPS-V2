@@ -98,6 +98,28 @@ export class VehicleRepository {
     return data as Vehicle;
   }
 
+  /** Excel'den toplu ekleme: tek seferde (biri hatalıysa hiçbiri eklenmez). */
+  async createMany(rows: VehicleInput[]): Promise<Vehicle[]> {
+    const { data, error } = await this.supabase
+      .from("vehicles")
+      .insert(
+        rows.map((row) => ({
+          plate: row.plate.trim().toLocaleUpperCase("tr-TR"),
+          brand: row.brand.trim(),
+          model: row.model.trim(),
+          current_km: row.current_km,
+          inspection_date: emptyToNull(row.inspection_date),
+          insurance_date: emptyToNull(row.insurance_date),
+          ...(row.branch_id ? { branch_id: row.branch_id } : {}),
+          created_by: row.created_by ?? null,
+          updated_by: row.updated_by ?? null,
+        }))
+      )
+      .select("*");
+    if (error) throw error;
+    return (data ?? []) as Vehicle[];
+  }
+
   async update(id: string, payload: VehicleUpdate): Promise<Vehicle> {
     const updatePayload: Record<string, unknown> = {
       updated_by: payload.updated_by ?? null,

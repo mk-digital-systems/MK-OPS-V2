@@ -16,6 +16,7 @@ node tests/db/vault.test.mjs # tek dosya, ayrıntılı çıktı
 | `roles` | Firma yöneticisi / şantiye şefi / muhasebe yetkileri, kurucu koruması, kullanıcı limiti |
 | `approvals` | Muhasebenin eklediği personel/araç onayı, ay sonu puantaj onayı ve kilidi |
 | `subcontractors` | Ekipler, taşeron payı, ekstre, harcama/ödeme ve bakiye, maaş dökümü ayrımı |
+| `bulk-records` | Personel/araç toplu ekleme, toplu şube tayini, toplu taşeron ataması |
 | `branches` | Merkez, şube açma ve atama, şef/muhasebe yalnızca kendi şubesi (RLS ve fonksiyon içi yazma) |
 | `onboarding` | Firma kurma, kodla katılma, deneme süresi, erişim durumu |
 | `projects` | Proje türleri, iş kalemleri, bölümler, metraj |
