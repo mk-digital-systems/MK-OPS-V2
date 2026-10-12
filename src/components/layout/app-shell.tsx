@@ -24,6 +24,7 @@ import {
   Hammer,
   Ban,
   HardHat,
+  ListOrdered,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -72,6 +73,7 @@ const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
       { href: "/panel/work-plans", label: "İş Planı", icon: ClipboardList },
       { href: "/panel/imalatlar", label: "İmalatlar", icon: Hammer },
       { href: "/panel/hakedis", label: "Hakediş", icon: Receipt },
+      { href: "/panel/poz-listesi", label: "Poz Listesi", icon: ListOrdered },
       { href: "/panel/taseronlar", label: "Taşeronlar", icon: HardHat },
       { href: "/panel/cancelled-projects", label: "İptal Projeler", icon: Ban },
     ],
@@ -138,6 +140,8 @@ export function AppShell({
     if (item.headOffice) return headOffice;
     if (item.roles) return item.roles.includes(profile.role);
     if (item.href === "/panel/hakedis") return writableModules.includes("hakedis");
+    // Poz listesini Merkez yetkisi olanlar düzenler, hakediş yetkisi olanlar fiyatını görür.
+    if (item.href === "/panel/poz-listesi") return headOffice || writableModules.includes("hakedis");
     if (item.href === "/panel/taseronlar") {
       return profile.role === "site_chief" || profile.role === "company_manager" || writableModules.includes("hakedis");
     }
@@ -426,6 +430,6 @@ function moduleForPath(pathname: string): PermissionModule | null {
   if (pathname.startsWith("/panel/inventory")) return "inventory";
   if (pathname.startsWith("/panel/custody")) return "custody";
   if (pathname.startsWith("/panel/imalatlar")) return "productions";
-  if (pathname.startsWith("/panel/hakedis") || pathname.startsWith("/panel/taseronlar")) return "hakedis";
+  if (pathname.startsWith("/panel/hakedis") || pathname.startsWith("/panel/taseronlar") || pathname.startsWith("/panel/poz-listesi")) return "hakedis";
   return null;
 }

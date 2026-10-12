@@ -36,7 +36,7 @@ export default async function AppLayout({
     : pathname.startsWith("/panel/vehicles") ? "vehicles"
     : pathname.startsWith("/panel/inventory") ? "inventory"
     : pathname.startsWith("/panel/custody") ? "custody"
-    : pathname.startsWith("/panel/hakedis") || pathname.startsWith("/panel/taseronlar") ? "hakedis" : null;
+    : pathname.startsWith("/panel/hakedis") || pathname.startsWith("/panel/taseronlar") || pathname.startsWith("/panel/poz-listesi") ? "hakedis" : null;
 
   // Muhasebe personel, puantaj, araç ve malzeme stokunu her zaman görür; diğer modülleri
   // yalnızca firma yöneticisi yetki verdiyse.

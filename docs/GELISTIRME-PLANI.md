@@ -50,7 +50,7 @@ karışık hale geldi. Önce hedef sektörler netleştirildi, sonra yapı yenide
 - **Poz listesi sektöre göre:** telekomda tek liste bütün telekom türlerinde kullanılır; inşaatta kalemler türe göre
   değişir (kaba: duvar, betonarme; ince: sıva, boya, fayans), bu yüzden bir poz belirli türlerle sınırlanabilir.
   İşverene göre ayrı liste yok.
-- **Fiyat:** poz başına tek birim fiyat.
+- **Fiyat:** poz başına tek birim fiyat; **firmaya özel** (iki telekom müşterisinde pozlar aynı olabilir, fiyatlar ayrı).
 - **Poz biçimi:** elle girilir, "grup/sıra" gibi (örn. 1/1, 2/1, 12/2); 3–5 karakter, projede tekil.
 - **Projede kalemler seçilir:** HP'de kablo ve ek hemen her projede olur; kazı, direk dikimi, ek odası yalnız bazılarında.
   Kalemler proje açılırken seçilir, sonradan eklenip çıkarılır.
@@ -114,8 +114,8 @@ Elle "Tamamlandı" her zaman seçilebilir. HP projesinde durum paftalardan (bug�
 **Adımlar:**
 - **F1 (yapıldı, `20261103000001_catalogs.sql`)** Katalog yapısı ve süper admin ekranı: katalog / tür / önerilen kalem oluşturma, firmaya katalog atama ve türleri kurma;
   firmada tür oluşturma ve düzenleme kapanır; HP / Kurumsal eklentisi kataloğa bağlanır.
-- **F2** Firma poz listesi: süper admin'den ve firmada (yönetici + Merkez şefi) Excel'den yükleme, ekleme, güncelleme, fiyat;
-  katalogdaki önerilen kalemlerden seçerek ekleme.
+- **F2 (yapıldı, `20261104000001_poz_list.sql`)** Firma poz listesi (Poz Listesi sayfası; süper admin'de Şirketler → Yönet → Poz listesini aç): süper admin'den ve firmada (yönetici + Merkez şefi) **elle tek tek ekleme** (Excel'i olmayan
+  firmalar için asıl yol), Excel'den toplu yapıştırma, güncelleme, fiyat; katalogdaki önerilen kalemlerden seçerek ekleme.
 - **F3** Keşif (proje sayfası) ve İmalatlar'da projenin kataloğuna göre poz seçimi; HP'de isteğe bağlı pafta; durum kuralı.
 - **F4** Eski ekranların ve tabloların kaldırılması; demo verisinin taşınması.
 - **F5** Katalog içerikleri: önce telekom (HP odaklı, Kurumsal), sonra diğerleri.

@@ -423,10 +423,15 @@ function ManageCompanyDialog({
               ))}
             </div>
           )}
-          <Button variant="outline" onClick={saveCatalogs} disabled={busy !== null || catalogs.length === 0}>
-            {busy === "catalogs" && <Loader2 className="h-4 w-4 animate-spin" />}
-            Katalogları kaydet
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={saveCatalogs} disabled={busy !== null || catalogs.length === 0}>
+              {busy === "catalogs" && <Loader2 className="h-4 w-4 animate-spin" />}
+              Katalogları kaydet
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={`/admin/sirketler/${company.id}/poz`}>Poz listesini aç</Link>
+            </Button>
+          </div>
         </section>
 
         <Separator />
