@@ -200,7 +200,7 @@ export function ProjectTypesManager({
               )}
               {type.is_archived && <span className="rounded-md bg-muted px-2 py-0.5 text-xs">Arşivde</span>}
               <div className="ml-auto flex gap-1">
-                {type.screen !== "standard" ? null : (
+                {type.screen !== "standard" || type.catalog_type_id ? null : (
                 <Button
                   size="icon"
                   variant="ghost"
@@ -227,6 +227,9 @@ export function ProjectTypesManager({
             {type.description && <p className="mt-1 text-sm text-muted-foreground">{type.description}</p>}
             {type.screen === "hp" && (
               <p className="mt-2 text-xs text-muted-foreground">Paftalar ve HP adetleriyle takip edilir; iş kalemi yoktur.</p>
+            )}
+            {type.catalog_type_id && (
+              <p className="mt-2 text-xs text-muted-foreground">İş kalemleri Poz Listesi&apos;nden gelir; projede keşif ve imalatla kullanılır.</p>
             )}
             {type.screen === "corporate" && (
               <p className="mt-2 text-xs text-muted-foreground">Durum ve ekip başı elle seçilir; öncelik sırası ve lokasyonla takip edilir. İş kalemi yoktur.</p>

@@ -120,6 +120,8 @@ export type StageLog = {
   notes: string | null;
   /** manual: proje detayından; production: İmalatlar'dan (yalnızca orada düzenlenir) */
   source: "manual" | "production";
+  /** HP projesinde işin yapıldığı pafta (isteğe bağlı) */
+  sheet_id?: string | null;
   created_at: string;
 };
 

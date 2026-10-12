@@ -203,7 +203,12 @@ export function ProjectForm({ mode, project, types: allTypes, locations, addons 
             {isCorporate && (
               <p className="text-xs text-muted-foreground">Kurumsal proje: durum ve ekip başı elle seçilir; iş kalemi yoktur.</p>
             )}
-            {mode === "edit" && selectedType && selectedType.screen === "standard" && (
+            {selectedType?.catalog_type_id && selectedType.screen === "standard" && (
+              <p className="text-xs text-muted-foreground">
+                İş kalemleri imalatta Poz Listesi&apos;nden seçilir; keşfi proje sayfasından isteğe bağlı girebilirsiniz.
+              </p>
+            )}
+            {mode === "edit" && selectedType && selectedType.screen === "standard" && !selectedType.catalog_type_id && (
               <p className="text-xs text-muted-foreground">
                 {project?.stage_mode === "custom"
                   ? "İş kalemleri projeye göre düzenlenmiş; proje sayfasındaki “Kalemleri düzenle” ile değişir."
@@ -262,7 +267,7 @@ export function ProjectForm({ mode, project, types: allTypes, locations, addons 
           </Field>
         </CardContent>
       </Card>
-      {mode === "create" && selectedType && selectedType.screen === "standard" && (
+      {mode === "create" && selectedType && selectedType.screen === "standard" && !selectedType.catalog_type_id && (
         <Card>
           <CardContent className="space-y-3 p-6">
             <div>

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ProductionEntry, ProductionProjectOption, ProductionSaveJob, ProductionTarget } from "@/types/production";
+import type { ProductionEntry, ProductionJobOptions, ProductionProjectOption, ProductionSaveJob, ProductionTarget } from "@/types/production";
 import { stageLabel } from "@/lib/constants/project";
 
 export class ProductionRepository {
@@ -21,6 +21,56 @@ export class ProductionRepository {
       .eq("is_cancelled", false).eq("is_archived", false).order("project_code");
     if (error) throw error; return (data ?? []) as ProductionProjectOption[];
   }
+  /**
+   * Proje seçilince: kalemler ve paftalar. Katalog türünde (poz projesi) kataloğun aktif pozları listelenir;
+   * projede satırı olmayan poz "poz:<kimlik>" değeriyle gelir (imalatla açılır).
+   */
+  async listJobOptions(projectId: string): Promise<ProductionJobOptions> {
+    const { data: project, error } = await this.supabase
+      .from("projects")
+      .select("id, type:project_types(screen, catalog:catalog_project_types(catalog_id))")
+      .eq("id", projectId)
+      .maybeSingle();
+    if (error) throw error;
+    const type = (project?.type ?? null) as unknown as { screen: string; catalog: { catalog_id: string } | null } | null;
+    const [rowTargets, sheets] = await Promise.all([
+      this.listTargets(projectId),
+      type?.screen === "hp"
+        ? this.supabase.from("project_hp_sheets").select("id, sheet_no").eq("project_id", projectId).order("sort_order")
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+    if (sheets.error) throw sheets.error;
+    const catalogId = type?.catalog?.catalog_id;
+    let targets = rowTargets;
+    if (catalogId) {
+      const { data: pozes, error: pozError } = await this.supabase
+        .from("project_type_stages")
+        .select("id, name, unit, poz_code, sort_order")
+        .is("project_type_id", null)
+        .eq("catalog_id", catalogId)
+        .eq("is_active", true)
+        .not("unit", "is", null)
+        .order("sort_order");
+      if (pozError) throw pozError;
+      const { data: rows, error: rowError } = await this.supabase
+        .from("project_stage_progress")
+        .select("id, stage_id")
+        .eq("project_id", projectId)
+        .is("section_id", null);
+      if (rowError) throw rowError;
+      const rowByStage = new Map((rows ?? []).map((row) => [row.stage_id as string, row.id as string]));
+      const fromPozes = (pozes ?? []).map((item) => ({
+        progress_id: rowByStage.get(item.id as string) ?? `poz:${item.id}`,
+        label: stageLabel(item as { name: string; poz_code: string | null }),
+        unit: item.unit as string,
+      }));
+      // Pasife alınmış ama projede kullanılmış pozlar da (eski imalatlar düzenlenebilsin) listede kalır.
+      const listed = new Set(fromPozes.map((target) => target.progress_id));
+      targets = [...fromPozes, ...rowTargets.filter((target) => !listed.has(target.progress_id))];
+    }
+    return { targets, sheets: (sheets.data ?? []) as { id: string; sheet_no: string }[] };
+  }
+
   /** Projenin metrajlı iş kalemleri (bölümlüyse "Bölüm · Kalem"; projeye özel kalemler dahil). */
   async listTargets(projectId: string): Promise<ProductionTarget[]> {
     type StageRow = { name: string; unit: string | null; sort_order: number; poz_code: string | null };

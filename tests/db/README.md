@@ -20,6 +20,7 @@ node tests/db/vault.test.mjs # tek dosya, ayrıntılı çıktı
 | `onboarding` | Firma kurma, kodla katılma, deneme süresi, erişim durumu |
 | `projects` | Proje türleri, iş kalemleri, bölümler, metraj |
 | `project-stage-lists` | Projeye göre iş kalemleri (şablondan seçim, projeye özel kalem), poz kodu |
+| `kesif-imalat` | Keşif, imalatta poz seçimi, iş tarihindeki fiyat, keşif ≠ tamamlama, HP'de pafta |
 | `poz-list` | Firma poz listesi: elle/Excel/katalogdan ekleme, yetkiler, yürürlük tarihli fiyat, toplu yüzde, pasife alma |
 | `catalogs` | Süper admin katalogları, türlerin firmaya kurulması, eklentiden geçiş |
 | `corporate-projects` | Kurumsal proje eklentisi, elle durum, ekip başı, toplam proje tarihi |

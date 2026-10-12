@@ -67,6 +67,7 @@ karışık hale geldi. Önce hedef sektörler netleştirildi, sonra yapı yenide
 - **Keşif projede isteğe bağlı** (ör. 2.000 m kablo, 40 ek, 5 dolap):
   - **Keşif girilmişse:** ilerleme imalatlardan hesaplanır. Keşifteki bir kaleme ilk imalat girilince proje
     kendiliğinden "Devam ediyor" olur.
+    **Keşif tamamlanınca proje tamamlanmaz** (keşif dışı ekstra iş olabilir); tamamlama her zaman elle.
   - **Keşif yoksa:** imalatlar projede ne yapıldığının dökümünü verir; durum elle seçilir (Devam ediyor / Tamamlandı).
   - Elle "Tamamlandı" her durumda seçilebilir.
 - **Poz listesi yetkisi:**
@@ -108,15 +109,20 @@ imalat bağlantıları kırılmaz. Tablo adları değişmez (fonksiyonlar adla �
 | Proje | `project_stage_logs` | İmalattan gelen miktar; HP'de isteğe bağlı pafta (`sheet_id`). |
 | Kalkan | `project_stages`, `projects.stage_mode`, tür kalem editörü, "projeye göre düzenle" | Yeni yapıda gereksiz; demo verisi poz listesine taşınıp kaldırılır. |
 
-**Durum kuralı:** keşif varsa otomatik (ilk imalat → Devam ediyor, keşif dolunca → Tamamlandı); keşif yoksa elle.
-Elle "Tamamlandı" her zaman seçilebilir. HP projesinde durum paftalardan (bugünkü gibi).
+**Durum kuralı (güncel):** keşif tamamlanınca proje **tamamlanmaz**. Keşif projedeki bütün işi kapsamayabilir,
+keşif dışı ekstra işçilik olabilir. Keşif %100 olunca "Keşif tamamlandı" göstergesi çıkar; proje "Tamamlandı"yı
+**her zaman elle** alır. Otomatik tek kural: keşifli projede ilk imalat → Devam ediyor. Keşif yoksa durum elle.
+İlerleme yüzdesi keşfin ilerlemesidir. HP projesinde durum paftalardan (bugünkü gibi).
 
 **Adımlar:**
 - **F1 (yapıldı, `20261103000001_catalogs.sql`)** Katalog yapısı ve süper admin ekranı: katalog / tür / önerilen kalem oluşturma, firmaya katalog atama ve türleri kurma;
   firmada tür oluşturma ve düzenleme kapanır; HP / Kurumsal eklentisi kataloğa bağlanır.
 - **F2 (yapıldı, `20261104000001_poz_list.sql`)** Firma poz listesi (Poz Listesi sayfası; süper admin'de Şirketler → Yönet → Poz listesini aç): süper admin'den ve firmada (yönetici + Merkez şefi) **elle tek tek ekleme** (Excel'i olmayan
   firmalar için asıl yol), Excel'den toplu yapıştırma, güncelleme, fiyat; katalogdaki önerilen kalemlerden seçerek ekleme.
-- **F3** Keşif (proje sayfası) ve İmalatlar'da projenin kataloğuna göre poz seçimi; HP'de isteğe bağlı pafta; durum kuralı.
+- **İş bölümü (kullanıcı kararı):** MK OPS yalnızca **ana kurulumu** yapar: katalog, proje türleri, firmanın ilk poz
+  listesi ve fiyatları. **Veri girişi firmaya aittir:** proje açma, **keşif**, imalat, sonradan poz/fiyat güncelleme.
+  Keşif süper admin'de yoktur; firmada proje yazma yetkisi olanlar girer.
+- **F3 (yapıldı, `20261105000001_kesif_imalat_poz.sql`)** Keşif (proje sayfası, firma girer) ve İmalatlar'da projenin kataloğuna göre poz seçimi; HP'de isteğe bağlı pafta; durum kuralı.
 - **F4** Eski ekranların ve tabloların kaldırılması; demo verisinin taşınması.
 - **F5** Katalog içerikleri: önce telekom (HP odaklı, Kurumsal), sonra diğerleri.
 

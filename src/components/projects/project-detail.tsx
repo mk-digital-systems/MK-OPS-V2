@@ -34,6 +34,8 @@ import { ProgressBar, ProjectStatusBadge, TypeDot } from "@/components/projects/
 import { StageBoard } from "@/components/projects/stage-board";
 import { HpSheetBoard } from "@/components/projects/hp-sheet-board";
 import { CorporateStatusPanel } from "@/components/projects/corporate-status-panel";
+import { PozBoard } from "@/components/projects/poz-board";
+import type { PozItem } from "@/types/poz";
 
 type Props = {
   project: Project;
@@ -43,6 +45,8 @@ type Props = {
   progress: ProjectProgressData;
   /** HP odaklı projede paftalar; diğer türlerde null. */
   hpSheets: HpSheet[] | null;
+  /** Katalogdan kurulan türde projenin kataloğundaki pozlar; eski türlerde null. */
+  pozes: PozItem[] | null;
   personnel: Personnel[];
   readOnly: boolean;
   pricing: ProjectPricing | null;
@@ -51,7 +55,7 @@ type Props = {
 
 type Busy = "status" | "archive" | "cancel" | "reactivate" | "delete" | null;
 
-export function ProjectDetail({ project, type, projectStages, progress, hpSheets, personnel, readOnly, pricing, currency }: Props) {
+export function ProjectDetail({ project, type, projectStages, progress, hpSheets, pozes, personnel, readOnly, pricing, currency }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<Busy>(null);
   const [reasonDialog, setReasonDialog] = useState<"hold" | "cancel" | null>(null);
@@ -146,6 +150,12 @@ export function ProjectDetail({ project, type, projectStages, progress, hpSheets
                 </Link>
               </Button>
             )}
+            {statusButtons && pozes && project.status === "waiting" && (
+              <Button variant="outline" onClick={() => setStatus("in_progress")} disabled={busy !== null}>
+                <PlayCircle className="h-4 w-4" />
+                Devam ediyor
+              </Button>
+            )}
             {statusButtons && project.status !== "on_hold" && project.status !== "completed" && (
               <Button variant="outline" onClick={() => setReasonDialog("hold")} disabled={busy !== null}>
                 <PauseCircle className="h-4 w-4" />
@@ -238,7 +248,9 @@ export function ProjectDetail({ project, type, projectStages, progress, hpSheets
             <div className="mb-2 flex items-center justify-between text-sm">
               <span className="font-medium">Genel ilerleme</span>
               <span className="text-muted-foreground">
-                {isCorporate
+                {pozes && type.screen === "standard"
+                  ? "Keşif ilerlemesi"
+                  : isCorporate
                   ? "Kurumsal proje"
                   : hpSheets
                   ? `${hpSheets.filter((sheet) => sheet.status === "completed").length} / ${hpSheets.length} pafta bitti`
@@ -279,11 +291,11 @@ export function ProjectDetail({ project, type, projectStages, progress, hpSheets
         </Card>
       )}
 
-      {isCorporate ? (
-        <CorporateStatusPanel project={project} personnel={personnel} readOnly={!editable} />
-      ) : hpSheets ? (
-        <HpSheetBoard projectId={project.id} sheets={hpSheets} personnel={personnel} readOnly={!editable} />
-      ) : (
+      {isCorporate && <CorporateStatusPanel project={project} personnel={personnel} readOnly={!editable} />}
+      {hpSheets && <HpSheetBoard projectId={project.id} sheets={hpSheets} personnel={personnel} readOnly={!editable} />}
+      {pozes ? (
+        <PozBoard projectId={project.id} pozes={pozes} data={progress} sheets={hpSheets} readOnly={!editable} />
+      ) : isCorporate || hpSheets ? null : (
         <StageBoard
           project={project}
           type={type}

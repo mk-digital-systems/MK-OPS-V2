@@ -142,7 +142,8 @@ export class ProjectRepository {
   async setStatus(id: string, status: ProjectStatus, holdReason?: string | null): Promise<Project> {
     const { data, error } = await this.supabase
       .from("projects")
-      .update({ status, hold_reason: status === "on_hold" ? emptyToNull(holdReason) : null })
+      // "Devam ediyor" elle seçilince proje başlamış sayılır (imalat girilmemiş olsa da).
+      .update({ status, hold_reason: status === "on_hold" ? emptyToNull(holdReason) : null, ...(status === "in_progress" ? { has_activity: true } : {}) })
       .eq("id", id)
       .select("*")
       .single();
@@ -293,6 +294,20 @@ export class ProjectRepository {
       .order("sort_order");
     if (error) throw error;
     return (data ?? []).map((row) => row.stage as unknown as ProjectTypeStage).filter(Boolean);
+  }
+
+  /** Katalogdan kurulan türün kataloğu (poz listesi bu katalogdan gelir); katalogsuz türde null. */
+  async getTypeCatalogId(type: ProjectType): Promise<string | null> {
+    if (!type.catalog_type_id) return null;
+    const { data, error } = await this.supabase.from("catalog_project_types").select("catalog_id").eq("id", type.catalog_type_id).maybeSingle();
+    if (error) throw error;
+    return (data?.catalog_id as string | undefined) ?? null;
+  }
+
+  /** Keşif (firma girer): poz + miktar; listede olmayan pozların keşfi kalkar. */
+  async saveKesif(projectId: string, items: { stage_id: string; quantity: number }[]): Promise<void> {
+    const { error } = await this.supabase.rpc("save_project_kesif", { p_project_id: projectId, p_items: items });
+    if (error) throw error;
   }
 
   /** template: şablondaki bütün kalemler; custom: verilen sıralı liste (şablondan seçilen + projeye özel). */

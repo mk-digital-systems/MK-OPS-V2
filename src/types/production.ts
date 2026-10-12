@@ -10,6 +10,8 @@ export type ProductionItem = {
   kind: ProductionItemKind;
   progress_id: string | null;
   stage_log_id: string | null;
+  /** HP projesinde pafta (isteğe bağlı) */
+  sheet_id?: string | null;
 };
 export type ProductionJob = { id: string; project_id: string | null; project_name_snapshot: string; project_code_snapshot: string | null; source: "work_plan" | "manual"; sort_order: number; items: ProductionItem[] };
 export type ProductionEntry = { id: string; work_date: string; team_leader_personnel_id: string; team_leader_name_snapshot: string; source_work_plan_id: string | null; created_at: string; updated_at: string; jobs: ProductionJob[] };
@@ -19,6 +21,9 @@ export type ProductionSaveItem = {
   /** Düzenlenen satırın önceki kimliği (iş kaydı ve ek iş fiyatı korunur) */
   item_id?: string;
   progress_id?: string;
+  /** Poz projelerinde: projede satırı henüz olmayan poz (satır imalatla açılır) */
+  stage_id?: string;
+  sheet_id?: string | null;
   item_name?: string;
   quantity?: number;
   unit?: string;
@@ -31,5 +36,11 @@ export type ProductionSaveJob = { project_id: string | null; project_name: strin
 /** İmalatta seçilebilen proje */
 export type ProductionProjectOption = { id: string; project_code: string; name: string; project_type_id: string | null };
 
-/** Projenin metrajlı iş kalemi (aşama ilerleme satırı) */
+/**
+ * Projenin metrajlı iş kalemi. value: projedeki satırın kimliği ya da (poz projelerinde, satırı henüz olmayan)
+ * "poz:<poz kimliği>".
+ */
 export type ProductionTarget = { progress_id: string; label: string; unit: string };
+
+/** İmalatta proje seçilince gelenler: kalemler ve (HP projesinde) paftalar */
+export type ProductionJobOptions = { targets: ProductionTarget[]; sheets: { id: string; sheet_no: string }[] };

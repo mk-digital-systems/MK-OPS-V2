@@ -23,7 +23,7 @@ import { CompanyLogo, useReportBrand } from "@/components/layout/company-brand-p
 import { useBranches } from "@/components/layout/branch-provider";
 
 /** stage: projenin iş kalemi (projeye iş kaydı açar); extra: fiyatlı ek iş; note: eski serbest metin */
-type FormLine = { key: string; itemId: string | null; kind: ProductionItemKind; progressId: string; description: string; quantity: string; unit: string; unitPrice: string };
+type FormLine = { key: string; itemId: string | null; kind: ProductionItemKind; progressId: string; sheetId: string; description: string; quantity: string; unit: string; unitPrice: string };
 /** projectId boşsa listede olmayan (serbest) iş */
 type FormJob = { key: string; projectId: string; title: string; workId: string; lines: FormLine[] };
 type FormTeam = { key: string; entryId: string | null; personnelId: string; jobs: FormJob[] };
@@ -38,7 +38,7 @@ const accents = [
 
 const FREE_JOB = "__free__";
 const makeKey = () => crypto.randomUUID();
-const newLine = (kind: ProductionItemKind): FormLine => ({ key: makeKey(), itemId: null, kind, progressId: "", description: "", quantity: kind === "extra" ? "1" : "", unit: "", unitPrice: "" });
+const newLine = (kind: ProductionItemKind): FormLine => ({ key: makeKey(), itemId: null, kind, progressId: "", sheetId: "", description: "", quantity: kind === "extra" ? "1" : "", unit: "", unitPrice: "" });
 const newJob = (): FormJob => ({ key: makeKey(), projectId: "", title: "", workId: "", lines: [newLine("extra")] });
 const toNumber = (value: string) => {
   const trimmed = value.trim().replace(",", ".");
@@ -69,6 +69,7 @@ function entriesToTeams(entries: ProductionEntry[], prices: Record<string, numbe
           itemId: item.id,
           kind,
           progressId: item.progress_id ?? "",
+          sheetId: item.sheet_id ?? "",
           description: kind === "note" ? legacyDescription(item.item_name_snapshot, item.quantity, item.unit_snapshot) : item.item_name_snapshot,
           quantity: kind === "note" ? "" : String(Number(item.quantity)),
           unit: kind === "note" ? "" : item.unit_snapshot,
@@ -103,6 +104,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
   const [dailyEntries, setDailyEntries] = useState(initialDailyEntries);
   const [teams, setTeams] = useState<FormTeam[]>(() => entriesToTeams(initialDailyEntries, initialExtraPrices).length ? entriesToTeams(initialDailyEntries, initialExtraPrices) : [newTeam()]);
   const [targets, setTargets] = useState<Record<string, ProductionTarget[]>>({});
+  const [jobSheets, setJobSheets] = useState<Record<string, { id: string; sheet_no: string }[]>>({});
   const [removedEntryIds, setRemovedEntryIds] = useState<string[]>([]);
   const [reportEntries, setReportEntries] = useState(initialEntries);
   const [loading, setLoading] = useState(false);
@@ -139,8 +141,11 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
     const missing = selectedProjectIds.split(",").filter((id) => id && !targets[id]);
     if (!missing.length) return;
     const repository = new ProductionRepository(createClient());
-    void Promise.all(missing.map(async (id) => [id, await repository.listTargets(id)] as const))
-      .then((loaded) => setTargets((current) => ({ ...current, ...Object.fromEntries(loaded) })))
+    void Promise.all(missing.map(async (id) => [id, await repository.listJobOptions(id)] as const))
+      .then((loaded) => {
+        setTargets((current) => ({ ...current, ...Object.fromEntries(loaded.map(([id, options]) => [id, options.targets])) }));
+        setJobSheets((current) => ({ ...current, ...Object.fromEntries(loaded.map(([id, options]) => [id, options.sheets])) }));
+      })
       .catch(() => toast.error("Projenin iş kalemleri yüklenemedi"));
   }, [selectedProjectIds, targets, projectTypes]);
 
@@ -291,7 +296,11 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
           sort_order: jobIndex,
           items: job.lines.map((line, lineIndex) => {
             const base = { kind: line.kind, item_id: line.itemId ?? undefined, sort_order: lineIndex };
-            if (line.kind === "stage") return { ...base, progress_id: line.progressId, quantity: toNumber(line.quantity) ?? 0 };
+            if (line.kind === "stage") {
+              // Poz projesinde satırı henüz olmayan poz "poz:<kimlik>" değeriyle seçilir.
+              const target = line.progressId.startsWith("poz:") ? { stage_id: line.progressId.slice(4) } : { progress_id: line.progressId };
+              return { ...base, ...target, sheet_id: line.sheetId || null, quantity: toNumber(line.quantity) ?? 0 };
+            }
             if (line.kind === "extra") return {
               ...base,
               item_name: line.description.trim(),
@@ -432,7 +441,16 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
               </Select>
               <Input disabled={readOnly} inputMode="decimal" value={line.quantity} onChange={(event) => updateLine(teamIndex, jobIndex, lineIndex, { quantity: event.target.value })} placeholder="Miktar" />
               <span className="self-center text-sm text-muted-foreground">{line.unit || "—"}</span>
-              {jobTargets && !jobTargets.length && <p className="text-xs text-amber-700 sm:col-span-3">Bu projede birimi olan iş kalemi yok. Projeler → Proje Türleri&apos;nden aşamalara birim verin ya da &quot;Ek İş&quot; satırı kullanın.</p>}
+              {jobTargets && !jobTargets.length && <p className="text-xs text-amber-700 sm:col-span-3">Bu projede birimi olan iş kalemi yok. Poz listesine birimli poz ekleyin ya da &quot;Ek İş&quot; satırı kullanın.</p>}
+              {!!jobSheets[job.projectId]?.length && (
+                <Select disabled={readOnly} value={line.sheetId || "none"} onValueChange={(value) => updateLine(teamIndex, jobIndex, lineIndex, { sheetId: value === "none" ? "" : value })}>
+                  <SelectTrigger className="sm:col-span-3"><SelectValue placeholder="Pafta (isteğe bağlı)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Pafta seçilmedi</SelectItem>
+                    {jobSheets[job.projectId].map((sheet) => <SelectItem key={sheet.id} value={sheet.id}>Pafta {sheet.sheet_no}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             : line.kind === "extra" ? <div className={`grid gap-2 ${canSeePrices ? "sm:grid-cols-[minmax(0,1fr)_100px_90px_120px]" : "sm:grid-cols-[minmax(0,1fr)_100px_90px]"}`}>
               <div className="relative"><Input disabled={readOnly} value={line.description} onChange={(event) => updateLine(teamIndex, jobIndex, lineIndex, { description: event.target.value })} placeholder="Ek iş açıklaması" className="pr-14" /><span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-700 dark:bg-violet-950 dark:text-violet-300">Ek iş</span></div>

@@ -6,6 +6,7 @@ import { PersonnelRepository } from "@/modules/work-plans/personnel-repository";
 import { HakedisRepository } from "@/modules/hakedis/hakedis-repository";
 import { CompanyRepository } from "@/modules/company/company-repository";
 import { ProjectDetail } from "@/components/projects/project-detail";
+import { PozRepository } from "@/modules/poz/poz-repository";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -36,10 +37,15 @@ export default async function ProjectDetailPage({ params }: Props) {
   if (!project) notFound();
   const type = types.find((item) => item.id === project.project_type_id);
   if (!type) notFound();
-  const [hpSheets, projectStages] = await Promise.all([
+  const [hpSheets, projectStages, catalogId] = await Promise.all([
     type.screen === "hp" ? repository.getHpSheets(project.id) : Promise.resolve(null),
     repository.getProjectStages(project, type),
+    repository.getTypeCatalogId(type),
   ]);
+  // Katalogdan kurulan türde iş kalemleri firmanın poz listesinden (o katalog) gelir.
+  const pozes = catalogId
+    ? ((await new PozRepository(supabase).getList().catch(() => null))?.items ?? []).filter((item) => item.catalog_id === catalogId)
+    : null;
 
   const pricing = canSeePrices
     ? await new HakedisRepository(supabase).getProjectPricing(
@@ -56,6 +62,7 @@ export default async function ProjectDetailPage({ params }: Props) {
       projectStages={projectStages}
       progress={progress}
       hpSheets={hpSheets}
+      pozes={pozes}
       personnel={personnel}
       readOnly={!canWrite}
       pricing={pricing}
