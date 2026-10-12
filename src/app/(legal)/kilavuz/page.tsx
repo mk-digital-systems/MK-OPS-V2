@@ -209,6 +209,10 @@ export default function GuidePage() {
           Kaydedilen planı <strong>WhatsApp</strong> ile paylaşın: düz metin ya da firma logolu tablo görseli olarak.
         </li>
         <li>Geçmiş planlarda tarih, proje, plaka veya personel adıyla arama yapabilirsiniz.</li>
+        <li>
+          <strong>Genel Bakış → Bugün</strong> kartında bugünkü ekipler (proje, ekip başı, kişi sayısı, araç), ekip başının
+          imalat girip girmediği, bugünkü puantaj ve birden fazla şubede şube bazında özet görünür.
+        </li>
       </ol>
 
       <h2 id="personel">{SECTIONS[5].title}</h2>

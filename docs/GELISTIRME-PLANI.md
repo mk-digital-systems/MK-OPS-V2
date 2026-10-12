@@ -1,6 +1,6 @@
 # MK OPS — Geliştirme Planı
 
-Son güncelleme: 12 Ekim 2026 (şubeler D2 canlıda)
+Son güncelleme: 12 Ekim 2026 akşam (şubeler D3: Merkez yetkisi, onaylar, şube irsaliyesi, şube geçmişi)
 
 Bu dosya, üzerinde çalışılacak geliştirmelerin listesidir. Eski MK-OPS projesi
 (`PORTFÖY/PANEL/MK-OPS`) silindiği için oradan alınacak fikirlerin iş mantığı
@@ -19,23 +19,36 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 devam edileceği kararlaştırılır. Her adım kullanıcının onayıyla ilerler; migration önce
 `tests/db` ile denenir, sonra `supabase/migrations` klasörüne konur.
 
-### 📍 Kaldığımız yer (12 Ekim 2026)
+### 📍 Kaldığımız yer (12 Ekim 2026 akşam)
 
-- **Şubeler tamamlandı ve canlıda:** D1 (`20261021000001_branches.sql`) ve D2
-  (`20261022000001_branches_d2.sql`) kurulu, `main`'e birleştirildi, Vercel'e gitti. Kurulacak migration yok.
-- Veritabanı testleri: 14 dosya, 425 kontrol geçiyor (`npm run test:db`). Tip kontrolü ve lint temiz.
-- **Ekranlar tarayıcıda denenmedi.** Kullanıcı canlıda deneyecek; özellikle: şube açıp şefe atama,
-  iki şubede aynı gün iş planı, şube bazında puantaj onayı/kaldırma, başka şubenin deposuna sevkiyat,
-  şef girişinde hakediş/Genel Bakış'ın yalnızca kendi şubesini göstermesi. Gelen geri bildirim ilk iştir.
-- Sıradaki aday: **E — "Bugün" özeti** (aşağıda). C (ekip başı/saha paneli) ertelendi; satış işleri beklemede.
+- **Şubeler D3 tamamlandı ve canlıda** (`20261023000001` … `20261028000001`, hepsi kurulu, `main`'de):
+  - Her şubeye otomatik "<Şube> Depo"; stokun görünmeme hatası (depo listesi `branch_id` çekmiyordu) düzeldi.
+  - **Merkez yetkisi** (`is_head_office()`): firma yöneticisi + Merkez'e atanmış şantiye şefi + firma yöneticisinin
+    "Merkez yetkisi" verdiği şef. Bütün şubeleri görür/işler, onay verir, personel/aracın şubesini değiştirir.
+  - Şube şefi/muhasebenin eklediği personel ve araç onaya düşer; **Onaylar** sayfası (`/panel/approvals`):
+    personel, araç, irsaliye, malzeme talebi, geçen ayın puantajı. Genel Bakış'ta şube düğmeleri ve onay uyarısı.
+  - Şube şefi/muhasebenin irsaliyesi kendi şube deposuna "Onay bekliyor" düşer (stok değişmez); Merkez onaylayınca
+    stoğa girer. Her bekleyen irsaliye için "<Şube> şubesine malzeme girişi" bildirimi. Giren kişi onaydan önce geri çekebilir.
+  - Malzeme talebi şubeye bağlı; talep ve stok girişi onayı Merkez'de; malzeme irsaliye kontrolünde seçilen şube deposuna girer.
+  - Personel/araç **şube geçmişi**: kartta geçiş tarihiyle şube değişikliği (yalnızca Merkez). Puantajda ay içi şube
+    dağılımı ("Merkez 12 gün · Bolu 5 gün"); yakıt kaydında şube (boşsa aracın o tarihteki şubesi), şube bazında yakıt raporu.
+- Veritabanı testleri: 14 dosya, 471 kontrol geçiyor. Tip kontrolü ve lint temiz.
+- **Ekranlar tarayıcıda denenmedi.** Kullanıcı canlıda deneyecek: şube irsaliyesi → bildirim → onay; şube talebi akışı;
+  kartta geçiş tarihiyle şube değişikliği ve puantajdaki gün dağılımı; yakıtta şube. Gelen geri bildirim ilk iştir.
+- **E — "Bugün" özeti yapıldı** (migration yok): Genel Bakış'ın üstünde bugünkü iş planı ekipleri (proje, ekip başı,
+  kişi, araç), ekip başının bugün imalat girip girmediği ve kalemleri, iş planı dışı imalat, bugünkü puantaj
+  (çalıştı / izin / rapor / gelmedi) ve bütün şubeler seçiliyken şube bazında özet. Menüdeki şube seçimine uyar.
+- Sıradaki adaylar: kullanıcının canlı deneme geri bildirimi; C (ekip başı/saha paneli) ertelendi; satış işleri beklemede.
 - Kalan şube sınırları (gerekirse ayrı iş):
+  - Puantaj listesi ve aylık onay personelin *bugünkü* şubesine göre; ay ortasında şube değiştiren personelin eski
+    şubedeki günlerini o şube kendi listesinde görmez/onaylamaz (gün dağılımı yeni şubenin listesinde görünür).
+  - Geriye tarihli şube değişikliğinde eski yakıt kayıtlarının şubesi değişmez (puantaj günleri geçmişten hesaplanır, doğrudur).
   - Merkez deposunun stoku `inventory_materials.stock_quantity` içinde; Merkez'e erişimi olmayan şefe
     ekranda gösterilmiyor ama API ile okunabilir (yalnızca miktar). Tam kapatmak stok yapısı değişikliği ister.
   - Mevcut bir deponun şubesi ekrandan değiştirilemiyor (yeni depo menüde seçili şubeye açılır).
-  - Araç muayene/sigorta bildirimleri erişilebilen şubelere göre süzülüyor, menüde seçili şubeye göre değil.
-- Çalışma düzeni: dal adı `step-NN-...`; migration'ı kullanıcı Supabase SQL Editor'de çalıştırır
-  (proje `gbguxqaticxrjgsgfvfc`); kurulduğu anon RPC denemesiyle doğrulanır, sonra `main`'e
-  fast-forward birleştirilip gönderilir.
+- Çalışma düzeni: migration önce scratchpad'de taslak olarak `DRAFT_MIGRATION=... npm run test:db` ile denenir, geçince
+  `supabase/migrations`'a konur; kullanıcı Supabase SQL Editor'de çalıştırır (proje `gbguxqaticxrjgsgfvfc`); kurulduğu
+  anon RPC denemesiyle doğrulanır ("permission denied" = kurulu), sonra `main`'e commit + push.
 
 ### Satış ve pazarlama (kullanıcı kararı: ilk müşteri gelene kadar beklemede)
 
@@ -69,8 +82,11 @@ devam edileceği kararlaştırılır. Her adım kullanıcının onayıyla ilerle
   Genel Bakış menüde seçili şubeye göre; bildirimler ve taşeron listesi/ekstresi erişilebilen şubelerle sınırlı;
   depo şubeye bağlı, stok/çıkış/irsaliye yalnızca erişilebilen depolarda, başka şubenin deposuna sevkiyat
   serbest; proje listesinde şube adı.
-- [ ] **E — "Bugün" özeti** (firma yöneticisinin açılış ekranı): hangi ekip nerede, ne yaptı,
-  bekleyen onaylar, şube bazında kısa özet.
+- [x] **D3 — Merkez yetkisi ve şube onayları** (`20261023000001` … `20261028000001`, canlıda): şube depoları,
+  Merkez yetkisi, Onaylar sayfası, şube irsaliyesi onayı, şubeye bağlı malzeme talebi, şube geçmişi, puantajda şube
+  dağılımı, yakıtta şube. Ayrıntı yukarıda "Kaldığımız yer"de.
+- [x] **E — "Bugün" özeti** (Genel Bakış'ın üstü): hangi ekip nerede, imalat girildi mi, bugünkü puantaj,
+  şube bazında kısa özet; bekleyen onaylar ayrıca Onaylar sayfasında ve Genel Bakış uyarısında.
 - [ ] **C — Ekip başı ve saha paneli** (ertelendi). Taslak: ekip başı kullanıcısı personel kaydına
   bağlanır; giriş yapınca `/saha` açılır (Bugün · İmalat Gir · Kayıtlarım · Projeler); yalnızca kendi
   ekibi ve kendi imalatı; fiyat görmez; imalat "onay bekliyor" gider, şef/firma yöneticisi onaylar
@@ -131,8 +147,15 @@ devam edileceği kararlaştırılır. Her adım kullanıcının onayıyla ilerle
 | 27 | Taşeron ekranında ve Excel'inde işveren fiyatı/tutarı gösterilmez, yalnızca taşeronun kendi payı; veritabanı testleri İstanbul saat diliminde (CI düzeltmesi) | ✅ |
 | 28 | Şubeler D1: otomatik Merkez, şube açma, şef/muhasebeye şube atama, proje/personel/araç/depo şubeye bağlı, menüde şube seçici, şube bazlı erişim (`20261021000001_branches.sql`) | ✅ |
 | 29 | Şubeler D2: iş planı, imalat, puantaj onayı, hakediş, Genel Bakış, bildirimler, taşeron ve stok şube bazında (`20261022000001_branches_d2.sql`) | ✅ |
+| 30 | Her şubeye otomatik depo; stok görünmeme hatası düzeltildi (`20261023000001_branch_locations.sql`) | ✅ |
+| 31 | Merkez yetkisi (Merkez şefi bütün şubeler), şube şefi/muhasebenin personel/aracı onaya düşer, Onaylar sayfası, Genel Bakış'ta şube seçimi (`20261024000001_head_office.sql`) | ✅ |
+| 32 | Merkez yetkisini başka şefe verme; personel/araç şubesini yalnızca Merkez değiştirir (`20261025000001_head_office_grants.sql`) | ✅ |
+| 33 | Şube irsaliyesi Merkez onayıyla stoğa girer; malzeme talebi şubeye bağlı (`20261026000001_branch_receipts.sql`) | ✅ |
+| 34 | Personel/araç şube geçmişi, puantajda şube dağılımı, yakıtta şube; irsaliye başına bildirim (`20261027000001_branch_history.sql`) | ✅ |
+| 35 | Bekleyen irsaliyeyi geri çekme; muhasebe talep irsaliyesini kontrol eder; Genel Bakış araç uyarıları seçili şubeye göre (`20261028000001_receipt_withdraw.sql`) | ✅ |
+| 36 | Genel Bakış'ta "Bugün" özeti: ekipler, imalat durumu, bugünkü puantaj, şube özeti | ✅ |
 
-Kurulu migration'lar: `20261005000000` … `20261022000001` (hepsi canlıda kurulu, 12 Ekim 2026). Kurulacak migration yok.
+Kurulu migration'lar: `20261005000000` … `20261028000001` (12 Ekim 2026).
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.
 
 ---
@@ -164,8 +187,8 @@ kayıtları onaya gönderiyor. Bütün roller paketin kullanıcı limitine sayı
 | B | Onaylar: muhasebenin eklediği personel/araç onayı, ay sonu puantaj onayı (onaydan sonra ay kesinleşir; onayı yalnızca firma yöneticisi kaldırır) | ✅ |
 | T | Taşeronlar (ofis tarafı, personel kartından); taşeronun kendi girişi sonra, ayrı rol olarak | ✅ |
 | C | Ekip başı rolü ve saha paneli; imalat taslak → onaya gönder → onay/red; ekip bazlı hakediş | ⏸ Ertelendi (10 Ekim): saha personeli şimdilik sisteme girmeyecek. Ekranların taslağı hazır (aşağıda). Yapılınca ekip başları paket limitine dahil edilecek. |
-| D | Şubeler: şube tablosu; personel, proje, araç ve depo şubeye bağlı; şefe ve muhasebeye şube atama; şube bazlı veri kısıtı (veritabanında); şubeler arası malzeme gönderme/teslim alma | ⏳ |
-| E | Firma yöneticisi için "Bugün" özeti (hangi ekip nerede, ne yaptı, bekleyen onaylar) | ⏳ |
+| D | Şubeler: şube tablosu; personel, proje, araç ve depo şubeye bağlı; şefe ve muhasebeye şube atama; şube bazlı veri kısıtı (veritabanında); şubeler arası malzeme gönderme; Merkez yetkisi ve şube onayları (D1–D3) | ✅ |
+| E | Firma yöneticisi için "Bugün" özeti (hangi ekip nerede, ne yaptı, bekleyen onaylar) | ✅ |
 
 Not (kullanıcıdan): Projede iş kalemleri önceden girilmemişse imalat yazılırken listeden iş kalemi
 seçilip projeye doğrudan eklenebilmeli. Ayrıntısı yukarıda "Sıradaki çalışma → İş kalemi notu"nda.

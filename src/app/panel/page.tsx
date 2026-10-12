@@ -6,6 +6,7 @@ import { VehicleRepository } from "@/modules/vehicles/vehicle-repository";
 import { UserRepository } from "@/modules/users/user-repository";
 import { DashboardView } from "@/components/dashboard/dashboard-view";
 import { HakedisRepository } from "@/modules/hakedis/hakedis-repository";
+import { TodayRepository } from "@/modules/dashboard/today-repository";
 
 export const metadata = {
   title: "Genel Bakış",
@@ -20,11 +21,14 @@ export default async function DashboardPage() {
   const userRepository = new UserRepository(supabase);
   const [overview, vehicleAlerts, profile, canSeeHakedis] = await Promise.all([
     dashboardRepo.getOverview(branchId),
-    new VehicleRepository(supabase).getDeadlineAlerts(),
+    new VehicleRepository(supabase).getDeadlineAlerts(branchId),
     userRepository.getCurrent(),
     userRepository.canWrite("hakedis"),
   ]);
   const hakedis = canSeeHakedis ? await new HakedisRepository(supabase).getSummary(branchId) : null;
+  // "Bugün" özeti; okunamazsa Genel Bakış yine açılır.
+  const today = await new TodayRepository(supabase).get(branchId).catch(() => null);
+  const branchNames = Object.fromEntries(myBranches.branches.map((branch) => [branch.id, branch.name]));
   // Onay bekleyen kayıtlar bütün şubelerden sayılır (Onaylar sayfası da bütün şubeleri gösterir).
   const pendingApprovals = myBranches.head_office
     ? (
@@ -47,6 +51,9 @@ export default async function DashboardPage() {
       canManageTypes={profile?.role === "site_chief"}
       hakedis={hakedis}
       pendingApprovals={pendingApprovals}
+      today={today}
+      branchNames={branchNames}
+      showBranches={myBranches.total_count > 1 && !branchId}
     />
   );
 }

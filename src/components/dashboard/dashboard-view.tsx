@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProgressBar, ProjectStatusBadge, TypeDot } from "@/components/projects/project-status-indicators";
 import { DashboardBranchFilter } from "@/components/dashboard/dashboard-branch-filter";
+import { TodayCard } from "@/components/dashboard/today-card";
+import type { TodaySummary } from "@/modules/dashboard/today-repository";
 
 type Props = {
   stats: DashboardStats;
@@ -20,6 +22,11 @@ type Props = {
   hakedis: HakedisSummary | null;
   /** Onay bekleyen personel, araç, irsaliye ve malzeme talebi (yalnızca firma yöneticisi ve Merkez şantiye şefi); null = gösterilmez. */
   pendingApprovals: number | null;
+  /** "Bugün" özeti; okunamadıysa null. */
+  today: TodaySummary | null;
+  branchNames: Record<string, string>;
+  /** Bütün şubeler görüntüleniyorsa şube özeti gösterilir. */
+  showBranches: boolean;
 };
 
 const STAT_CARDS = [
@@ -31,7 +38,7 @@ const STAT_CARDS = [
   { key: "completed", label: "Tamamlandı", href: "/panel/projects?status=completed&scope=all", tone: "text-emerald-600" },
 ] as const;
 
-export function DashboardView({ stats, overview, vehicleAlerts, canManageTypes, hakedis, pendingApprovals }: Props) {
+export function DashboardView({ stats, overview, vehicleAlerts, canManageTypes, hakedis, pendingApprovals, today, branchNames, showBranches }: Props) {
   return (
     <div className="space-y-6">
       <div className="space-y-3">
@@ -54,6 +61,8 @@ export function DashboardView({ stats, overview, vehicleAlerts, canManageTypes, 
           <span className="font-medium text-primary">Onaylara git</span>
         </Link>
       ) : null}
+
+      {today && <TodayCard today={today} branchNames={branchNames} showBranches={showBranches} />}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         {STAT_CARDS.map((card) => (

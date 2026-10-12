@@ -266,6 +266,12 @@ export class InventoryRepository {
     if (error) throw error;
   }
 
+  /** Kendi girdiği, onay bekleyen irsaliyeyi geri çeker (siler). */
+  async withdrawReceipt(id: string): Promise<void> {
+    const { error } = await this.supabase.rpc("withdraw_inventory_receipt", { p_receipt_id: id });
+    if (error) throw error;
+  }
+
   async deleteMaterial(id: string): Promise<void> {
     const { error } = await this.supabase.rpc("delete_inventory_material_with_history", { p_material_id: id });
     if (error) throw error;

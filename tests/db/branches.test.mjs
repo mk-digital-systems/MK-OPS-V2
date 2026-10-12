@@ -212,6 +212,12 @@ check("şube şefinin irsaliyesi onay bekler, stok değişmez", chiefReceipt.sta
 check("şef bekleyen irsaliyesini ve satırlarını görür", (await one(chief, `select count(*)::int n from public.inventory_receipt_lines where receipt_id = $1`, [chiefReceipt.id])).n === 1);
 e = await asErr(chief, `select public.review_inventory_receipt($1, true)`, [chiefReceipt.id]);
 check("şube şefi kendi irsaliyesini onaylayamaz", /Merkez/.test(e ?? ""), e);
+// Geri çekme: yalnızca giren kişi, onaydan önce.
+const draftReceipt = (await one(chief, `select public.create_inventory_receipt(current_date, 'Şef', 'IRS-GERI', null, $1::jsonb, $2) id`, [JSON.stringify([{ catalog_id: catalog, quantity: 1 }]), aDepot])).id;
+e = await asErr(owner, `select public.withdraw_inventory_receipt($1)`, [draftReceipt]);
+check("başkasının irsaliyesi geri çekilemez", /kendi girdiğiniz/.test(e ?? ""), e);
+e = await asErr(chief, `select public.withdraw_inventory_receipt($1)`, [draftReceipt]);
+check("şef bekleyen irsaliyesini geri çeker", !e && (await sys(`select count(*)::int n from public.inventory_receipts where id = $1`, [draftReceipt])).rows[0].n === 0, e);
 check("şef Merkez'in irsaliyesini görmez", (await one(chief, `select count(*)::int n from public.inventory_receipts where dispatch_number = 'IRS-1'`)).n === 0);
 check("Merkez şefi onay bildirimi alır (irsaliye)", (await one(hq, `select public.get_my_notifications() n`)).n.some((x) => x.key === `pending_receipt:${chiefReceipt.id}` && x.title === "Şube A şubesine malzeme girişi"));
 e = await asErr(hq, `select public.review_inventory_receipt($1, true)`, [chiefReceipt.id]);

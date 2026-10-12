@@ -26,18 +26,21 @@ export class VehicleRepository {
     return (data ?? []) as Vehicle[];
   }
 
-  async getDeadlineAlerts(): Promise<VehicleDeadlineAlert[]> {
+  /** Muayene/sigortası 15 gün içinde dolan araçlar; şube verilirse yalnızca o şubenin araçları. */
+  async getDeadlineAlerts(branchId?: string | null): Promise<VehicleDeadlineAlert[]> {
     const today = new Date();
     const warningLimit = format(
       new Date(today.getFullYear(), today.getMonth(), today.getDate() + 15),
       "yyyy-MM-dd"
     );
-    const { data, error } = await this.supabase
+    let query = this.supabase
       .from("vehicles")
       .select("id, plate, brand, model, inspection_date, insurance_date")
       .or(
         `inspection_date.lte.${warningLimit},insurance_date.lte.${warningLimit}`
       );
+    if (branchId) query = query.eq("branch_id", branchId);
+    const { data, error } = await query;
     if (error) throw error;
 
     const alerts: VehicleDeadlineAlert[] = [];

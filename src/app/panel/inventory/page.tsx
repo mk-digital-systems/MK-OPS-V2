@@ -37,6 +37,7 @@ export default async function InventoryPage() {
       personnel={personnel}
       readOnly={!canWrite}
       canReceive={canWrite || profile?.role === "accounting"}
+      currentUserId={profile?.id ?? null}
     />
   );
 }
