@@ -11,7 +11,7 @@ export type Vehicle = {
   insurance_date: string | null;
   assigned_personnel_id: string | null;
   branch_id: string;
-  /** Muhasebenin eklediği araç şef/firma yöneticisi onaylayana kadar "pending". */
+  /** Şube şefi/muhasebenin eklediği araç firma yöneticisi veya Merkez şefi onaylayana kadar "pending". */
   approval_status: RecordApprovalStatus;
   approved_by: string | null;
   approved_at: string | null;

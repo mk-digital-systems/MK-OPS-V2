@@ -88,7 +88,7 @@ export class InventoryRepository {
   async listLocations(): Promise<InventoryLocation[]> {
     const { data, error } = await this.supabase
       .from("inventory_locations")
-      .select("id, name, is_main, sort_order")
+      .select("id, name, branch_id, is_main, sort_order")
       .order("is_main", { ascending: false })
       .order("sort_order")
       .order("name");

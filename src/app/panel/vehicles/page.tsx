@@ -13,7 +13,8 @@ export const metadata = {
 
 export default async function VehiclesPage() {
   const supabase = await createClient();
-  const branchId = await getSelectedBranchId((await new BranchRepository(supabase).getMine()).branches);
+  const myBranches = await new BranchRepository(supabase).getMine();
+  const branchId = await getSelectedBranchId(myBranches.branches);
   const userRepository = new UserRepository(supabase);
   const [vehicles, equipmentBalances, fuelLogs, personnel, canWrite, profile] = await Promise.all([
     new VehicleRepository(supabase).list({ includePending: true, branchId }),
@@ -31,7 +32,7 @@ export default async function VehiclesPage() {
       personnel={personnel.filter((person) => person.is_active)}
       readOnly={!canWrite}
       canCreate={canWrite || profile?.role === "accounting"}
-      canReview={profile?.role === "site_chief" || profile?.role === "company_manager"}
+      canReview={myBranches.head_office}
       currentUserId={profile?.id ?? null}
     />
   );

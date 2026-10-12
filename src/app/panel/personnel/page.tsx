@@ -48,7 +48,8 @@ export default async function PersonnelPage({ searchParams }: Props) {
       : null;
 
   const supabase = await createClient();
-  const branchId = await getSelectedBranchId((await new BranchRepository(supabase).getMine()).branches);
+  const myBranches = await new BranchRepository(supabase).getMine();
+  const branchId = await getSelectedBranchId(myBranches.branches);
   const attendanceRepository = new AttendanceRepository(supabase);
   const userRepository = new UserRepository(supabase);
   const [personnel, attendanceSummary, personnelSummaries, assignedVehicles, canWrite, profile] = await Promise.all([
@@ -79,6 +80,7 @@ export default async function PersonnelPage({ searchParams }: Props) {
       readOnly={!canWrite}
       canCreate={canWrite || profile?.role === "accounting"}
       canReview={profile?.role === "site_chief" || profile?.role === "company_manager"}
+      canApprove={myBranches.head_office}
       currentUserId={profile?.id ?? null}
       subcontractors={subcontractors ?? []}
     />

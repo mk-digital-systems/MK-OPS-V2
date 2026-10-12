@@ -285,15 +285,18 @@ function ReceiptDialog({ open, setOpen, catalogs, categories, locations, loading
   const [data, setData] = useState({ receipt_date: today(), received_by: "", dispatch_number: "", notes: "" });
   const [locationId, setLocationId] = useState("");
   const [lines, setLines] = useState<ReceiptLine[]>([{ catalog_id: "", material_code: "", unit: "piece", quantity: "1" }]);
-  const targetId = locationId || locations.find((item) => item.is_main)?.id || locations[0]?.id || "";
+  // Varsayılan: menüde seçili şubenin (yoksa Merkez'in) deposu; şube kullanıcısı yalnızca kendi şubesinin depolarını görür.
+  const { multiBranch, branchName, defaultBranchId } = useBranches();
+  const branchDefault = locations.filter((item) => item.branch_id === defaultBranchId).sort((a, b) => Number(b.is_main) - Number(a.is_main))[0];
+  const targetId = locationId || branchDefault?.id || locations.find((item) => item.is_main)?.id || locations[0]?.id || "";
   const items = lines.filter((line) => line.catalog_id && Number(line.quantity) > 0).map((line) => ({ catalog_id: line.catalog_id, material_code: line.material_code.trim() || undefined, quantity: Number(line.quantity) }));
   return <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto"><DialogHeader><DialogTitle>İrsaliye ile Stok Girişi</DialogTitle></DialogHeader>
-    <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); if (!data.receipt_date || data.received_by.trim().length < 2 || !data.dispatch_number.trim() || !items.length) return toast.error("Tarih, teslim alan, irsaliye ve malzeme zorunlu"); void onSave({ ...data, location_id: targetId || null, items }); }}>
+    <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); if (!data.receipt_date || data.received_by.trim().length < 2 || !data.dispatch_number.trim() || !items.length) return toast.error("Tarih, teslim alan, irsaliye ve malzeme zorunlu"); if (!targetId) return toast.error("Giriş yapılacak depoyu seçin"); void onSave({ ...data, location_id: targetId, items }); }}>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Teslim Tarihi"><Input type="date" value={data.receipt_date} onChange={(e) => setData({ ...data, receipt_date: e.target.value })} /></Field>
         <Field label="İrsaliye No"><Input value={data.dispatch_number} onChange={(e) => setData({ ...data, dispatch_number: e.target.value })} /></Field>
         <Field label="Teslim Alan"><Input value={data.received_by} onChange={(e) => setData({ ...data, received_by: e.target.value })} /></Field>
-        <Field label="Giriş Yapılacak Depo"><LocationSelect locations={locations} value={targetId} onChange={setLocationId} /></Field>
+        <Field label="Giriş Yapılacak Depo"><LocationSelect locations={locations} value={targetId} onChange={setLocationId} describe={multiBranch ? (item) => branchName(item.branch_id) ?? "" : undefined} /></Field>
         <div className="sm:col-span-2"><Field label="Not"><Input value={data.notes} onChange={(e) => setData({ ...data, notes: e.target.value })} /></Field></div>
       </div>
       <div className="space-y-2">
@@ -317,13 +320,14 @@ function TransferDialog({ open, setOpen, materials, locations, targets, loading,
   const [fromId, setFromId] = useState(locations.find((item) => item.is_main)?.id ?? locations[0]?.id ?? "");
   const [toId, setToId] = useState(targets.find((item) => item.id !== fromId)?.id ?? "");
   const [lines, setLines] = useState<Line[]>([{ material_id: "", quantity: "1" }]);
+  const { multiBranch, branchName } = useBranches();
   const from = locations.find((item) => item.id === fromId);
   const available = from ? materials.filter((item) => stockAt(item, from) > 0) : [];
   return <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto"><DialogHeader><DialogTitle>Depolar Arası Sevkiyat</DialogTitle></DialogHeader>
     <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); const items = normalizeLines(lines); if (!fromId || !toId || fromId === toId) return toast.error("Farklı iki depo seçin"); if (data.delivered_by.trim().length < 2 || data.received_by.trim().length < 2) return toast.error("Teslim eden ve teslim alan zorunlu"); if (!items.length) return toast.error("En az bir malzeme ekleyin"); void onSave({ ...data, from_location_id: fromId, to_location_id: toId, items }); }}>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Çıkış Deposu"><LocationSelect locations={locations} value={fromId} onChange={(value) => { setFromId(value); setLines([{ material_id: "", quantity: "1" }]); if (value === toId) setToId(locations.find((item) => item.id !== value)?.id ?? ""); }} /></Field>
-        <Field label="Varış Deposu"><LocationSelect locations={targets} value={toId} onChange={setToId} exclude={fromId} /></Field>
+        <Field label="Varış Deposu"><LocationSelect locations={targets} value={toId} onChange={setToId} exclude={fromId} describe={multiBranch ? (item) => branchName(item.branch_id) ?? "Diğer şube" : undefined} /></Field>
         <Field label="Tarih"><Input type="date" value={data.shipment_date} onChange={(e) => setData({ ...data, shipment_date: e.target.value })} /></Field>
         <Field label="Araç / Plaka (opsiyonel)"><Input value={data.vehicle_plate} onChange={(e) => setData({ ...data, vehicle_plate: e.target.value })} /></Field>
         <Field label="Teslim Eden"><Input value={data.delivered_by} onChange={(e) => setData({ ...data, delivered_by: e.target.value })} /></Field>

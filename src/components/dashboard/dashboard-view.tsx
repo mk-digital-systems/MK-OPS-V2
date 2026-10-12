@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, CalendarClock, CarFront, ClipboardList, FolderKanban, Receipt, Settings } from "lucide-react";
+import { AlertTriangle, CalendarClock, CarFront, ClipboardCheck, ClipboardList, FolderKanban, Receipt, Settings } from "lucide-react";
 import type { DashboardOverview, DashboardStats, DashboardTypeSummary } from "@/types/project";
 import type { VehicleDeadlineAlert } from "@/types/vehicle";
 import type { HakedisSummary } from "@/types/hakedis";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProgressBar, ProjectStatusBadge, TypeDot } from "@/components/projects/project-status-indicators";
+import { DashboardBranchFilter } from "@/components/dashboard/dashboard-branch-filter";
 
 type Props = {
   stats: DashboardStats;
@@ -17,6 +18,8 @@ type Props = {
   vehicleAlerts: VehicleDeadlineAlert[];
   canManageTypes: boolean;
   hakedis: HakedisSummary | null;
+  /** Onay bekleyen personel + araç (yalnızca firma yöneticisi ve Merkez şantiye şefi); null = gösterilmez. */
+  pendingApprovals: number | null;
 };
 
 const STAT_CARDS = [
@@ -28,13 +31,29 @@ const STAT_CARDS = [
   { key: "completed", label: "Tamamlandı", href: "/panel/projects?status=completed&scope=all", tone: "text-emerald-600" },
 ] as const;
 
-export function DashboardView({ stats, overview, vehicleAlerts, canManageTypes, hakedis }: Props) {
+export function DashboardView({ stats, overview, vehicleAlerts, canManageTypes, hakedis, pendingApprovals }: Props) {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Genel Bakış</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Projelerin ve sahadaki işlerin anlık durumu</p>
+      <div className="space-y-3">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">Genel Bakış</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Projelerin ve sahadaki işlerin anlık durumu</p>
+        </div>
+        <DashboardBranchFilter />
       </div>
+
+      {pendingApprovals ? (
+        <Link
+          href="/panel/approvals"
+          className="flex items-center gap-3 rounded-2xl border border-amber-300 bg-amber-50/60 p-4 text-sm transition-colors hover:bg-amber-100/60 dark:border-amber-900 dark:bg-amber-950/20 dark:hover:bg-amber-950/40"
+        >
+          <ClipboardCheck className="h-5 w-5 shrink-0 text-amber-600" />
+          <span className="flex-1">
+            <strong>{pendingApprovals}</strong> personel / araç kaydı onayınızı bekliyor
+          </span>
+          <span className="font-medium text-primary">Onaylara git</span>
+        </Link>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         {STAT_CARDS.map((card) => (

@@ -13,7 +13,8 @@ export const metadata = {
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const branchId = await getSelectedBranchId((await new BranchRepository(supabase).getMine()).branches);
+  const myBranches = await new BranchRepository(supabase).getMine();
+  const branchId = await getSelectedBranchId(myBranches.branches);
   const dashboardRepo = new DashboardRepository(supabase);
   const stats = await dashboardRepo.getStats(branchId);
   const userRepository = new UserRepository(supabase);
@@ -24,6 +25,16 @@ export default async function DashboardPage() {
     userRepository.canWrite("hakedis"),
   ]);
   const hakedis = canSeeHakedis ? await new HakedisRepository(supabase).getSummary(branchId) : null;
+  // Onay bekleyen kayıtlar bütün şubelerden sayılır (Onaylar sayfası da bütün şubeleri gösterir).
+  const pendingApprovals = myBranches.head_office
+    ? (
+        await Promise.all(
+          (["personnel", "vehicles"] as const).map((table) =>
+            supabase.from(table).select("id", { count: "exact", head: true }).eq("approval_status", "pending")
+          )
+        )
+      ).reduce((sum, result) => sum + (result.count ?? 0), 0)
+    : null;
 
   return (
     <DashboardView
@@ -32,6 +43,7 @@ export default async function DashboardPage() {
       vehicleAlerts={vehicleAlerts}
       canManageTypes={profile?.role === "site_chief"}
       hakedis={hakedis}
+      pendingApprovals={pendingApprovals}
     />
   );
 }

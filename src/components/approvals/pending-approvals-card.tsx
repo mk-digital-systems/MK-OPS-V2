@@ -15,8 +15,8 @@ export type PendingApprovalItem = {
 };
 
 /**
- * Muhasebenin eklediği, şantiye şefi veya firma yöneticisi onayı bekleyen kayıtlar.
- * Onaylayan kişi onay/ret düğmelerini görür; kaydı ekleyen muhasebe kendi kaydını düzeltebilir.
+ * Şube şantiye şefinin veya muhasebenin eklediği, firma yöneticisi ya da Merkez şantiye şefi onayı bekleyen kayıtlar.
+ * Onaylayan kişi onay/ret düğmelerini görür; kaydı ekleyen kişi kendi kaydını düzeltebilir.
  */
 export function PendingApprovalsCard({
   noun,
@@ -56,8 +56,8 @@ export function PendingApprovalsCard({
         </CardTitle>
         <CardDescription>
           {canReview
-            ? `Muhasebenin eklediği kayıtlar. Onaylanana kadar puantajda, iş planında ve seçim listelerinde görünmez.`
-            : `Eklediğiniz kayıtlar şantiye şefi veya firma yöneticisi onaylayınca kullanıma açılır.`}
+            ? `Şube şantiye şefinin veya muhasebenin eklediği kayıtlar. Onaylanana kadar puantajda, iş planında ve seçim listelerinde görünmez.`
+            : `Eklenen kayıtlar firma yöneticisi veya Merkez şantiye şefi onaylayınca kullanıma açılır.`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">

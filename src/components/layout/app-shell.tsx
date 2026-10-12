@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   CalendarCheck,
+  ClipboardCheck,
   CarFront,
   Boxes,
   ClipboardList,
@@ -52,12 +53,17 @@ type NavItem = {
   accounting?: boolean;
   /** Yalnızca bu roller görür. */
   roles?: UserRole[];
+  /** Yalnızca firma yöneticisi ve Merkez şantiye şefi görür. */
+  headOffice?: boolean;
 };
 
 const NAV_SECTIONS: { title: string | null; items: NavItem[] }[] = [
   {
     title: null,
-    items: [{ href: "/panel", label: "Genel Bakış", icon: LayoutDashboard }],
+    items: [
+      { href: "/panel", label: "Genel Bakış", icon: LayoutDashboard },
+      { href: "/panel/approvals", label: "Onaylar", icon: ClipboardCheck, headOffice: true },
+    ],
   },
   {
     title: "Operasyon",
@@ -114,7 +120,7 @@ export function AppShell({
   const brand = useReportBrand();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { branches, multiBranch, selectedId, select } = useBranches();
+  const { branches, multiBranch, selectedId, select, headOffice } = useBranches();
 
   async function handleLogout() {
     const supabase = createClient();
@@ -129,6 +135,7 @@ export function AppShell({
   }
 
   function canSee(item: NavItem) {
+    if (item.headOffice) return headOffice;
     if (item.roles) return item.roles.includes(profile.role);
     if (item.href === "/panel/hakedis") return writableModules.includes("hakedis");
     if (item.href === "/panel/taseronlar") {

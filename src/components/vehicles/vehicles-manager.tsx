@@ -49,12 +49,12 @@ export function VehiclesManager({
   readOnly?: boolean;
   /** Yeni araç ekleyebilir (muhasebenin eklediği araç onaya düşer). */
   canCreate?: boolean;
-  /** Bekleyen araçları onaylayabilir (şantiye şefi, firma yöneticisi). */
+  /** Bekleyen araçları onaylayabilir (firma yöneticisi, Merkez şantiye şefi). */
   canReview?: boolean;
   currentUserId?: string | null;
 }) {
   const brand = useReportBrand();
-  const { defaultBranchId, multiBranch, branchName } = useBranches();
+  const { defaultBranchId, multiBranch, branchName, headOffice } = useBranches();
   const [branchId, setBranchId] = useState("");
   const [vehicles, setVehicles] = useState(initialVehicles);
   const [editing, setEditing] = useState<Vehicle | null>(null);
@@ -189,7 +189,7 @@ export function VehiclesManager({
         );
         toast.success(
           created.approval_status === "pending"
-            ? "Araç eklendi; şantiye şefi veya firma yöneticisi onaylayınca kullanıma açılır"
+            ? "Araç eklendi; firma yöneticisi veya Merkez şantiye şefi onaylayınca kullanıma açılır"
             : "Araç eklendi"
         );
       }
@@ -408,7 +408,8 @@ export function VehiclesManager({
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <BranchSelectField value={branchId} onChange={setBranchId} />
+            {/* Şubeyi yalnızca firma yöneticisi ve Merkez şantiye şefi değiştirir. */}
+            <BranchSelectField value={branchId} onChange={setBranchId} disabled={Boolean(editing) && !headOffice} />
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="plate">Araç Plakası</Label>

@@ -16,12 +16,13 @@ const asErr = (uid, sql, params) => as(uid, sql, params).then(() => null, (e) =>
 const one = async (uid, sql, params) => (await as(uid, sql, params)).rows[0];
 const sys = (sql, params) => pg.query(sql, params);
 
-const [owner, chief, acc, acc2] = ["1", "2", "3", "4"].map((n) => `00000000-0000-0000-0000-00000000000${n}`);
-await sys(`insert into auth.users (id, email) values ($1,'a@a'),($2,'b@b'),($3,'c@c'),($4,'d@d')`, [owner, chief, acc, acc2]);
+const [owner, chief, acc, acc2, hq] = ["1", "2", "3", "4", "5"].map((n) => `00000000-0000-0000-0000-00000000000${n}`);
+await sys(`insert into auth.users (id, email) values ($1,'a@a'),($2,'b@b'),($3,'c@c'),($4,'d@d'),($5,'e@e')`, [owner, chief, acc, acc2, hq]);
 await as(owner, `select public.create_company('Şubeli Firma')`);
 const company = (await one(owner, `select public.get_my_company() r`)).r.company;
-for (const u of [chief, acc, acc2]) await as(u, `select public.join_company('Şubeli Firma', $1)`, [company.join_code]);
+for (const u of [chief, acc, acc2, hq]) await as(u, `select public.join_company('Şubeli Firma', $1)`, [company.join_code]);
 await as(owner, `select public.assign_user_role($1, 'company_manager')`, [chief]);
+await as(owner, `select public.assign_user_role($1, 'company_manager')`, [hq]);
 await as(owner, `select public.assign_user_role($1, 'accounting')`, [acc]);
 
 // --- Merkez ve şube açma -------------------------------------------------------------------
@@ -48,12 +49,33 @@ const chiefBranches = (await one(chief, `select public.get_my_branches() r`)).r;
 check("şef yalnızca kendi şubesini görür", chiefBranches.branches.length === 1 && chiefBranches.branches[0].id === branchA && chiefBranches.assignments === null);
 const ownerBranches = (await one(owner, `select public.get_my_branches() r`)).r;
 check("firma yöneticisi bütün şubeleri ve atamaları görür", ownerBranches.branches.length === 2 && ownerBranches.total_count === 2 && ownerBranches.assignments.length >= 2);
+check("şube şefi Merkez yetkisinde değil", chiefBranches.head_office === false && ownerBranches.head_office === true);
+const hqBranches = (await one(hq, `select public.get_my_branches() r`)).r;
+check("Merkez şantiye şefi bütün şubeleri görür", hqBranches.head_office === true && hqBranches.branches.length === 2 && hqBranches.assignments === null);
 
 // --- kayıtlar ve görünürlük -----------------------------------------------------------------------
 const merkezPerson = (await one(owner, `insert into public.personnel (full_name, employment_start_date) values ('Merkez Usta', '2025-01-01') returning id, branch_id`));
 check("firma yöneticisinin kaydı varsayılan Merkez", merkezPerson.branch_id === merkez.id);
 const aPerson = (await one(chief, `insert into public.personnel (full_name, employment_start_date) values ('Şube A Usta', '2025-01-01') returning id, branch_id`));
 check("şefin kaydı kendi şubesine düşer", aPerson.branch_id === branchA);
+
+// Şube şefinin eklediği personel onay bekler; onayı firma yöneticisi veya Merkez şantiye şefi verir.
+check("şube şefinin eklediği personel onay bekler", (await sys(`select approval_status from public.personnel where id = $1`, [aPerson.id])).rows[0].approval_status === "pending");
+check("firma yöneticisinin eklediği personel onaylı", (await sys(`select approval_status from public.personnel where id = $1`, [merkezPerson.id])).rows[0].approval_status === "approved");
+e = await asErr(chief, `select public.review_pending_record('personnel', $1, true)`, [aPerson.id]);
+check("şube şefi onay veremez", /Merkez/.test(e ?? ""), e);
+check("şube şefi onay bildirimi almaz", !(await one(chief, `select public.get_my_notifications() n`)).n.some((x) => x.type === "pending_approval"));
+check("Merkez şefi onay bildirimi alır", (await one(hq, `select public.get_my_notifications() n`)).n.some((x) => x.type === "pending_approval" && x.link === "/panel/approvals"));
+check("Merkez şefi başka şubenin bekleyen personelini görür", (await one(hq, `select count(*)::int n from public.personnel where id = $1`, [aPerson.id])).n === 1);
+e = await asErr(hq, `select public.review_pending_record('personnel', $1, true)`, [aPerson.id]);
+check("Merkez şefi şube personelini onaylar", !e && (await sys(`select approval_status from public.personnel where id = $1`, [aPerson.id])).rows[0].approval_status === "approved", e);
+const hqPerson = await one(hq, `insert into public.personnel (full_name, employment_start_date, branch_id) values ('Merkez Şefinin Ustası', '2025-01-01', $1) returning id, approval_status`, [branchA]);
+check("Merkez şefi başka şubeye onaysız personel ekler", hqPerson.approval_status === "approved", JSON.stringify(hqPerson));
+await sys(`delete from public.personnel where id = $1`, [hqPerson.id]);
+const pendingVehicle = await one(chief, `insert into public.vehicles (plate, brand, model) values ('14 ŞUB 01', 'Fiat', 'Doblo') returning id, approval_status`);
+check("şube şefinin eklediği araç onay bekler", pendingVehicle.approval_status === "pending");
+await as(owner, `select public.review_pending_record('vehicle', $1, false)`, [pendingVehicle.id]);
+check("firma yöneticisi bekleyen aracı reddeder", (await sys(`select count(*)::int n from public.vehicles where id = $1`, [pendingVehicle.id])).rows[0].n === 0);
 e = await asErr(chief, `insert into public.personnel (full_name, branch_id) values ('Sızma', $1)`, [merkez.id]);
 check("şef başka şubeye kayıt açamaz", !!e, e);
 check("şef yalnızca kendi şubesinin personelini görür", (await one(chief, `select count(*)::int n from public.personnel`)).n === 1);
@@ -65,6 +87,25 @@ check("şef personelini erişemediği şubeye taşıyamaz", !!e, e);
 e = await asErr(owner, `update public.personnel set branch_id = $2 where id = $1`, [aPerson.id, merkez.id]);
 check("firma yöneticisi personelin şubesini değiştirir", !e, e);
 await as(owner, `update public.personnel set branch_id = $2 where id = $1`, [aPerson.id, branchA]);
+
+// Şube değiştirme: şube şefi kendi şubeleri arasında da taşıyamaz; Merkez yetkisi verilen şef taşır.
+const bolu2 = (await one(owner, `insert into public.branches (name, sort_order) values ('Düzce', 3) returning id`)).id;
+await as(owner, `select public.set_user_branches($1, $2::uuid[])`, [chief, [branchA, bolu2]]);
+e = await asErr(chief, `update public.personnel set branch_id = $2 where id = $1`, [aPerson.id, bolu2]);
+check("şube şefi personeli kendi şubeleri arasında da taşıyamaz", /yalnızca firma yöneticisi veya Merkez/.test(e ?? ""), e);
+e = await asErr(chief, `select public.set_user_head_office($1, true)`, [chief]);
+check("şef kendine Merkez yetkisi veremez", !!e, e);
+await as(owner, `select public.set_user_head_office($1, true)`, [chief]);
+const granted = (await one(chief, `select public.get_my_branches() r`)).r;
+check("Merkez yetkisi verilen şef bütün şubeleri görür", granted.head_office === true && granted.branches.length === 3);
+check("firma yöneticisi Merkez yetkililerini görür", (await one(owner, `select public.get_my_branches() r`)).r.head_office_users.includes(chief));
+e = await asErr(chief, `update public.personnel set branch_id = $2 where id = $1`, [aPerson.id, merkez.id]);
+check("Merkez yetkili şef personeli başka şubeye taşır", !e, e);
+await as(chief, `update public.personnel set branch_id = $2 where id = $1`, [aPerson.id, branchA]);
+await as(owner, `select public.set_user_head_office($1, false)`, [chief]);
+await as(owner, `select public.set_user_branches($1, $2::uuid[])`, [chief, [branchA]]);
+await as(owner, `delete from public.branches where id = $1`, [bolu2]);
+check("yetki kaldırılınca şef yalnızca kendi şubesinde", (await one(chief, `select public.get_my_branches() r`)).r.branches.length === 1);
 
 // Puantaj: başka şubenin personeline girilemez; aylık liste yalnızca kendi şubesi.
 e = await asErr(chief, `select public.save_attendance_changes($1::jsonb)`, [JSON.stringify([{ personnel_id: merkezPerson.id, attendance_date: "2026-09-01", status: "worked" }])]);
@@ -152,9 +193,11 @@ await as(owner, `select public.set_personnel_subcontractor($1, true, 60)`, [merk
 check("şef başka şubenin taşeronunu görmez", (await one(chief, `select public.list_subcontractors() r`)).r.length === 0);
 
 // Depo: şef başka şubenin deposundan çıkış yapamaz; kendi deposundan başka şubeye gönderir.
-const aDepot = (await one(chief, `select public.save_inventory_location(null, 'Şube A Depo') id`)).id;
-check("şefin açtığı depo kendi şubesinde", (await sys(`select branch_id from public.inventory_locations where id = $1`, [aDepot])).rows[0].branch_id === branchA);
-const unit = (await sys(`select (enum_range(null::public.inventory_unit))[1]::text u`)).rows[0].u;
+const autoDepots = (await sys(`select id, name from public.inventory_locations where branch_id = $1`, [branchA])).rows;
+check("yeni şubeye otomatik depo açılır", autoDepots.length === 1 && autoDepots[0].name === "Şube A Depo", JSON.stringify(autoDepots));
+const aDepot = autoDepots[0].id;
+const extraDepot = (await one(chief, `select public.save_inventory_location(null, 'Şube A Saha') id`)).id;
+check("şefin açtığı depo kendi şubesinde", (await sys(`select branch_id from public.inventory_locations where id = $1`, [extraDepot])).rows[0].branch_id === branchA);const unit = (await sys(`select (enum_range(null::public.inventory_unit))[1]::text u`)).rows[0].u;
 const catalog = (await one(owner, `select public.create_inventory_catalog_material('Kablo', null, null, null, $1::public.inventory_unit, false) id`, [unit])).id;
 await as(owner, `select public.create_inventory_receipt(current_date, 'Depocu', 'IRS-1', null, $1::jsonb)`, [JSON.stringify([{ catalog_id: catalog, quantity: 10 }])]);
 const material = (await sys(`select id from public.inventory_materials where catalog_id = $1`, [catalog])).rows[0].id;
@@ -162,10 +205,21 @@ e = await asErr(chief, `select public.record_inventory_movement($1, 'out', 1, nu
 check("şef Merkez deposundan çıkış yapamaz", /erişiminiz olmayan/.test(e ?? ""), e);
 e = await asErr(chief, `select public.create_inventory_receipt(current_date, 'Şef', 'IRS-2', null, $1::jsonb, $2)`, [JSON.stringify([{ catalog_id: catalog, quantity: 4 }]), aDepot]);
 check("şef kendi deposuna irsaliye girer", !e, e);
+e = await asErr(hq, `select public.create_inventory_receipt(current_date, 'Merkez Şefi', 'IRS-3', null, $1::jsonb, $2)`, [JSON.stringify([{ catalog_id: catalog, quantity: 2 }]), aDepot]);
+check("Merkez şefi başka şubenin deposuna irsaliye girer", !e, e);
 const mainDepotId = (await sys(`select id from public.inventory_locations where company_id = $1 and is_main`, [company.id])).rows[0].id;
 e = await asErr(chief, `select public.create_inventory_transfer(current_date, $1, $2, 'Şef', 'Depocu', null, null, $3::jsonb)`, [aDepot, mainDepotId, JSON.stringify([{ material_id: material, quantity: 1 }])]);
 check("şef kendi deposundan başka şubeye sevk eder", !e, e);
 check("şef başka şubenin depo stokunu görmez", (await one(chief, `select count(*)::int n from public.inventory_location_stocks`)).n === 1);
+
+// Şube adı değişince otomatik depo da yeniden adlanır; boş şube deposuyla birlikte silinir.
+const bolu = (await one(owner, `insert into public.branches (name, sort_order) values ('Bolu', 2) returning id`)).id;
+check("Bolu şubesine Bolu Depo açılır", (await sys(`select name from public.inventory_locations where branch_id = $1`, [bolu])).rows.map((r) => r.name).join() === "Bolu Depo");
+await as(owner, `update public.branches set name = 'Bolu Şubesi' where id = $1`, [bolu]);
+check("şube adı değişince depo adı da değişir", (await sys(`select name from public.inventory_locations where branch_id = $1`, [bolu])).rows.map((r) => r.name).join() === "Bolu Şubesi Depo");
+e = await asErr(owner, `delete from public.branches where id = $1`, [bolu]);
+check("boş şube deposuyla birlikte silinir", !e && (await sys(`select count(*)::int n from public.inventory_locations where branch_id = $1`, [bolu])).rows[0].n === 0, e);
+check("Merkez'e ayrıca depo açılmaz", (await sys(`select count(*)::int n from public.inventory_locations where branch_id = $1`, [merkez.id])).rows[0].n === 1);
 
 // Kaydı olan şube silinemez; rol değişince şube atamaları temizlenir.
 e = await asErr(owner, `delete from public.branches where id = $1`, [branchA]);

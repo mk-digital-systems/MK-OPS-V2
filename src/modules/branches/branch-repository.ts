@@ -7,7 +7,7 @@ export class BranchRepository {
   async getMine(): Promise<MyBranches> {
     const { data, error } = await this.supabase.rpc("get_my_branches");
     if (error) throw error;
-    return (data as MyBranches | null) ?? { branches: [], total_count: 0, assignments: null };
+    return (data as MyBranches | null) ?? { branches: [], total_count: 0, head_office: false, assignments: null };
   }
 
   /** Yalnızca firma yöneticisi. */
@@ -28,6 +28,12 @@ export class BranchRepository {
 
   async remove(id: string): Promise<void> {
     const { error } = await this.supabase.from("branches").delete().eq("id", id);
+    if (error) throw error;
+  }
+
+  /** Şantiye şefine Merkez yetkisi verir/kaldırır (yalnızca firma yöneticisi). */
+  async setHeadOffice(userId: string, enabled: boolean): Promise<void> {
+    const { error } = await this.supabase.rpc("set_user_head_office", { p_user_id: userId, p_enabled: enabled });
     if (error) throw error;
   }
 

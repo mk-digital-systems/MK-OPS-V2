@@ -57,7 +57,7 @@ const payroll = (await one(chief, `select public.get_monthly_payroll(2025, 12) r
 check("bekleyen personel maaş dökümünde yok", !payroll.some((row) => row.full_name === "Veli Usta"));
 
 const notes = async (uid, type) => (await one(uid, `select public.get_my_notifications() n`)).n.filter((x) => x.type === type);
-check("şef onay bekleyen personel bildirimi alır", (await notes(chief, "pending_approval")).some((x) => x.link === "/panel/personnel"));
+check("Merkez şefi onay bekleyen personel bildirimi alır", (await notes(chief, "pending_approval")).some((x) => x.link === "/panel/approvals"));
 check("muhasebe onay bildirimi almaz", (await notes(acc, "pending_approval")).length === 0);
 
 e = await asErr(acc, `select public.review_pending_record('personnel', $1, true)`, [pending.id]);

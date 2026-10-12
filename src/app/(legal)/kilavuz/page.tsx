@@ -218,8 +218,9 @@ export default function GuidePage() {
           alınır; kayıtları silinmez. Üzerinde zimmetli malzeme olan personel pasife alınamaz.
         </li>
         <li>
-          <strong>Muhasebenin eklediği personel:</strong> &quot;Onay Bekleyen Personel&quot; listesine düşer. Şantiye şefi veya
-          firma yöneticisi onaylayana kadar puantajda, iş planında ve seçim listelerinde görünmez; reddedilen kayıt silinir.
+          <strong>Şube şantiye şefinin veya muhasebenin eklediği personel:</strong> &quot;Onay Bekleyen Personel&quot; listesine
+          düşer. Firma yöneticisi veya Merkez şantiye şefi <strong>Onaylar</strong> sayfasından onaylayana kadar puantajda, iş
+          planında ve seçim listelerinde görünmez; reddedilen kayıt silinir.
         </li>
         <li>
           <strong>Puantaj:</strong> ay tablosunda her gün için Çalıştı, Çalışmadı, Mazeretsiz Gelmedi, İzinli, Raporlu veya
@@ -244,8 +245,9 @@ export default function GuidePage() {
           <strong>Kategoriler:</strong> malzemelerinizi kendi gruplarınıza ayırın (ör. Elektrik, Sıhhi Tesisat, Yedek Parça).
         </li>
         <li>
-          <strong>Depolar:</strong> her firmada bir ana depo vardır (adını değiştirebilirsiniz). Şube, şantiye ya da saha
-          deposu için istediğiniz kadar depo ekleyin.
+          <strong>Depolar:</strong> her firmada bir ana depo vardır (Merkez&apos;in deposu; adını değiştirebilirsiniz). Yeni
+          şube açınca o şubenin deposu otomatik oluşur (ör. Bolu şubesi → Bolu Depo). Şantiye ya da saha deposu için
+          istediğiniz kadar depo ekleyin.
         </li>
       </ul>
       <h3>Günlük akış</h3>
@@ -256,7 +258,8 @@ export default function GuidePage() {
         </li>
         <li>
           <strong>İrsaliye ile Stok Girişi:</strong> tarih, irsaliye no ve teslim alanı yazın, girişin yapılacağı depoyu seçin,
-          malzemeleri listeleyin.
+          malzemeleri listeleyin. Şube kullanıcısı yalnızca kendi şubesinin depolarını, firma yöneticisi bütün şubelerin
+          depolarını seçebilir.
         </li>
         <li>
           <strong>Stoktan düş:</strong> malzemenin yanındaki düğmeyle, hangi depodan ne kadar çıktığını ve hangi projede
@@ -280,8 +283,8 @@ export default function GuidePage() {
       <ul>
         <li>
           <strong>Araçlar:</strong> plaka, marka, model, kilometre, muayene ve sigorta tarihleri. Tarihi yaklaşan muayene ve
-          sigortalar Genel Bakış&apos;ta uyarı olarak çıkar. Aracı bir personele atayabilirsiniz. Muhasebenin eklediği araç,
-          şantiye şefi veya firma yöneticisi onaylayınca kullanıma açılır.
+          sigortalar Genel Bakış&apos;ta uyarı olarak çıkar. Aracı bir personele atayabilirsiniz. Şube şantiye şefinin veya
+          muhasebenin eklediği araç, firma yöneticisi veya Merkez şantiye şefi onaylayınca kullanıma açılır.
         </li>
         <li>
           <strong>Yakıt:</strong> her alımda tarih, kilometre ve litre girilir; aylık yakıt dökümü araç sayfasında görünür.
@@ -326,8 +329,11 @@ export default function GuidePage() {
           <strong>Ayarlar → Şubeler:</strong> firma yöneticisi şube açar (her firmada otomatik bir &quot;Merkez&quot; vardır).
           Proje, personel ve araç formlarında şube seçilir; menünün üstündeki şube seçimiyle listeler o şubeye göre süzülür.
           Şantiye şefi ve muhasebeye <strong>Kullanıcılar</strong> sayfasından şube atanır; yalnızca atandıkları şubelerin kayıtlarını
-          görür ve işlerler. Her şubenin kendi günlük iş planı ve ay sonu puantaj onayı vardır; hakediş raporu, Genel Bakış ve
-          bildirimler şubeye göre süzülür. Malzeme stokunda herkes kendi şubesinin depolarını görür ve oradan çıkış yapar;
+          görür ve işlerler. Merkez&apos;e atanan şantiye şefi (ya da firma yöneticisinin &quot;Merkez yetkisi&quot; verdiği şef)
+          firma yöneticisi gibi bütün şubeleri görür ve işler: şubelerin eklediği personel ve aracı onaylar, personeli ve aracı
+          şubeler arasında taşır, başka şubenin deposuna irsaliye girer. Şube şantiye şefi şube değiştiremez. Her şubenin kendi
+          günlük iş planı ve ay sonu puantaj onayı vardır; hakediş raporu, Genel Bakış (Tüm Şubeler veya tek şube) ve bildirimler
+          şubeye göre süzülür. Malzeme stokunda herkes kendi şubesinin depolarını görür ve oradan çıkış yapar;
           başka şubenin deposuna sevkiyat yapılabilir. Tek şubeli firmada şube seçimi görünmez.
         </li>
         <li>

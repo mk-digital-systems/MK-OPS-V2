@@ -70,8 +70,10 @@ type Props = {
   readOnly?: boolean;
   /** Yeni personel ekleyebilir (muhasebenin eklediği kayıt onaya düşer). */
   canCreate?: boolean;
-  /** Bekleyen kayıtları onaylayabilir (şantiye şefi, firma yöneticisi). */
+  /** Taşeron tanımlayabilir (şantiye şefi, firma yöneticisi). */
   canReview?: boolean;
+  /** Bekleyen personeli onaylayabilir: firma yöneticisi veya Merkez şantiye şefi. */
+  canApprove?: boolean;
   currentUserId?: string | null;
   /** Taşeron hesapları (personelden açılanlarda personnel_id dolu). */
   subcontractors?: SubcontractorOption[];
@@ -100,12 +102,13 @@ export function PersonnelManager({
   readOnly = false,
   canCreate = !readOnly,
   canReview = false,
+  canApprove = false,
   currentUserId = null,
   subcontractors = [],
 }: Props) {
   const router = useRouter();
   const brand = useReportBrand();
-  const { defaultBranchId, multiBranch, branchName } = useBranches();
+  const { defaultBranchId, multiBranch, branchName, headOffice } = useBranches();
   const [branchId, setBranchId] = useState("");
   const [items, setItems] = useState(initialPersonnel);
   const [open, setOpen] = useState(false);
@@ -397,7 +400,8 @@ export function PersonnelManager({
           updated_by: user.id,
         });
       }
-      if (isSelf) {
+      // Onay bekleyen personel taşeron yapılamaz; onaydan sonra kartından tanımlanır.
+      if (isSelf && saved.approval_status !== "pending") {
         await repo.setSubcontractor(saved.id, true, {
           share_percent: sharePercent,
           iban: sub_iban || null,
@@ -408,7 +412,7 @@ export function PersonnelManager({
       setItems((prev) => sortByCreatedAtDesc([...prev.filter((p) => p.id !== saved.id), saved]));
       toast.success(
         saved.approval_status === "pending"
-          ? "Personel eklendi; şantiye şefi veya firma yöneticisi onaylayınca kullanıma açılır"
+          ? `Personel eklendi; firma yöneticisi veya Merkez şantiye şefi onaylayınca kullanıma açılır${isSelf ? ". Taşeronluğu onaydan sonra tanımlayın" : ""}`
           : editing
             ? "Personel güncellendi"
             : "Personel eklendi"
@@ -562,7 +566,7 @@ export function PersonnelManager({
           createdBy: person.created_by,
           createdAt: person.created_at,
         }))}
-        canReview={canReview}
+        canReview={canApprove}
         currentUserId={currentUserId}
         onReview={reviewPersonnel}
         onEdit={(id) => {
@@ -746,7 +750,8 @@ export function PersonnelManager({
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <BranchSelectField value={branchId} onChange={setBranchId} />
+            {/* Şubeyi yalnızca firma yöneticisi ve Merkez şantiye şefi değiştirir. */}
+            <BranchSelectField value={branchId} onChange={setBranchId} disabled={Boolean(editing) && !headOffice} />
             <div className="space-y-2">
               <Label htmlFor="full_name">Ad Soyad</Label>
               <Input id="full_name" {...form.register("full_name")} />
