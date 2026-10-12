@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ArchiveRestore, ArrowDown, ArrowUp, LayoutTemplate, Loader2, Pencil, Plus, RadioTower, Trash2, X } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowDown, ArrowUp, Building2, LayoutTemplate, Loader2, Pencil, Plus, RadioTower, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import type { ProjectAddon, ProjectType } from "@/types/project";
 import type { CurrencyCode } from "@/types/auth";
@@ -143,6 +143,23 @@ export function ProjectTypesManager({
               HP odaklı tür
             </Button>
           )}
+          {addons.includes("corporate") && (
+            <Button
+              variant="outline"
+              onClick={() =>
+                setAddonDraft({
+                  id: null,
+                  name: "",
+                  description: "",
+                  color: PROJECT_TYPE_COLORS[types.length % PROJECT_TYPE_COLORS.length],
+                  screen: "corporate",
+                })
+              }
+            >
+              <Building2 className="h-4 w-4" />
+              Kurumsal tür
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setTemplatesOpen(true)}>
             <LayoutTemplate className="h-4 w-4" />
             Şablondan ekle
@@ -197,6 +214,9 @@ export function ProjectTypesManager({
             {type.description && <p className="mt-1 text-sm text-muted-foreground">{type.description}</p>}
             {type.screen === "hp" && (
               <p className="mt-2 text-xs text-muted-foreground">Paftalar ve HP adetleriyle takip edilir; iş kalemi yoktur.</p>
+            )}
+            {type.screen === "corporate" && (
+              <p className="mt-2 text-xs text-muted-foreground">Durum ve ekip başı elle seçilir; öncelik sırası ve lokasyonla takip edilir. İş kalemi yoktur.</p>
             )}
             <ol className="mt-3 flex flex-wrap gap-1.5 text-xs empty:hidden">
               {type.stages.map((stage, index) => (
@@ -282,6 +302,12 @@ function AddonTypeEditor({ draft: initial, onClose }: { draft: AddonDraft; onClo
             {draft.id ? "Proje türünü düzenle" : "Yeni proje türü"} · {ADDON_SCREEN_LABELS[draft.screen]}
           </DialogTitle>
         </DialogHeader>
+        {draft.screen === "corporate" && (
+          <p className="text-sm text-muted-foreground">
+            Bu türdeki projelerde durum (Başlamadı, Devam ediyor, Kazı izni bekliyor, Bitti) ve ekip başı elle seçilir; toplam
+            proje tarihi, öncelik sırası ve lokasyon girilir. Örn. Kurumsal TTVPN, Erişim Zorunluluk.
+          </p>
+        )}
         {draft.screen === "hp" && (
           <p className="text-sm text-muted-foreground">
             Bu türdeki projeler açılırken paftalar ve HP adetleri girilir. Pafta durumları ve bitiş tarihleriyle proje
@@ -291,7 +317,7 @@ function AddonTypeEditor({ draft: initial, onClose }: { draft: AddonDraft; onClo
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Tür adı</Label>
-            <Input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} placeholder="Örn. HP Odaklı" autoFocus />
+            <Input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} placeholder={draft.screen === "hp" ? "Örn. HP Odaklı" : "Örn. Kurumsal TTVPN"} autoFocus />
           </div>
           <div className="space-y-2">
             <Label>Renk</Label>

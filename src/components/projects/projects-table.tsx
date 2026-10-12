@@ -121,6 +121,7 @@ export function ProjectsTable({
   }
 
   const selectedType = params.get("type") ?? "all";
+  const corporateSelected = typeById.get(selectedType)?.screen === "corporate";
 
   return (
     <div className="space-y-5">
@@ -185,7 +186,17 @@ export function ProjectsTable({
               </option>
             ))}
           </NativeSelect>
-          <NativeSelect value={selectedType} onChange={(event) => setParam({ type: event.target.value })} aria-label="Proje türü">
+          <NativeSelect
+            value={selectedType}
+            onChange={(event) =>
+              setParam({
+                type: event.target.value,
+                // Lokasyon filtresi yalnızca kurumsal türde; başka türe geçince temizlenir.
+                ...(typeById.get(event.target.value)?.screen === "corporate" ? {} : { location: null }),
+              })
+            }
+            aria-label="Proje türü"
+          >
             <option value="all">Tüm türler</option>
             {types.map((type) => (
               <option key={type.id} value={type.id}>
@@ -193,6 +204,16 @@ export function ProjectsTable({
               </option>
             ))}
           </NativeSelect>
+          {allowArchiveScopeFilter && corporateSelected && (
+            <NativeSelect value={params.get("location") ?? "all"} onChange={(event) => setParam({ location: event.target.value })} aria-label="Lokasyon">
+              <option value="all">Tüm lokasyonlar</option>
+              {locations.map((location) => (
+                <option key={location} value={location}>
+                  {location}
+                </option>
+              ))}
+            </NativeSelect>
+          )}
           {allowArchiveScopeFilter ? (
             <NativeSelect
               value={params.get("scope") ?? defaultArchiveScope}

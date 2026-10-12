@@ -70,12 +70,16 @@ export type Project = {
   progress_percent: number;
   stage_mode: StageMode;
   priority_order: number | null;
+  /** Kurumsal projede toplam proje tarihi */
+  project_date: string | null;
   is_archived: boolean;
   archived_at: string | null;
   is_cancelled: boolean;
   cancellation_reason: string | null;
   cancelled_at: string | null;
+  completed_by_personnel_id: string | null;
   completed_by_name: string | null;
+  current_team_leader_personnel_id: string | null;
   current_team_leader_name: string | null;
   created_at: string;
   updated_at: string;
@@ -122,6 +126,9 @@ export type ProjectProgressData = {
   progress: StageProgress[];
   logs: StageLog[];
 };
+
+/** Kurumsal projede elle seçilen durum. */
+export type CorporateStatus = "not_started" | "permit_waiting" | "in_progress" | "completed";
 
 export type HpSheetStatus = "not_started" | "permit_waiting" | "in_progress" | "completed";
 
@@ -228,6 +235,8 @@ export type ProjectInput = {
   start_date?: string | null;
   estimated_end_date?: string | null;
   priority_order?: number | null;
+  /** Kurumsal projede toplam proje tarihi (verilmezse değişmez) */
+  project_date?: string | null;
   /** Verilmezse kullanıcının varsayılan şubesi (Merkez ya da ilk şubesi). */
   branch_id?: string | null;
 };

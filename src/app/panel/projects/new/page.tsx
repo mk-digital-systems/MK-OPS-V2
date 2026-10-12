@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { ProjectRepository } from "@/modules/projects/project-repository";
 import { CompanyRepository } from "@/modules/company/company-repository";
+import { PersonnelRepository } from "@/modules/work-plans/personnel-repository";
 import { ProjectForm } from "@/components/projects/project-form";
 
 export const metadata = {
@@ -10,10 +11,11 @@ export const metadata = {
 export default async function NewProjectPage() {
   const supabase = await createClient();
   const repository = new ProjectRepository(supabase);
-  const [types, locations, addons] = await Promise.all([
+  const [types, locations, addons, personnel] = await Promise.all([
     repository.listTypes(),
     repository.getDistinctLocations(),
     new CompanyRepository(supabase).getProjectAddons(),
+    new PersonnelRepository(supabase).list({ activeOnly: true }),
   ]);
 
   return (
@@ -22,7 +24,7 @@ export default async function NewProjectPage() {
         <h1 className="text-3xl font-semibold tracking-tight">Yeni Proje</h1>
         <p className="mt-1 text-sm text-muted-foreground">Proje türünü seçin; aşamalar türe göre otomatik oluşturulur.</p>
       </div>
-      <ProjectForm mode="create" types={types} locations={locations} addons={addons} />
+      <ProjectForm mode="create" types={types} locations={locations} addons={addons} personnel={personnel} />
     </div>
   );
 }

@@ -21,6 +21,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { HpSheetFields, emptyHpSheet, validateHpSheets } from "@/components/projects/hp-sheet-board";
 import { StageListEditor, validateStageList, type StageListValue } from "@/components/projects/stage-list-editor";
+import {
+  CorporateStatusFields,
+  saveCorporateStatus,
+  validateCorporateStatus,
+  type CorporateStatusValue,
+} from "@/components/projects/corporate-status-panel";
+import type { Personnel } from "@/types/work-plan";
+import { todayISODate } from "@/lib/constants/project";
 
 type Props = {
   mode: "create" | "edit";
@@ -29,12 +37,14 @@ type Props = {
   locations: string[];
   /** Süper adminin açtığı proje eklentileri; kapalı eklentinin türleri yeni projede seçilemez. */
   addons?: ProjectAddon[];
+  /** Kurumsal projede ekip başı seçimi için (yeni proje). */
+  personnel?: Personnel[];
 };
 
 type SheetDraft = ReturnType<typeof emptyHpSheet>;
 const MAX_SHEETS = 500;
 
-export function ProjectForm({ mode, project, types: allTypes, locations, addons = [] }: Props) {
+export function ProjectForm({ mode, project, types: allTypes, locations, addons = [], personnel = [] }: Props) {
   const currentType = allTypes.find((type) => type.id === project?.project_type_id);
   // HP / kurumsal projenin türü değişmez; standart proje yalnızca standart türler arasında değişir.
   const types =
@@ -46,6 +56,7 @@ export function ProjectForm({ mode, project, types: allTypes, locations, addons 
   const [sheets, setSheets] = useState<SheetDraft[]>(() => [emptyHpSheet()]);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [stageList, setStageList] = useState<StageListValue>({ mode: "template", items: [] });
+  const [corporateStatus, setCorporateStatus] = useState<CorporateStatusValue>({ status: "not_started", leaderId: "", completedAt: todayISODate() });
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const { defaultBranchId } = useBranches();
@@ -64,11 +75,13 @@ export function ProjectForm({ mode, project, types: allTypes, locations, addons 
       start_date: project?.start_date ?? "",
       estimated_end_date: project?.estimated_end_date ?? "",
       priority_order: project?.priority_order?.toString() ?? "",
+      project_date: project?.project_date ?? "",
     },
   });
   const errors = form.formState.errors;
   const selectedType = types.find((type) => type.id === form.watch("project_type_id"));
   const isHp = selectedType?.screen === "hp";
+  const isCorporate = selectedType?.screen === "corporate";
   const typeLocked = mode === "edit" && (!!project?.has_activity || currentType?.screen !== "standard");
 
   function setSheetCount(value: number) {
@@ -88,8 +101,18 @@ export function ProjectForm({ mode, project, types: allTypes, locations, addons 
       const payload = {
         ...values,
         priority_order: values.priority_order ? Number(values.priority_order) : null,
+        // Toplam proje tarihi yalnızca kurumsal projede.
+        project_date: isCorporate ? values.project_date : undefined,
         branch_id: branchId || undefined,
       };
+      const corporateCreate = mode === "create" && isCorporate && corporateStatus.status !== "not_started";
+      if (corporateCreate) {
+        const problem = validateCorporateStatus(corporateStatus);
+        if (problem) {
+          toast.error(problem);
+          return;
+        }
+      }
       let savedId: string;
       const customStages = mode === "create" && !isHp && stageList.mode === "custom";
       if (customStages) {
@@ -110,6 +133,12 @@ export function ProjectForm({ mode, project, types: allTypes, locations, addons 
         const saved =
           mode === "create" ? await repository.create(payload, user.id) : await repository.update(project!.id, payload, user.id);
         savedId = saved.id;
+        if (corporateCreate) {
+          // Durum kaydedilemezse proje "Başlamadı" olarak kalır; proje sayfasından değiştirilebilir.
+          await saveCorporateStatus(repository, savedId, corporateStatus, personnel).catch((error: Error) =>
+            toast.error("Proje oluşturuldu ama durumu kaydedilemedi", { description: error.message })
+          );
+        }
         if (customStages) {
           try {
             await repository.saveProjectStages(savedId, "custom", stageList.items);
@@ -171,6 +200,9 @@ export function ProjectForm({ mode, project, types: allTypes, locations, addons 
                 HP odaklı proje: paftalar ve HP adetleri aşağıda girilir; proje durumu paftalardan hesaplanır.
               </p>
             )}
+            {isCorporate && (
+              <p className="text-xs text-muted-foreground">Kurumsal proje: durum ve ekip başı elle seçilir; iş kalemi yoktur.</p>
+            )}
             {mode === "edit" && selectedType && selectedType.screen === "standard" && (
               <p className="text-xs text-muted-foreground">
                 {project?.stage_mode === "custom"
@@ -193,7 +225,7 @@ export function ProjectForm({ mode, project, types: allTypes, locations, addons 
           <Field label="Proje adı" error={errors.name?.message}>
             <Input {...form.register("name")} />
           </Field>
-          <Field label="Konum" error={errors.location?.message}>
+          <Field label={isCorporate ? "Lokasyon" : "Konum"} error={errors.location?.message}>
             <Input {...form.register("location")} list="project-locations" placeholder="İl, ilçe veya saha adı" />
             <datalist id="project-locations">
               {locations.map((location) => (
@@ -207,6 +239,11 @@ export function ProjectForm({ mode, project, types: allTypes, locations, addons 
           <Field label="Kabul tarihi" error={errors.received_at?.message}>
             <Input type="date" {...form.register("received_at")} />
           </Field>
+          {isCorporate && (
+            <Field label="Toplam proje tarihi" error={errors.project_date?.message}>
+              <Input type="date" {...form.register("project_date")} />
+            </Field>
+          )}
           <Field label="Öncelik sırası (isteğe bağlı)" error={errors.priority_order?.message}>
             <Input type="number" min={1} {...form.register("priority_order")} placeholder="1 en yüksek" />
           </Field>
@@ -220,7 +257,7 @@ export function ProjectForm({ mode, project, types: allTypes, locations, addons 
           <Field label="Görsel bağlantısı (isteğe bağlı)" error={errors.image_url?.message} className="sm:col-span-2">
             <Input {...form.register("image_url")} placeholder="https://…" />
           </Field>
-          <Field label="Açıklama" error={errors.description?.message} className="sm:col-span-2">
+          <Field label={isCorporate ? "Not" : "Açıklama"} error={errors.description?.message} className="sm:col-span-2">
             <Textarea rows={4} {...form.register("description")} />
           </Field>
         </CardContent>
@@ -235,6 +272,14 @@ export function ProjectForm({ mode, project, types: allTypes, locations, addons 
               )}
             </div>
             <StageListEditor templateStages={selectedType.stages} value={stageList} onChange={setStageList} />
+          </CardContent>
+        </Card>
+      )}
+      {mode === "create" && isCorporate && (
+        <Card>
+          <CardContent className="space-y-3 p-6">
+            <Label>Başlangıç durumu</Label>
+            <CorporateStatusFields value={corporateStatus} onChange={setCorporateStatus} personnel={personnel} />
           </CardContent>
         </Card>
       )}

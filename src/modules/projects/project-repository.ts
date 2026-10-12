@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DEFAULT_PAGE_SIZE, type StageStatus } from "@/lib/constants/project";
 import type {
+  CorporateStatus,
   HpReport,
   HpSheet,
   HpSheetInput,
@@ -95,6 +96,7 @@ export class ProjectRepository {
       start_date: emptyToNull(payload.start_date),
       estimated_end_date: emptyToNull(payload.estimated_end_date),
       priority_order: payload.priority_order ?? null,
+      ...(payload.project_date !== undefined ? { project_date: emptyToNull(payload.project_date) } : {}),
       ...(payload.branch_id ? { branch_id: payload.branch_id } : {}),
     };
   }
@@ -146,6 +148,21 @@ export class ProjectRepository {
       .single();
     if (error) throw error;
     return data as Project;
+  }
+
+  /** Kurumsal projenin elle seçilen durumu (ekip başı ve bitiş tarihiyle). */
+  async setCorporateStatus(
+    id: string,
+    payload: { status: CorporateStatus; leader: { id: string; name: string } | null; completedAt: string | null }
+  ): Promise<void> {
+    const { error } = await this.supabase.rpc("set_corporate_project_status", {
+      p_project_id: id,
+      p_status: payload.status,
+      p_leader_id: payload.leader?.id ?? null,
+      p_leader_name: payload.leader?.name ?? null,
+      p_completed_at: payload.completedAt,
+    });
+    if (error) throw error;
   }
 
   async setArchived(id: string, archived: boolean): Promise<Project> {

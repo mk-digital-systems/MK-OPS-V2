@@ -24,6 +24,7 @@ export const projectSchema = z
     received_at: optionalDate,
     start_date: optionalDate,
     estimated_end_date: optionalDate,
+    project_date: optionalDate,
     priority_order: z
       .string()
       .trim()

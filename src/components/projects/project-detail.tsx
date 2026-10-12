@@ -33,6 +33,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ProgressBar, ProjectStatusBadge, TypeDot } from "@/components/projects/project-status-indicators";
 import { StageBoard } from "@/components/projects/stage-board";
 import { HpSheetBoard } from "@/components/projects/hp-sheet-board";
+import { CorporateStatusPanel } from "@/components/projects/corporate-status-panel";
 
 type Props = {
   project: Project;
@@ -57,6 +58,9 @@ export function ProjectDetail({ project, type, projectStages, progress, hpSheets
   const [reason, setReason] = useState("");
   const repository = () => new ProjectRepository(createClient());
   const editable = !readOnly && !project.is_archived && !project.is_cancelled;
+  const isCorporate = type.screen === "corporate";
+  // Kurumsal projede durum aşağıdaki panelden seçilir; genel durum düğmeleri gösterilmez.
+  const statusButtons = editable && !isCorporate;
 
   async function run(kind: Busy, action: () => Promise<unknown>, success: string, after?: () => void) {
     setBusy(kind);
@@ -96,7 +100,14 @@ export function ProjectDetail({ project, type, projectStages, progress, hpSheets
 
   const info = [
     { label: "Proje kodu", value: project.project_code },
-    { label: "Konum", value: project.location },
+    { label: isCorporate ? "Lokasyon" : "Konum", value: project.location },
+    ...(isCorporate
+      ? [
+          { label: "Toplam proje tarihi", value: project.project_date ? formatDate(project.project_date) : "—" },
+          { label: "Öncelik sırası", value: project.priority_order?.toString() ?? "—" },
+          { label: "Bitiren ekip başı", value: project.completed_by_name || "—" },
+        ]
+      : []),
     { label: "Sorumlu ekip / firma", value: project.team_name || "—" },
     { label: "Son çalışan ekip", value: project.current_team_leader_name || "—" },
     { label: "Kabul tarihi", value: project.received_at ? formatDate(project.received_at) : "—" },
@@ -135,19 +146,19 @@ export function ProjectDetail({ project, type, projectStages, progress, hpSheets
                 </Link>
               </Button>
             )}
-            {editable && project.status !== "on_hold" && project.status !== "completed" && (
+            {statusButtons && project.status !== "on_hold" && project.status !== "completed" && (
               <Button variant="outline" onClick={() => setReasonDialog("hold")} disabled={busy !== null}>
                 <PauseCircle className="h-4 w-4" />
                 Beklemeye al
               </Button>
             )}
-            {editable && project.status === "on_hold" && (
+            {statusButtons && project.status === "on_hold" && (
               <Button variant="outline" onClick={() => setStatus("in_progress")} disabled={busy !== null}>
                 <PlayCircle className="h-4 w-4" />
                 Devam ettir
               </Button>
             )}
-            {editable && project.status !== "completed" && (
+            {statusButtons && project.status !== "completed" && (
               <Button
                 variant="outline"
                 onClick={() =>
@@ -163,7 +174,7 @@ export function ProjectDetail({ project, type, projectStages, progress, hpSheets
                 Tamamlandı
               </Button>
             )}
-            {editable && project.status === "completed" && (
+            {statusButtons && project.status === "completed" && (
               <Button variant="outline" onClick={() => setStatus("in_progress")} disabled={busy !== null}>
                 <RotateCcw className="h-4 w-4" />
                 Yeniden aç
@@ -227,7 +238,9 @@ export function ProjectDetail({ project, type, projectStages, progress, hpSheets
             <div className="mb-2 flex items-center justify-between text-sm">
               <span className="font-medium">Genel ilerleme</span>
               <span className="text-muted-foreground">
-                {hpSheets
+                {isCorporate
+                  ? "Kurumsal proje"
+                  : hpSheets
                   ? `${hpSheets.filter((sheet) => sheet.status === "completed").length} / ${hpSheets.length} pafta bitti`
                   : `${projectStages.length} aşama${type.has_sections ? ` · ${progress.sections.length} ${type.section_label.toLocaleLowerCase("tr-TR")}` : ""}`}
               </span>
@@ -266,7 +279,9 @@ export function ProjectDetail({ project, type, projectStages, progress, hpSheets
         </Card>
       )}
 
-      {hpSheets ? (
+      {isCorporate ? (
+        <CorporateStatusPanel project={project} personnel={personnel} readOnly={!editable} />
+      ) : hpSheets ? (
         <HpSheetBoard projectId={project.id} sheets={hpSheets} personnel={personnel} readOnly={!editable} />
       ) : (
         <StageBoard

@@ -64,6 +64,22 @@ export function stageLabel(stage: { name: string; poz_code?: string | null }): s
   return stage.poz_code ? `${stage.poz_code} · ${stage.name}` : stage.name;
 }
 
+/** Kurumsal projede elle seçilen durumlar (telekom eklentisi). */
+export const CORPORATE_STATUSES = [
+  { value: "not_started", label: "Başlamadı" },
+  { value: "in_progress", label: "Devam ediyor" },
+  { value: "permit_waiting", label: "Kazı izni bekliyor" },
+  { value: "completed", label: "Bitti" },
+] as const;
+
+/** Kurumsal projenin durumu, proje durumundan. */
+export function corporateStatusOf(project: { status: string }): "not_started" | "permit_waiting" | "in_progress" | "completed" {
+  if (project.status === "completed") return "completed";
+  if (project.status === "on_hold") return "permit_waiting";
+  if (project.status === "in_progress" || project.status === "delayed") return "in_progress";
+  return "not_started";
+}
+
 /** HP odaklı projede pafta durumları (telekom eklentisi). */
 export const HP_SHEET_STATUSES = [
   { value: "not_started", label: "Başlamadı", color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200" },
