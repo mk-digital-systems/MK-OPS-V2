@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidPoz } from "@/lib/constants/project";
 
 const optionalDate = z
   .string()
@@ -50,6 +51,10 @@ export const projectTypeSchema = z.object({
         id: z.string().nullable(),
         name: z.string().trim().min(1, "Aşama adı boş olamaz").max(80),
         unit: z.string().trim().max(12),
+        poz_code: z
+          .string()
+          .trim()
+          .refine((value) => !value || isValidPoz(value), "Poz 3–5 karakter olmalı"),
       })
     )
     .min(1, "En az bir aşama ekleyin"),

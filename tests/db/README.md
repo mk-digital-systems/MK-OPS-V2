@@ -19,8 +19,11 @@ node tests/db/vault.test.mjs # tek dosya, ayrıntılı çıktı
 | `branches` | Merkez, şube açma ve atama, şef/muhasebe yalnızca kendi şubesi (RLS ve fonksiyon içi yazma) |
 | `onboarding` | Firma kurma, kodla katılma, deneme süresi, erişim durumu |
 | `projects` | Proje türleri, iş kalemleri, bölümler, metraj |
+| `project-stage-lists` | Projeye göre iş kalemleri (şablondan seçim, projeye özel kalem), poz kodu |
+| `hp-projects` | Süper admin proje eklentisi, HP odaklı tür, paftalar, paftadan proje durumu, HP raporu |
 | `hakedis` | Birim fiyat, fiyat sabitleme, rapor, yetki |
 | `production` | İmalat → proje iş kaydı → hakediş, ek iş fiyatı |
+| `production-extra-approval` | İmalattaki özel iş kalemi: fiyat onayı, bildirim, hakedişe girişi |
 | `inventory` | Kategoriler, çoklu depo, sevkiyat, eski verinin taşınması |
 | `audit` | İşlem geçmişi |
 | `logo` | Firma logosu deposu yetkileri |

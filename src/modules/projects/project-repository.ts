@@ -1,15 +1,23 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DEFAULT_PAGE_SIZE, type StageStatus } from "@/lib/constants/project";
 import type {
+  HpReport,
+  HpSheet,
+  HpSheetInput,
+  HpSheetStatus,
   PaginatedResult,
   Project,
   ProjectFilters,
+  ProjectAddon,
   ProjectInput,
   ProjectProgressData,
   ProjectSection,
   ProjectStatus,
   ProjectType,
+  ProjectTypeStage,
+  StageListItem,
   StageLog,
+  StageMode,
   StageProgress,
 } from "@/types/project";
 
@@ -101,6 +109,22 @@ export class ProjectRepository {
     return data as Project;
   }
 
+  /** HP odaklı projeyi paftalarıyla birlikte tek işlemde açar. */
+  async createHpProject(payload: ProjectInput, sheets: HpSheetInput[]): Promise<string> {
+    const { data, error } = await this.supabase.rpc("create_hp_project", {
+      p_project: this.toRow(payload),
+      p_sheets: sheets.map((sheet) => ({
+        sheet_no: sheet.sheet_no.trim(),
+        hp_count: sheet.hp_count,
+        address: emptyToNull(sheet.address),
+        image_url: emptyToNull(sheet.image_url),
+        notes: emptyToNull(sheet.notes),
+      })),
+    });
+    if (error) throw error;
+    return data as string;
+  }
+
   async update(id: string, payload: ProjectInput, userId: string): Promise<Project> {
     const { data, error } = await this.supabase
       .from("projects")
@@ -190,7 +214,10 @@ export class ProjectRepository {
     if (error) throw error;
     return ((data ?? []) as ProjectType[]).map((type) => ({
       ...type,
-      stages: [...(type.stages ?? [])].sort((a, b) => a.sort_order - b.sort_order),
+      // HP migration'ı kurulmadan önce sütun yoktur: standart say.
+      screen: type.screen ?? "standard",
+      // Türün şablon kalemleri; projeye özel kalemler getProjectStages ile gelir.
+      stages: [...(type.stages ?? [])].filter((stage) => !stage.project_id).sort((a, b) => a.sort_order - b.sort_order),
     }));
   }
 
@@ -201,7 +228,7 @@ export class ProjectRepository {
     has_sections: boolean;
     section_label: string;
     color: string;
-    stages: { id: string | null; name: string; unit: string }[];
+    stages: { id: string | null; name: string; unit: string; poz_code: string }[];
   }): Promise<string> {
     const { data, error } = await this.supabase.rpc("save_project_type", {
       p_id: payload.id,
@@ -210,7 +237,20 @@ export class ProjectRepository {
       p_has_sections: payload.has_sections,
       p_section_label: payload.section_label,
       p_color: payload.color,
-      p_stages: payload.stages.map((stage) => ({ id: stage.id, name: stage.name, unit: stage.unit })),
+      p_stages: payload.stages.map((stage) => ({ id: stage.id, name: stage.name, unit: stage.unit, poz_code: stage.poz_code })),
+    });
+    if (error) throw error;
+    return data as string;
+  }
+
+  /** HP odaklı / kurumsal tür (aşamasız; eklenti süper admin tarafından açılır). */
+  async saveAddonType(payload: { id: string | null; name: string; description: string; color: string; screen: ProjectAddon }): Promise<string> {
+    const { data, error } = await this.supabase.rpc("save_addon_project_type", {
+      p_id: payload.id,
+      p_name: payload.name,
+      p_description: payload.description,
+      p_color: payload.color,
+      p_screen: payload.screen,
     });
     if (error) throw error;
     return data as string;
@@ -224,6 +264,100 @@ export class ProjectRepository {
   async deleteType(id: string): Promise<void> {
     const { error } = await this.supabase.rpc("delete_project_type", { p_id: id });
     if (error) throw error;
+  }
+
+  /** Projenin sıralı kalemleri: düzenlenmişse projenin listesi, değilse türün şablon kalemleri. */
+  async getProjectStages(project: Pick<Project, "id" | "stage_mode">, type: ProjectType): Promise<ProjectTypeStage[]> {
+    if (project.stage_mode !== "custom") return type.stages;
+    const { data, error } = await this.supabase
+      .from("project_stages")
+      .select("sort_order, stage:project_type_stages(*)")
+      .eq("project_id", project.id)
+      .order("sort_order");
+    if (error) throw error;
+    return (data ?? []).map((row) => row.stage as unknown as ProjectTypeStage).filter(Boolean);
+  }
+
+  /** template: şablondaki bütün kalemler; custom: verilen sıralı liste (şablondan seçilen + projeye özel). */
+  async saveProjectStages(projectId: string, mode: StageMode, items: StageListItem[]): Promise<void> {
+    const { error } = await this.supabase.rpc("save_project_stages", {
+      p_project_id: projectId,
+      p_mode: mode,
+      p_items:
+        mode === "custom"
+          ? items.map((item) =>
+              item.template
+                ? { stage_id: item.stage_id }
+                : { stage_id: item.stage_id, name: item.name.trim(), unit: item.unit.trim(), poz_code: item.poz_code.trim() }
+            )
+          : [],
+    });
+    if (error) throw error;
+  }
+
+  // ---------------------------------------------------------------- HP paftaları
+  async getHpSheets(projectId: string): Promise<HpSheet[]> {
+    const { data, error } = await this.supabase
+      .from("project_hp_sheets")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("sort_order")
+      .order("created_at");
+    if (error) throw error;
+    return (data ?? []) as HpSheet[];
+  }
+
+  async addHpSheet(projectId: string, sheet: HpSheetInput, sortOrder: number): Promise<void> {
+    const { error } = await this.supabase.from("project_hp_sheets").insert({
+      project_id: projectId,
+      sheet_no: sheet.sheet_no.trim(),
+      hp_count: sheet.hp_count,
+      address: emptyToNull(sheet.address),
+      image_url: emptyToNull(sheet.image_url),
+      notes: emptyToNull(sheet.notes),
+      sort_order: sortOrder,
+    });
+    if (error) throw error;
+  }
+
+  async updateHpSheet(
+    id: string,
+    payload: HpSheetInput & {
+      status: HpSheetStatus;
+      leader: { id: string; name: string } | null;
+      completed_at: string | null;
+    }
+  ): Promise<void> {
+    const { error } = await this.supabase
+      .from("project_hp_sheets")
+      .update({
+        sheet_no: payload.sheet_no.trim(),
+        hp_count: payload.hp_count,
+        address: emptyToNull(payload.address),
+        image_url: emptyToNull(payload.image_url),
+        notes: emptyToNull(payload.notes),
+        status: payload.status,
+        // Veritabanı duruma uymayan ekip başı / bitiş alanlarını temizler.
+        current_team_leader_personnel_id: payload.leader?.id ?? null,
+        current_team_leader_name: payload.leader?.name ?? null,
+        completed_by_personnel_id: payload.leader?.id ?? null,
+        completed_by_name: payload.leader?.name ?? null,
+        completed_at: payload.completed_at,
+      })
+      .eq("id", id);
+    if (error) throw error;
+  }
+
+  async deleteHpSheet(id: string): Promise<void> {
+    const { error } = await this.supabase.from("project_hp_sheets").delete().eq("id", id);
+    if (error) throw error;
+  }
+
+  /** Dönem: paftanın bitiş tarihi (dahil). Şube verilmezse erişilebilen bütün şubeler. */
+  async getHpReport(from: string, to: string, branchId?: string | null): Promise<HpReport> {
+    const { data, error } = await this.supabase.rpc("hp_report", { p_from: from, p_to: to, p_branch_id: branchId ?? null });
+    if (error) throw error;
+    return data as HpReport;
   }
 
   // ---------------------------------------------------------------- ilerleme

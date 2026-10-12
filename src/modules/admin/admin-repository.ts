@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AdminCompany, AdminCompanyUser, AdminSupportRequest, SupportStatus } from "@/types/admin";
+import type { AdminCompany, AdminCompanyUser, AdminSupportRequest, ProjectAddon, SupportStatus } from "@/types/admin";
 
 export class AdminRepository {
   constructor(private readonly supabase: SupabaseClient) {}
@@ -31,6 +31,14 @@ export class AdminRepository {
       p_plan_ends_at: payload.planEndsAt,
       p_user_limit: payload.userLimit,
       p_trial_ends_at: payload.trialEndsAt,
+    });
+    if (error) throw error;
+  }
+
+  async setProjectAddons(companyId: string, addons: ProjectAddon[]): Promise<void> {
+    const { error } = await this.supabase.rpc("admin_set_company_project_addons", {
+      p_company_id: companyId,
+      p_addons: addons,
     });
     if (error) throw error;
   }

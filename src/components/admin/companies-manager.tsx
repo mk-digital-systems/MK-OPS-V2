@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { addMonths } from "date-fns";
 import { Ban, Loader2, Play, Search, Settings2, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
-import type { AdminCompany, AdminCompanyUser } from "@/types/admin";
+import { PROJECT_ADDONS, type AdminCompany, type AdminCompanyUser, type ProjectAddon } from "@/types/admin";
 import { USER_ROLE_LABELS, type CompanyAccessStatus } from "@/types/auth";
 import { ACCESS_STATUS_CLASSES, ACCESS_STATUS_LABELS, PLAN_DURATION_MONTHS, PLAN_PRESETS } from "@/lib/constants/plans";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
@@ -118,6 +118,11 @@ export function CompaniesManager({ initialCompanies }: { initialCompanies: Admin
                         {company.open_requests} açık talep
                       </Badge>
                     )}
+                    {PROJECT_ADDONS.filter((addon) => company.project_addons?.includes(addon.key)).map((addon) => (
+                      <Badge key={addon.key} className="bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-200">
+                        {addon.label}
+                      </Badge>
+                    ))}
                   </div>
                   <p className="truncate text-sm text-muted-foreground">
                     {company.owner_name || "—"} · {company.owner_email || "—"}
@@ -187,7 +192,8 @@ function ManageCompanyDialog({
   const [planEndsAt, setPlanEndsAt] = useState(toDateInput(company.plan_ends_at));
   const [userLimit, setUserLimit] = useState(company.user_limit?.toString() ?? "");
   const [trialEndsAt, setTrialEndsAt] = useState(toDateTimeInput(company.trial_ends_at));
-  const [busy, setBusy] = useState<"save" | "suspend" | "delete" | null>(null);
+  const [addons, setAddons] = useState<ProjectAddon[]>(company.project_addons ?? []);
+  const [busy, setBusy] = useState<"save" | "addons" | "suspend" | "delete" | null>(null);
   const [users, setUsers] = useState<AdminCompanyUser[] | null>(null);
   const [confirmName, setConfirmName] = useState("");
   const repository = () => new AdminRepository(createClient());
@@ -224,6 +230,19 @@ function ManageCompanyDialog({
         trialEndsAt: new Date(trialEndsAt).toISOString(),
       });
       toast.success(`${company.name} güncellendi`);
+      onChanged();
+    } catch (error) {
+      toast.error("Kaydedilemedi", { description: (error as Error)?.message });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function saveAddons() {
+    setBusy("addons");
+    try {
+      await repository().setProjectAddons(company.id, addons);
+      toast.success("Proje ayarları kaydedildi");
       onChanged();
     } catch (error) {
       toast.error("Kaydedilemedi", { description: (error as Error)?.message });
@@ -357,6 +376,45 @@ function ManageCompanyDialog({
           <Button onClick={save} disabled={busy !== null}>
             {busy === "save" && <Loader2 className="h-4 w-4 animate-spin" />}
             Kaydet
+          </Button>
+        </section>
+
+        <Separator />
+
+        <section className="space-y-3">
+          <div>
+            <h3 className="text-sm font-semibold">Proje ayarları</h3>
+            <p className="text-xs text-muted-foreground">
+              Açılan eklentiler bu şirketin proje türlerinde seçilebilir. Kapalıyken şirket standart proje ekranını
+              kullanır.
+            </p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {PROJECT_ADDONS.map((addon) => (
+              <label
+                key={addon.key}
+                className="flex cursor-pointer items-start gap-3 rounded-lg border bg-muted/30 p-3"
+              >
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 accent-primary"
+                  checked={addons.includes(addon.key)}
+                  onChange={(event) =>
+                    setAddons((current) =>
+                      event.target.checked ? [...current, addon.key] : current.filter((key) => key !== addon.key)
+                    )
+                  }
+                />
+                <span>
+                  <span className="block text-sm font-medium">{addon.label}</span>
+                  <span className="block text-xs text-muted-foreground">{addon.description}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <Button variant="outline" onClick={saveAddons} disabled={busy !== null}>
+            {busy === "addons" && <Loader2 className="h-4 w-4 animate-spin" />}
+            Proje ayarlarını kaydet
           </Button>
         </section>
 

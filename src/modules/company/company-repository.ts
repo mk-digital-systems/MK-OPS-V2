@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AccountInfo } from "@/types/auth";
+import type { ProjectAddon } from "@/types/project";
 import { COMPANY_LOGO_BUCKET } from "@/lib/report-brand";
 
 const LOGO_EXTENSIONS: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
@@ -11,6 +12,17 @@ export class CompanyRepository {
     const { data, error } = await this.supabase.rpc("get_my_company");
     if (error) throw error;
     return (data as AccountInfo | null) ?? { is_super_admin: false, company: null };
+  }
+
+  /** Süper adminin bu firma için açtığı proje eklentileri (hp, corporate). */
+  async getProjectAddons(): Promise<ProjectAddon[]> {
+    const { data, error } = await this.supabase.from("companies").select("project_addons").maybeSingle();
+    if (error) {
+      // Migration kurulmadan önce sütun yok: eklenti kapalı say.
+      if (error.code === "42703") return [];
+      throw error;
+    }
+    return ((data?.project_addons as ProjectAddon[] | null) ?? []);
   }
 
   async createCompany(name: string): Promise<AccountInfo> {

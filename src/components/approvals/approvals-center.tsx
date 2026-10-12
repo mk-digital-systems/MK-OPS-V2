@@ -16,6 +16,9 @@ import { PersonnelRepository } from "@/modules/work-plans/personnel-repository";
 import { VehicleRepository } from "@/modules/vehicles/vehicle-repository";
 import { useBranches } from "@/components/layout/branch-provider";
 import { PendingApprovalsCard } from "@/components/approvals/pending-approvals-card";
+import { ExtraApprovalsCard } from "@/components/approvals/extra-approvals-card";
+import type { PendingExtraEntry } from "@/types/hakedis";
+import type { CurrencyCode } from "@/types/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +34,8 @@ export function ApprovalsCenter({
   receipts,
   locations,
   currentUserId,
+  pendingExtras = [],
+  currency = "TRY",
 }: {
   personnel: Personnel[];
   vehicles: Vehicle[];
@@ -43,13 +48,17 @@ export function ApprovalsCenter({
   receipts: InventoryReceipt[];
   locations: InventoryLocation[];
   currentUserId: string | null;
+  /** Fiyat onayı bekleyen imalatlar (yalnızca hakediş yetkisi olana dolu gelir). */
+  pendingExtras?: PendingExtraEntry[];
+  currency?: CurrencyCode;
 }) {
   const router = useRouter();
   const { multiBranch, branchName } = useBranches();
   const withBranch = (branchId: string, text: string | null) =>
     [multiBranch ? branchName(branchId) : null, text].filter(Boolean).join(" · ") || null;
   const openMonths = monthApprovals.filter((item) => !item.approved_at);
-  const nothingPending = !personnel.length && !vehicles.length && !openMonths.length && !requests.length && !receipts.length;
+  const nothingPending =
+    !personnel.length && !vehicles.length && !openMonths.length && !requests.length && !receipts.length && !pendingExtras.length;
   const locationName = (id: string | null) => locations.find((item) => item.id === id)?.name ?? null;
 
   async function stockAction(action: (repository: InventoryRepository) => Promise<unknown>, message: string) {
@@ -83,7 +92,7 @@ export function ApprovalsCenter({
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Onaylar</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Şubelerden gelen personel ve araç kayıtları, puantaj ve malzeme talebi onayları
+          Şubelerden gelen personel ve araç kayıtları, puantaj, malzeme talebi ve imalat ek iş fiyatı onayları
         </p>
       </div>
 
@@ -95,6 +104,12 @@ export function ApprovalsCenter({
           </CardContent>
         </Card>
       )}
+
+      <ExtraApprovalsCard
+        entries={pendingExtras}
+        currency={currency}
+        branchLabel={(branchId) => (multiBranch ? branchName(branchId) : null)}
+      />
 
       <PendingApprovalsCard
         noun="personel"

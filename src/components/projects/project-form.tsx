@@ -6,9 +6,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
+import { ClipboardPaste, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import type { Project, ProjectType } from "@/types/project";
+import type { Project, ProjectAddon, ProjectType } from "@/types/project";
 import { projectSchema, type ProjectFormOutput, type ProjectFormValues } from "@/lib/validations/project";
 import { createClient } from "@/lib/supabase/client";
 import { ProjectRepository } from "@/modules/projects/project-repository";
@@ -18,15 +18,34 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { HpSheetFields, emptyHpSheet, validateHpSheets } from "@/components/projects/hp-sheet-board";
+import { StageListEditor, validateStageList, type StageListValue } from "@/components/projects/stage-list-editor";
 
 type Props = {
   mode: "create" | "edit";
   project?: Project;
   types: ProjectType[];
   locations: string[];
+  /** Süper adminin açtığı proje eklentileri; kapalı eklentinin türleri yeni projede seçilemez. */
+  addons?: ProjectAddon[];
 };
 
-export function ProjectForm({ mode, project, types, locations }: Props) {
+type SheetDraft = ReturnType<typeof emptyHpSheet>;
+const MAX_SHEETS = 500;
+
+export function ProjectForm({ mode, project, types: allTypes, locations, addons = [] }: Props) {
+  const currentType = allTypes.find((type) => type.id === project?.project_type_id);
+  // HP / kurumsal projenin türü değişmez; standart proje yalnızca standart türler arasında değişir.
+  const types =
+    mode === "edit"
+      ? currentType && currentType.screen !== "standard"
+        ? [currentType]
+        : allTypes.filter((type) => type.screen === "standard")
+      : allTypes.filter((type) => type.screen === "standard" || addons.includes(type.screen));
+  const [sheets, setSheets] = useState<SheetDraft[]>(() => [emptyHpSheet()]);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [stageList, setStageList] = useState<StageListValue>({ mode: "template", items: [] });
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const { defaultBranchId } = useBranches();
@@ -49,7 +68,13 @@ export function ProjectForm({ mode, project, types, locations }: Props) {
   });
   const errors = form.formState.errors;
   const selectedType = types.find((type) => type.id === form.watch("project_type_id"));
-  const typeLocked = mode === "edit" && !!project?.has_activity;
+  const isHp = selectedType?.screen === "hp";
+  const typeLocked = mode === "edit" && (!!project?.has_activity || currentType?.screen !== "standard");
+
+  function setSheetCount(value: number) {
+    const count = Math.min(MAX_SHEETS, Math.max(1, Math.floor(value) || 1));
+    setSheets((current) => Array.from({ length: count }, (_, index) => current[index] ?? emptyHpSheet()));
+  }
 
   async function submit(values: ProjectFormOutput) {
     setSaving(true);
@@ -65,15 +90,47 @@ export function ProjectForm({ mode, project, types, locations }: Props) {
         priority_order: values.priority_order ? Number(values.priority_order) : null,
         branch_id: branchId || undefined,
       };
-      const saved =
-        mode === "create" ? await repository.create(payload, user.id) : await repository.update(project!.id, payload, user.id);
+      let savedId: string;
+      const customStages = mode === "create" && !isHp && stageList.mode === "custom";
+      if (customStages) {
+        const problem = validateStageList(stageList);
+        if (problem) {
+          toast.error(problem);
+          return;
+        }
+      }
+      if (mode === "create" && isHp) {
+        const problem = validateHpSheets(sheets);
+        if (problem) {
+          toast.error(problem);
+          return;
+        }
+        savedId = await repository.createHpProject(payload, sheets);
+      } else {
+        const saved =
+          mode === "create" ? await repository.create(payload, user.id) : await repository.update(project!.id, payload, user.id);
+        savedId = saved.id;
+        if (customStages) {
+          try {
+            await repository.saveProjectStages(savedId, "custom", stageList.items);
+          } catch (error) {
+            // Kalem listesi kaydedilemezse yarım proje bırakılmaz.
+            await repository.delete(savedId).catch(() => undefined);
+            throw error;
+          }
+        }
+      }
       toast.success(mode === "create" ? "Proje oluşturuldu" : "Proje güncellendi");
-      router.push(`/panel/projects/${saved.id}`);
+      router.push(`/panel/projects/${savedId}`);
       router.refresh();
     } catch (error) {
       const message = (error as { message?: string; code?: string })?.message ?? "";
       toast.error("Proje kaydedilemedi", {
-        description: message.includes("projects_project_code_key") ? "Bu proje kodu zaten kullanılıyor." : message,
+        description: message.includes("projects_project_code_key")
+          ? "Bu proje kodu zaten kullanılıyor."
+          : message.includes("project_hp_sheets_no_unique")
+            ? "Aynı pafta numarası bir projede birden fazla kullanılamaz."
+            : message,
       });
     } finally {
       setSaving(false);
@@ -99,20 +156,36 @@ export function ProjectForm({ mode, project, types, locations }: Props) {
       <Card>
         <CardContent className="grid gap-4 p-6 sm:grid-cols-2">
           <Field label="Proje türü" error={errors.project_type_id?.message} className="sm:col-span-2">
-            <NativeSelect {...form.register("project_type_id")} disabled={typeLocked}>
+            <NativeSelect
+              {...form.register("project_type_id", { onChange: () => setStageList({ mode: "template", items: [] }) })}
+              disabled={typeLocked}
+            >
               {types.map((type) => (
                 <option key={type.id} value={type.id}>
                   {type.name}
                 </option>
               ))}
             </NativeSelect>
-            {selectedType && (
+            {isHp && (
               <p className="text-xs text-muted-foreground">
-                Aşamalar: {selectedType.stages.map((stage) => stage.name).join(" → ")}
+                HP odaklı proje: paftalar ve HP adetleri aşağıda girilir; proje durumu paftalardan hesaplanır.
+              </p>
+            )}
+            {mode === "edit" && selectedType && selectedType.screen === "standard" && (
+              <p className="text-xs text-muted-foreground">
+                {project?.stage_mode === "custom"
+                  ? "İş kalemleri projeye göre düzenlenmiş; proje sayfasındaki “Kalemleri düzenle” ile değişir."
+                  : `Aşamalar: ${selectedType.stages.map((stage) => stage.name).join(" → ")}`}
                 {selectedType.has_sections && ` · ${selectedType.section_label} bazında takip`}
               </p>
             )}
-            {typeLocked && <p className="text-xs text-muted-foreground">İş kaydı girilmiş projenin türü değiştirilemez.</p>}
+            {typeLocked && (
+              <p className="text-xs text-muted-foreground">
+                {currentType?.screen === "standard"
+                  ? "İş kaydı girilmiş projenin türü değiştirilemez."
+                  : "Bu projenin türü değiştirilemez; paftalar proje sayfasından düzenlenir."}
+              </p>
+            )}
           </Field>
           <Field label="Proje kodu" error={errors.project_code?.message}>
             <Input {...form.register("project_code")} placeholder="Örn. PRJ-2026-014" />
@@ -152,6 +225,66 @@ export function ProjectForm({ mode, project, types, locations }: Props) {
           </Field>
         </CardContent>
       </Card>
+      {mode === "create" && selectedType && selectedType.screen === "standard" && (
+        <Card>
+          <CardContent className="space-y-3 p-6">
+            <div>
+              <Label>İş kalemleri</Label>
+              {selectedType.has_sections && (
+                <p className="mt-1 text-xs text-muted-foreground">Kalemler her {selectedType.section_label.toLocaleLowerCase("tr-TR")} için ayrı takip edilir.</p>
+              )}
+            </div>
+            <StageListEditor templateStages={selectedType.stages} value={stageList} onChange={setStageList} />
+          </CardContent>
+        </Card>
+      )}
+      {mode === "create" && isHp && (
+        <Card>
+          <CardContent className="space-y-4 p-6">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div className="space-y-2">
+                <Label>Pafta sayısı</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={MAX_SHEETS}
+                  inputMode="numeric"
+                  className="w-32"
+                  value={sheets.length}
+                  onChange={(event) => setSheetCount(Number(event.target.value))}
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-sm text-muted-foreground">
+                  Toplam {sheets.reduce((sum, sheet) => sum + sheet.hp_count, 0).toLocaleString("tr-TR")} HP
+                </p>
+                <Button type="button" variant="outline" onClick={() => setPasteOpen(true)}>
+                  <ClipboardPaste className="h-4 w-4" />
+                  Excel&apos;den yapıştır
+                </Button>
+              </div>
+            </div>
+            {sheets.map((sheet, index) => (
+              <HpSheetFields
+                key={sheet.key}
+                sheet={sheet}
+                title={sheets.length === 1 ? "Pafta bilgileri" : `Pafta ${index + 1}`}
+                onChange={(patch) => setSheets((current) => current.map((item, i) => (i === index ? { ...item, ...patch } : item)))}
+                onRemove={sheets.length > 1 ? () => setSheets((current) => current.filter((_, i) => i !== index)) : undefined}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      )}
+      {pasteOpen && (
+        <PasteSheetsDialog
+          onClose={() => setPasteOpen(false)}
+          onApply={(parsed) => {
+            setSheets(parsed);
+            setPasteOpen(false);
+          }}
+        />
+      )}
       <div className="flex justify-end gap-2">
         <Button type="button" variant="ghost" onClick={() => router.back()}>
           Vazgeç
@@ -162,6 +295,59 @@ export function ProjectForm({ mode, project, types, locations }: Props) {
         </Button>
       </div>
     </form>
+  );
+}
+
+/** Excel'den kopyalanan satırlar: Pafta no · HP · Adres (sekme veya noktalı virgülle ayrılmış). */
+function parseSheetRows(text: string): SheetDraft[] {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.split(line.includes("\t") ? "\t" : ";").map((cell) => cell.trim()))
+    .filter((cells) => cells[0])
+    // Başlık satırı (ör. "Pafta No | HP | Adres") atlanır.
+    .filter((cells, index) => !(index === 0 && /pafta/i.test(cells[0]) && !/\d/.test(cells[1] ?? "")))
+    .slice(0, MAX_SHEETS)
+    .map((cells) => ({
+      ...emptyHpSheet(),
+      sheet_no: cells[0],
+      hp_count: Math.max(0, Math.floor(Number((cells[1] ?? "").replace(/\./g, "").replace(",", ".")) || 0)),
+      address: cells[2] ?? "",
+    }));
+}
+
+function PasteSheetsDialog({ onClose, onApply }: { onClose: () => void; onApply: (sheets: SheetDraft[]) => void }) {
+  const [text, setText] = useState("");
+  const parsed = parseSheetRows(text);
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Excel&apos;den pafta yapıştır</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Excel&apos;de sırasıyla <strong>Pafta no</strong>, <strong>HP</strong> ve <strong>Adres</strong> sütunlarını seçip kopyalayın ve
+          buraya yapıştırın. Formdaki pafta listesi bununla değişir.
+        </p>
+        <Textarea
+          rows={8}
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          placeholder={"P-101\t120\tAtatürk Cd. No:5\nP-102\t80\tİnönü Sk."}
+          autoFocus
+        />
+        <p className="text-xs text-muted-foreground">
+          {parsed.length} pafta · {parsed.reduce((sum, sheet) => sum + sheet.hp_count, 0).toLocaleString("tr-TR")} HP
+        </p>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Vazgeç
+          </Button>
+          <Button type="button" disabled={parsed.length === 0} onClick={() => onApply(parsed)}>
+            Paftaları aktar
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

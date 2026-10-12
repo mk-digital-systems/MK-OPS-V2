@@ -1,4 +1,7 @@
 import type { CompanyAccessStatus, UserRole } from "@/types/auth";
+import type { ProjectAddon } from "@/types/project";
+
+export type { ProjectAddon };
 
 export type AdminCompany = {
   id: string;
@@ -11,12 +14,26 @@ export type AdminCompany = {
   user_limit: number | null;
   suspended_at: string | null;
   access_status: CompanyAccessStatus;
+  project_addons: ProjectAddon[];
   owner_name: string | null;
   owner_email: string | null;
   approved_users: number;
   pending_users: number;
   open_requests: number;
 };
+
+export const PROJECT_ADDONS: { key: ProjectAddon; label: string; description: string }[] = [
+  {
+    key: "hp",
+    label: "HP odaklı projeler",
+    description: "Pafta bazında durum ve ekip başı takibi; HP (home pass) bilgi olarak gösterilir",
+  },
+  {
+    key: "corporate",
+    label: "Kurumsal projeler",
+    description: "Elle durum, öncelik sırası ve lokasyon ile sade takip",
+  },
+];
 
 export type AdminCompanyUser = {
   id: string;

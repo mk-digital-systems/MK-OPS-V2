@@ -17,7 +17,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { Project, ProjectProgressData, ProjectStatus, ProjectType } from "@/types/project";
+import type { HpSheet, Project, ProjectProgressData, ProjectStatus, ProjectType, ProjectTypeStage } from "@/types/project";
 import type { Personnel } from "@/types/work-plan";
 import type { CurrencyCode } from "@/types/auth";
 import type { ProjectPricing } from "@/types/hakedis";
@@ -32,11 +32,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ProgressBar, ProjectStatusBadge, TypeDot } from "@/components/projects/project-status-indicators";
 import { StageBoard } from "@/components/projects/stage-board";
+import { HpSheetBoard } from "@/components/projects/hp-sheet-board";
 
 type Props = {
   project: Project;
   type: ProjectType;
+  /** Projenin sıralı kalemleri (düzenlenmişse projenin listesi, değilse şablon). */
+  projectStages: ProjectTypeStage[];
   progress: ProjectProgressData;
+  /** HP odaklı projede paftalar; diğer türlerde null. */
+  hpSheets: HpSheet[] | null;
   personnel: Personnel[];
   readOnly: boolean;
   pricing: ProjectPricing | null;
@@ -45,7 +50,7 @@ type Props = {
 
 type Busy = "status" | "archive" | "cancel" | "reactivate" | "delete" | null;
 
-export function ProjectDetail({ project, type, progress, personnel, readOnly, pricing, currency }: Props) {
+export function ProjectDetail({ project, type, projectStages, progress, hpSheets, personnel, readOnly, pricing, currency }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<Busy>(null);
   const [reasonDialog, setReasonDialog] = useState<"hold" | "cancel" | null>(null);
@@ -145,7 +150,13 @@ export function ProjectDetail({ project, type, progress, personnel, readOnly, pr
             {editable && project.status !== "completed" && (
               <Button
                 variant="outline"
-                onClick={() => window.confirm("Proje, aşamaları tamamlanmamış olsa da tamamlandı olarak işaretlensin mi?") && setStatus("completed")}
+                onClick={() =>
+                  window.confirm(
+                    hpSheets
+                      ? "Proje, paftaları bitmemiş olsa da tamamlandı olarak işaretlensin mi? Bir pafta değiştiğinde durum paftalardan yeniden hesaplanır."
+                      : "Proje, aşamaları tamamlanmamış olsa da tamamlandı olarak işaretlensin mi?"
+                  ) && setStatus("completed")
+                }
                 disabled={busy !== null}
               >
                 <CheckCircle2 className="h-4 w-4" />
@@ -216,7 +227,9 @@ export function ProjectDetail({ project, type, progress, personnel, readOnly, pr
             <div className="mb-2 flex items-center justify-between text-sm">
               <span className="font-medium">Genel ilerleme</span>
               <span className="text-muted-foreground">
-                {type.stages.length} aşama{type.has_sections ? ` · ${progress.sections.length} ${type.section_label.toLocaleLowerCase("tr-TR")}` : ""}
+                {hpSheets
+                  ? `${hpSheets.filter((sheet) => sheet.status === "completed").length} / ${hpSheets.length} pafta bitti`
+                  : `${projectStages.length} aşama${type.has_sections ? ` · ${progress.sections.length} ${type.section_label.toLocaleLowerCase("tr-TR")}` : ""}`}
               </span>
             </div>
             <ProgressBar value={project.progress_percent} status={project.status} />
@@ -253,15 +266,20 @@ export function ProjectDetail({ project, type, progress, personnel, readOnly, pr
         </Card>
       )}
 
-      <StageBoard
-        projectId={project.id}
-        type={type}
-        data={progress}
-        personnel={personnel}
-        readOnly={!editable}
-        pricing={pricing}
-        currency={currency}
-      />
+      {hpSheets ? (
+        <HpSheetBoard projectId={project.id} sheets={hpSheets} personnel={personnel} readOnly={!editable} />
+      ) : (
+        <StageBoard
+          project={project}
+          type={type}
+          projectStages={projectStages}
+          data={progress}
+          personnel={personnel}
+          readOnly={!editable}
+          pricing={pricing}
+          currency={currency}
+        />
+      )}
 
       <Dialog open={reasonDialog !== null} onOpenChange={(open) => !open && setReasonDialog(null)}>
         <DialogContent>

@@ -2,12 +2,34 @@ import type { ProjectStatus, StageStatus } from "@/lib/constants/project";
 
 export type { ProjectStatus, StageStatus };
 
+/** standard: aşamalar; hp: pafta/HP (telekom eklentisi); corporate: sade kurumsal (telekom eklentisi) */
+export type ProjectScreen = "standard" | "hp" | "corporate";
+export type ProjectAddon = Exclude<ProjectScreen, "standard">;
+
 export type ProjectTypeStage = {
   id: string;
   project_type_id: string;
   name: string;
   unit: string | null;
   sort_order: number;
+  /** İsteğe bağlı 3–5 karakterlik poz kodu */
+  poz_code: string | null;
+  /** Doluysa kalem yalnızca bu projeye aittir */
+  project_id: string | null;
+};
+
+/** template: türün bütün şablon kalemleri; custom: projeye göre düzenlenmiş liste */
+export type StageMode = "template" | "custom";
+
+/** Proje kalem listesi düzenlenirken bir satır (şablon kalemi ya da projeye özel kalem). */
+export type StageListItem = {
+  key: string;
+  /** Şablon kaleminde veya kayıtlı projeye özel kalemde dolu; yeni özel kalemde null */
+  stage_id: string | null;
+  template: boolean;
+  name: string;
+  unit: string;
+  poz_code: string;
 };
 
 export type ProjectType = {
@@ -19,6 +41,7 @@ export type ProjectType = {
   color: string | null;
   sort_order: number;
   is_archived: boolean;
+  screen: ProjectScreen;
   stages: ProjectTypeStage[];
 };
 
@@ -45,6 +68,7 @@ export type Project = {
   completed_at: string | null;
   progress_notes: string | null;
   progress_percent: number;
+  stage_mode: StageMode;
   priority_order: number | null;
   is_archived: boolean;
   archived_at: string | null;
@@ -97,6 +121,75 @@ export type ProjectProgressData = {
   sections: ProjectSection[];
   progress: StageProgress[];
   logs: StageLog[];
+};
+
+export type HpSheetStatus = "not_started" | "permit_waiting" | "in_progress" | "completed";
+
+export type HpSheet = {
+  id: string;
+  project_id: string;
+  sheet_no: string;
+  hp_count: number;
+  address: string | null;
+  image_url: string | null;
+  notes: string | null;
+  status: HpSheetStatus;
+  current_team_leader_personnel_id: string | null;
+  current_team_leader_name: string | null;
+  completed_by_personnel_id: string | null;
+  completed_by_name: string | null;
+  completed_at: string | null;
+  sort_order: number;
+};
+
+export type HpSheetInput = {
+  sheet_no: string;
+  hp_count: number;
+  address: string;
+  image_url: string;
+  notes: string;
+};
+
+export type HpReportProject = {
+  id: string;
+  project_code: string;
+  name: string;
+  status: ProjectStatus;
+  branch_id: string;
+  is_archived: boolean;
+  sheet_count: number;
+  completed_sheets: number;
+  total_hp: number;
+  completed_hp: number;
+  period_hp: number;
+  period_sheets: number;
+  last_completed_at: string | null;
+};
+
+export type HpReport = {
+  totals: {
+    projects: number;
+    completed_projects: number;
+    sheets: number;
+    completed_sheets: number;
+    total_hp: number;
+    completed_hp: number;
+    period_hp: number;
+    period_sheets: number;
+    period_completed_projects: number;
+  };
+  projects: HpReportProject[];
+  period_sheets: Array<{
+    id: string;
+    sheet_no: string;
+    hp_count: number;
+    address: string | null;
+    completed_at: string;
+    completed_by_name: string | null;
+    project_id: string;
+    project_code: string;
+    project_name: string;
+  }>;
 };
 
 export type ArchiveScope = "active" | "archived" | "cancelled" | "all";

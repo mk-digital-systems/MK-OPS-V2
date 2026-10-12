@@ -139,7 +139,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
     const missing = selectedProjectIds.split(",").filter((id) => id && !targets[id]);
     if (!missing.length) return;
     const repository = new ProductionRepository(createClient());
-    void Promise.all(missing.map(async (id) => [id, await repository.listTargets(id, projectTypes)] as const))
+    void Promise.all(missing.map(async (id) => [id, await repository.listTargets(id)] as const))
       .then((loaded) => setTargets((current) => ({ ...current, ...Object.fromEntries(loaded) })))
       .catch(() => toast.error("Projenin iş kalemleri yüklenemedi"));
   }, [selectedProjectIds, targets, projectTypes]);
@@ -253,7 +253,9 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
         if (line.description.trim().length < 2) return "Ek iş açıklaması en az 2 karakter olmalı";
         if (quantity === null || quantity <= 0) return `${line.description.trim()} için miktar girin`;
         if (!line.unit.trim()) return `${line.description.trim()} için birim yazın`;
-        if (canSeePrices && line.unitPrice.trim() && (toNumber(line.unitPrice) ?? -1) < 0) return `${line.description.trim()} için birim fiyat geçersiz`;
+        // Hakediş yetkilisi ek işi girerken fiyatını da girer (kendi onayıdır); diğerlerinde fiyat onayda girilir.
+        if (canSeePrices && !line.unitPrice.trim()) return `${line.description.trim()} için birim fiyat girin`;
+        if (canSeePrices && (toNumber(line.unitPrice) ?? -1) < 0) return `${line.description.trim()} için birim fiyat geçersiz`;
       } else if (line.description.trim().length < 2) {
         return "İmalat açıklaması en az 2 karakter olmalı";
       }
@@ -451,7 +453,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
       </section>; })}
       {!readOnly && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><Button type="button" variant="outline" disabled={loading} onClick={() => void fillFromWorkPlan()} title="O günün iş planındaki ekipleri ve projeleri forma ekler"><ClipboardList className="h-4 w-4" />İş Planından Doldur</Button><Button type="button" variant="outline" onClick={() => setTeams((current) => [...current, newTeam()])}><Plus className="h-4 w-4" />Ekip Ekle</Button><Button type="button" variant="outline" disabled={loading || pdfLoading} onClick={() => void saveAll(false)}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}Taslak Kaydet</Button><Button type="button" variant="outline" disabled={!dailyEntries.length || pdfLoading} onClick={() => void shareCurrentDay()}>{pdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}Tekrar Paylaş</Button><Button type="button" disabled={loading || pdfLoading} onClick={() => void saveAll(true)}>{loading || pdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}Kaydet ve Paylaş</Button></div>}
       {!dailyEntries.length && !loading && <p className="text-center text-sm text-muted-foreground">Bu tarih için henüz kayıt yok.</p>}
-      {!readOnly && <p className="text-center text-xs text-muted-foreground">İş kalemi satırları kaydedilince seçilen projeye iş kaydı olarak işlenir; proje ilerlemesi ve hakediş kendiliğinden güncellenir. Ek işler hakedişe ayrıca eklenir{canSeePrices ? "" : "; fiyatlarını hakediş yetkilisi girer"}.</p>}
+      {!readOnly && <p className="text-center text-xs text-muted-foreground">İş kalemi satırları kaydedilince seçilen projeye iş kaydı olarak işlenir; proje ilerlemesi ve hakediş kendiliğinden güncellenir. Ek işler projenin kalem listesine girmez, hakedişe ayrıca eklenir{canSeePrices ? "" : "; fiyatlarını hakediş yetkilisi onaylarken girer, onaylanana kadar hakedişe dahil olmaz"}.</p>}
       <datalist id="production-units">{["Adet", "m", "m²", "m³", "kg", "ton", "saat", "gün", "sefer", "Götürü"].map((unit) => <option key={unit} value={unit} />)}</datalist>
     </div>
 

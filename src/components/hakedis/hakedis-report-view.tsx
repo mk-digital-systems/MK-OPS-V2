@@ -9,7 +9,7 @@ import type { CurrencyCode } from "@/types/auth";
 import type { HakedisReport } from "@/types/hakedis";
 import type { HakedisPeriod } from "@/lib/hakedis";
 import { formatMoney } from "@/lib/hakedis";
-import { formatQuantity } from "@/lib/constants/project";
+import { formatQuantity, stageLabel } from "@/lib/constants/project";
 import { brandFilePrefix } from "@/lib/report-brand";
 import { createClient } from "@/lib/supabase/client";
 import { HakedisRepository } from "@/modules/hakedis/hakedis-repository";
@@ -25,11 +25,13 @@ type Props = {
   periods: HakedisPeriod[];
   currency: CurrencyCode;
   canEditPrices: boolean;
+  /** İş kaleminin poz kodu (kalem kimliğine göre) */
+  stagePoz?: Record<string, string>;
 };
 
 type Tab = "projects" | "stages" | "leaders" | "rows";
 
-export function HakedisReportView({ report, periods, currency, canEditPrices }: Props) {
+export function HakedisReportView({ report, periods, currency, canEditPrices, stagePoz = {} }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
@@ -91,13 +93,14 @@ export function HakedisReportView({ report, periods, currency, canEditPrices }: 
       const stages = workbook.addWorksheet("İş Kalemleri");
       stages.columns = [
         { header: "Tür", key: "type", width: 22 },
+        { header: "Poz", key: "poz", width: 8 },
         { header: "İş Kalemi", key: "stage", width: 26 },
         { header: "Miktar", key: "quantity", width: 14 },
         { header: "Birim", key: "unit", width: 10 },
         { header: "Tutar", key: "amount", width: 18, style: { numFmt: moneyFormat } },
       ];
       report.by_stage.forEach((row) =>
-        stages.addRow({ type: row.type_name, stage: row.stage_name, quantity: Number(row.quantity), unit: row.unit ?? "", amount: Number(row.amount) })
+        stages.addRow({ type: row.type_name, poz: (row.stage_id && stagePoz[row.stage_id]) || "", stage: row.stage_name, quantity: Number(row.quantity), unit: row.unit ?? "", amount: Number(row.amount) })
       );
 
       const detail = workbook.addWorksheet("Ayrıntı");
@@ -282,7 +285,7 @@ export function HakedisReportView({ report, periods, currency, canEditPrices }: 
               head={["Tür", "İş kalemi", "Miktar", "Tutar"]}
               rows={report.by_stage.map((row) => [
                 row.type_name,
-                row.stage_name,
+                stageLabel({ name: row.stage_name, poz_code: row.stage_id ? stagePoz[row.stage_id] : null }),
                 formatQuantity(row.quantity, row.unit),
                 <span key="a" className="font-semibold">{money(row.amount)}</span>,
               ])}

@@ -54,6 +54,23 @@ export type HakedisSummary = {
   unpriced_in_period: number;
 };
 
+/** Fiyat onayı bekleyen imalat: fiyatı girilmemiş özel iş kalemleri (ek iş). */
+export type PendingExtraEntry = {
+  entry_id: string;
+  work_date: string;
+  team_leader_name: string;
+  branch_id: string;
+  created_at: string;
+  items: Array<{
+    id: string;
+    item_name: string;
+    quantity: number;
+    unit: string;
+    project_code: string | null;
+    project_name: string | null;
+  }>;
+};
+
 /** Proje detayında fiyat bilgisi (yalnızca hakediş yetkisi olanlara). */
 export type ProjectPricing = {
   stagePrices: Record<string, number>;

@@ -34,6 +34,11 @@ export default async function HakedisPage({
   const end = isDate(params.end) && params.end >= start ? params.end : periods[0].end;
   const branchId = await getSelectedBranchId((await new BranchRepository(supabase).getMine()).branches);
   const report = await new HakedisRepository(supabase).getReport(start, end, branchId);
+  const stageIds = report.by_stage.map((row) => row.stage_id).filter((id): id is string => !!id);
+  const { data: pozRows } = stageIds.length
+    ? await supabase.from("project_type_stages").select("id, poz_code").in("id", stageIds).not("poz_code", "is", null)
+    : { data: [] };
+  const stagePoz = Object.fromEntries((pozRows ?? []).map((row) => [row.id as string, row.poz_code as string]));
 
   return (
     <HakedisReportView
@@ -41,6 +46,7 @@ export default async function HakedisPage({
       periods={periods}
       currency={account.company.currency_code}
       canEditPrices={profile?.role === "site_chief"}
+      stagePoz={stagePoz}
     />
   );
 }

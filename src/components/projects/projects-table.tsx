@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, FileSpreadsheet, Layers, Loader2, Plus, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileSpreadsheet, Layers, Loader2, Plus, RadioTower, Search } from "lucide-react";
 import { toast } from "sonner";
 import type { ArchiveScope, PaginatedResult, Project, ProjectType } from "@/types/project";
 import { PAGE_SIZE_OPTIONS, PROJECT_STATUSES, getStatusLabel } from "@/lib/constants/project";
@@ -26,6 +26,8 @@ type Props = {
   /** Proje türlerini düzenleyebilir (firma yöneticisi). */
   canManageTypes?: boolean;
   exportProjects?: Project[];
+  /** Firmada HP odaklı tür varsa HP raporu bağlantısı gösterilir. */
+  showHpReport?: boolean;
   defaultArchiveScope: ArchiveScope;
   allowArchiveScopeFilter?: boolean;
 };
@@ -45,6 +47,7 @@ export function ProjectsTable({
   showCreate = false,
   canManageTypes = false,
   exportProjects,
+  showHpReport = false,
   defaultArchiveScope,
   allowArchiveScopeFilter = false,
 }: Props) {
@@ -131,6 +134,14 @@ export function ProjectsTable({
             <Button variant="outline" onClick={exportExcel} disabled={exporting}>
               {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
               Excel
+            </Button>
+          )}
+          {showHpReport && (
+            <Button asChild variant="outline">
+              <Link href="/panel/projects/hp-raporu">
+                <RadioTower className="h-4 w-4" />
+                HP Raporu
+              </Link>
             </Button>
           )}
           {canManageTypes && (

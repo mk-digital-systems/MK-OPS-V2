@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ArchiveRestore, ArrowDown, ArrowUp, LayoutTemplate, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowDown, ArrowUp, LayoutTemplate, Loader2, Pencil, Plus, RadioTower, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
-import type { ProjectType } from "@/types/project";
+import type { ProjectAddon, ProjectType } from "@/types/project";
 import type { CurrencyCode } from "@/types/auth";
 import { formatMoney } from "@/lib/hakedis";
 import { HakedisRepository } from "@/modules/hakedis/hakedis-repository";
-import { PROJECT_TYPE_COLORS, PROJECT_TYPE_TEMPLATES, UNIT_SUGGESTIONS, type ProjectTypeTemplate } from "@/lib/constants/project";
+import { PROJECT_TYPE_COLORS, PROJECT_TYPE_TEMPLATES, UNIT_SUGGESTIONS, stageLabel, type ProjectTypeTemplate } from "@/lib/constants/project";
 import { projectTypeSchema, type ProjectTypeFormValues } from "@/lib/validations/project";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -22,7 +22,7 @@ import { TypeDot } from "@/components/projects/project-status-indicators";
 
 type Draft = Omit<ProjectTypeFormValues, "stages"> & {
   id: string | null;
-  stages: { id: string | null; name: string; unit: string; unit_price: string }[];
+  stages: { id: string | null; name: string; unit: string; poz_code: string; unit_price: string }[];
 };
 
 const emptyDraft = (index: number): Draft => ({
@@ -32,7 +32,7 @@ const emptyDraft = (index: number): Draft => ({
   has_sections: false,
   section_label: "Bölüm",
   color: PROJECT_TYPE_COLORS[index % PROJECT_TYPE_COLORS.length],
-  stages: [{ id: null, name: "", unit: "", unit_price: "" }],
+  stages: [{ id: null, name: "", unit: "", poz_code: "", unit_price: "" }],
 });
 
 const fromTemplate = (template: ProjectTypeTemplate, index: number): Draft => ({
@@ -42,7 +42,7 @@ const fromTemplate = (template: ProjectTypeTemplate, index: number): Draft => ({
   has_sections: template.has_sections,
   section_label: template.section_label,
   color: PROJECT_TYPE_COLORS[index % PROJECT_TYPE_COLORS.length],
-  stages: template.stages.map((stage) => ({ id: null, name: stage.name, unit: stage.unit ?? "", unit_price: "" })),
+  stages: template.stages.map((stage) => ({ id: null, name: stage.name, unit: stage.unit ?? "", poz_code: "", unit_price: "" })),
 });
 
 const fromType = (type: ProjectType, prices: Record<string, number>): Draft => ({
@@ -56,21 +56,33 @@ const fromType = (type: ProjectType, prices: Record<string, number>): Draft => (
     id: stage.id,
     name: stage.name,
     unit: stage.unit ?? "",
+    poz_code: stage.poz_code ?? "",
     unit_price: prices[stage.id] !== undefined ? String(prices[stage.id]) : "",
   })),
 });
+
+type AddonDraft = { id: string | null; name: string; description: string; color: string; screen: ProjectAddon };
+
+const ADDON_SCREEN_LABELS: Record<ProjectAddon, string> = {
+  hp: "HP odaklı",
+  corporate: "Kurumsal",
+};
 
 export function ProjectTypesManager({
   types,
   stagePrices,
   currency,
+  addons = [],
 }: {
   types: ProjectType[];
   stagePrices: Record<string, number>;
   currency: CurrencyCode;
+  /** Süper adminin açtığı proje eklentileri. */
+  addons?: ProjectAddon[];
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [addonDraft, setAddonDraft] = useState<AddonDraft | null>(null);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const repository = () => new ProjectRepository(createClient());
@@ -114,6 +126,23 @@ export function ProjectTypesManager({
           </CardDescription>
         </div>
         <div className="flex flex-wrap gap-2">
+          {addons.includes("hp") && (
+            <Button
+              variant="outline"
+              onClick={() =>
+                setAddonDraft({
+                  id: null,
+                  name: types.some((type) => type.name.toLocaleLowerCase("tr-TR") === "hp odaklı") ? "" : "HP Odaklı",
+                  description: "",
+                  color: PROJECT_TYPE_COLORS[types.length % PROJECT_TYPE_COLORS.length],
+                  screen: "hp",
+                })
+              }
+            >
+              <RadioTower className="h-4 w-4" />
+              HP odaklı tür
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setTemplatesOpen(true)}>
             <LayoutTemplate className="h-4 w-4" />
             Şablondan ekle
@@ -138,9 +167,23 @@ export function ProjectTypesManager({
               {type.has_sections && (
                 <span className="rounded-md bg-muted px-2 py-0.5 text-xs">{type.section_label} bazında</span>
               )}
+              {type.screen !== "standard" && (
+                <span className="rounded-md bg-sky-100 px-2 py-0.5 text-xs text-sky-800 dark:bg-sky-950/50 dark:text-sky-200">
+                  {ADDON_SCREEN_LABELS[type.screen]}
+                </span>
+              )}
               {type.is_archived && <span className="rounded-md bg-muted px-2 py-0.5 text-xs">Arşivde</span>}
               <div className="ml-auto flex gap-1">
-                <Button size="icon" variant="ghost" onClick={() => setDraft(fromType(type, stagePrices))} aria-label="Düzenle">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() =>
+                    type.screen === "standard"
+                      ? setDraft(fromType(type, stagePrices))
+                      : setAddonDraft({ id: type.id, name: type.name, description: type.description ?? "", color: type.color ?? "", screen: type.screen })
+                  }
+                  aria-label="Düzenle"
+                >
                   <Pencil className="h-4 w-4" />
                 </Button>
                 <Button size="icon" variant="ghost" onClick={() => toggleArchive(type)} disabled={busyId === type.id} aria-label="Arşivle">
@@ -152,10 +195,13 @@ export function ProjectTypesManager({
               </div>
             </div>
             {type.description && <p className="mt-1 text-sm text-muted-foreground">{type.description}</p>}
-            <ol className="mt-3 flex flex-wrap gap-1.5 text-xs">
+            {type.screen === "hp" && (
+              <p className="mt-2 text-xs text-muted-foreground">Paftalar ve HP adetleriyle takip edilir; iş kalemi yoktur.</p>
+            )}
+            <ol className="mt-3 flex flex-wrap gap-1.5 text-xs empty:hidden">
               {type.stages.map((stage, index) => (
                 <li key={stage.id} className="rounded-full border bg-background px-2.5 py-1">
-                  {index + 1}. {stage.name}
+                  {index + 1}. {stageLabel(stage)}
                   {stage.unit && <span className="text-muted-foreground"> ({stage.unit})</span>}
                   {stagePrices[stage.id] !== undefined && (
                     <span className="text-muted-foreground"> · {formatMoney(stagePrices[stage.id], currency)}/{stage.unit}</span>
@@ -199,7 +245,85 @@ export function ProjectTypesManager({
       </Dialog>
 
       {draft && <TypeEditor draft={draft} currency={currency} onClose={() => setDraft(null)} />}
+      {addonDraft && <AddonTypeEditor draft={addonDraft} onClose={() => setAddonDraft(null)} />}
     </Card>
+  );
+}
+
+/** HP odaklı / kurumsal tür: yalnızca ad, renk ve açıklama (aşaması yoktur). */
+function AddonTypeEditor({ draft: initial, onClose }: { draft: AddonDraft; onClose: () => void }) {
+  const router = useRouter();
+  const [draft, setDraft] = useState(initial);
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (draft.name.trim().length < 2) {
+      toast.error("Tür adı en az 2 karakter olmalı");
+      return;
+    }
+    setSaving(true);
+    try {
+      await new ProjectRepository(createClient()).saveAddonType(draft);
+      toast.success(draft.id ? "Proje türü güncellendi" : "Proje türü eklendi");
+      onClose();
+      router.refresh();
+    } catch (error) {
+      toast.error("Kaydedilemedi", { description: (error as Error)?.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>
+            {draft.id ? "Proje türünü düzenle" : "Yeni proje türü"} · {ADDON_SCREEN_LABELS[draft.screen]}
+          </DialogTitle>
+        </DialogHeader>
+        {draft.screen === "hp" && (
+          <p className="text-sm text-muted-foreground">
+            Bu türdeki projeler açılırken paftalar ve HP adetleri girilir. Pafta durumları ve bitiş tarihleriyle proje
+            ilerlemesi ve HP raporu hesaplanır.
+          </p>
+        )}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Tür adı</Label>
+            <Input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} placeholder="Örn. HP Odaklı" autoFocus />
+          </div>
+          <div className="space-y-2">
+            <Label>Renk</Label>
+            <div className="flex flex-wrap gap-2">
+              {PROJECT_TYPE_COLORS.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setDraft({ ...draft, color })}
+                  className={cn("h-7 w-7 rounded-full border-2", draft.color === color ? "border-foreground" : "border-transparent")}
+                  style={{ backgroundColor: color }}
+                  aria-label={`Renk ${color}`}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Açıklama (isteğe bağlı)</Label>
+            <Input value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>
+            Vazgeç
+          </Button>
+          <Button onClick={save} disabled={saving}>
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+            Kaydet
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -333,6 +457,14 @@ function TypeEditor({ draft: initial, currency, onClose }: { draft: Draft; curre
               <li key={stage.id ?? `new-${index}`} className="flex items-center gap-2">
                 <span className="w-6 text-right text-sm text-muted-foreground">{index + 1}.</span>
                 <Input
+                  value={stage.poz_code}
+                  onChange={(event) => setStage(index, { poz_code: event.target.value })}
+                  placeholder="Poz"
+                  maxLength={5}
+                  className="w-20"
+                  title="Poz (isteğe bağlı, 3–5 karakter)"
+                />
+                <Input
                   value={stage.name}
                   onChange={(event) => setStage(index, { name: event.target.value })}
                   placeholder="İş kalemi adı"
@@ -380,13 +512,13 @@ function TypeEditor({ draft: initial, currency, onClose }: { draft: Draft; curre
               </li>
             ))}
           </ol>
-          <Button type="button" variant="outline" size="sm" onClick={() => set("stages", [...draft.stages, { id: null, name: "", unit: "", unit_price: "" }])}>
+          <Button type="button" variant="outline" size="sm" onClick={() => set("stages", [...draft.stages, { id: null, name: "", unit: "", poz_code: "", unit_price: "" }])}>
             <Plus className="h-4 w-4" />
             İş kalemi ekle
           </Button>
           {draft.id && (
             <p className="text-xs text-muted-foreground">
-              Kalem eklemek mevcut projelere de yansır. İş kaydı girilmiş bir kalem silinemez. Birimi olan kalemler İmalatlar ekranında seçilebilir.
+              Kalem eklemek, kalemleri şablondan gelen mevcut projelere de yansır (projeye göre düzenlenmiş projelere yansımaz). İş kaydı girilmiş bir kalem silinemez. Birimi olan kalemler İmalatlar ekranında seçilebilir.
             </p>
           )}
         </div>

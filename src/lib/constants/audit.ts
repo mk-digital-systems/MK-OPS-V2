@@ -27,6 +27,7 @@ export const AUDIT_ENTITY_LABELS: Record<string, string> = {
   project_sections: "Bölüm",
   project_stage_progress: "Aşama",
   project_stage_logs: "İş kaydı",
+  project_hp_sheets: "HP paftası",
   hakedis_stage_prices: "Varsayılan birim fiyat",
   hakedis_project_prices: "Projeye özel birim fiyat",
   personnel: "Personel",
@@ -80,6 +81,9 @@ const FIELD_LABELS: Record<string, string> = {
   quantity: "Miktar",
   team_leader_name: "Ekip şefi",
   unit_price: "Birim fiyat",
+  sheet_no: "Pafta no",
+  hp_count: "HP",
+  address: "Adres",
   // Personel
   full_name: "Ad soyad",
   phone: "Telefon",

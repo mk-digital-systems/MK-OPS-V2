@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# referans: eski panel (sadece incelemek için, repoya girmez)
+/mavi kadraj dashboard/

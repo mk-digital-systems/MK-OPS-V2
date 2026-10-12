@@ -53,6 +53,29 @@ export const STAGE_STATUSES = [
 
 export type StageStatus = (typeof STAGE_STATUSES)[number]["value"];
 
+/** Poz kodu elle girilir: serbest biçim, 3–5 karakter. */
+export function isValidPoz(value: string): boolean {
+  const length = [...value.trim()].length;
+  return length >= 3 && length <= 5;
+}
+
+/** Kalem adı, pozu varsa önünde: "KB1 · Kaba inşaat" */
+export function stageLabel(stage: { name: string; poz_code?: string | null }): string {
+  return stage.poz_code ? `${stage.poz_code} · ${stage.name}` : stage.name;
+}
+
+/** HP odaklı projede pafta durumları (telekom eklentisi). */
+export const HP_SHEET_STATUSES = [
+  { value: "not_started", label: "Başlamadı", color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200" },
+  { value: "permit_waiting", label: "Kazı izni bekliyor", color: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300" },
+  { value: "in_progress", label: "Devam ediyor", color: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300" },
+  { value: "completed", label: "Bitti", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" },
+] as const;
+
+export function getHpSheetStatusMeta(status: string) {
+  return HP_SHEET_STATUSES.find((item) => item.value === status) ?? HP_SHEET_STATUSES[0];
+}
+
 export function getStageStatusMeta(status: string) {
   return STAGE_STATUSES.find((item) => item.value === status) ?? STAGE_STATUSES[0];
 }

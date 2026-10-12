@@ -3,15 +3,16 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Loader2, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ListChecks, Loader2, MapPin, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import type { ProjectProgressData, ProjectSection, ProjectType, StageLog, StageProgress } from "@/types/project";
+import type { Project, ProjectProgressData, ProjectSection, ProjectType, ProjectTypeStage, StageLog, StageProgress } from "@/types/project";
 import type { Personnel } from "@/types/work-plan";
 import type { CurrencyCode } from "@/types/auth";
 import type { ProjectPricing } from "@/types/hakedis";
 import { formatMoney } from "@/lib/hakedis";
 import { HakedisRepository } from "@/modules/hakedis/hakedis-repository";
-import { STAGE_STATUSES, formatQuantity, todayISODate, type StageStatus } from "@/lib/constants/project";
+import { STAGE_STATUSES, formatQuantity, stageLabel, todayISODate, type StageStatus } from "@/lib/constants/project";
+import { StageListEditor, toStageListItems, validateStageList, type StageListValue } from "@/components/projects/stage-list-editor";
 import { cn, formatDate } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { ProjectRepository } from "@/modules/projects/project-repository";
@@ -25,8 +26,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { ProgressBar } from "@/components/projects/project-status-indicators";
 
 type Props = {
-  projectId: string;
+  project: Pick<Project, "id" | "stage_mode">;
   type: ProjectType;
+  projectStages: ProjectTypeStage[];
   data: ProjectProgressData;
   personnel: Personnel[];
   readOnly: boolean;
@@ -38,12 +40,14 @@ type Props = {
 const repository = () => new ProjectRepository(createClient());
 const toNumber = (value: string) => Number(value.replace(",", "."));
 
-export function StageBoard({ projectId, type, data, personnel, readOnly, pricing, currency }: Props) {
+export function StageBoard({ project, type, projectStages, data, personnel, readOnly, pricing, currency }: Props) {
   const router = useRouter();
+  const projectId = project.id;
+  const [editingStages, setEditingStages] = useState(false);
   const [sectionDialog, setSectionDialog] = useState<ProjectSection | "new" | null>(null);
   const [logTarget, setLogTarget] = useState<{ progress: StageProgress; title: string; unit: string | null } | null>(null);
 
-  const stages = type.stages;
+  const stages = projectStages;
   const logsByProgress = useMemo(() => {
     const map = new Map<string, StageLog[]>();
     for (const log of data.logs) map.set(log.progress_id, [...(map.get(log.progress_id) ?? []), log]);
@@ -71,12 +75,23 @@ export function StageBoard({ projectId, type, data, personnel, readOnly, pricing
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-xl font-semibold">Aşamalar</h2>
-        {type.has_sections && !readOnly && (
-          <Button variant="outline" onClick={() => setSectionDialog("new")}>
-            <Plus className="h-4 w-4" />
-            {type.section_label} ekle
-          </Button>
+        <h2 className="text-xl font-semibold">
+          Aşamalar
+          {project.stage_mode === "custom" && <span className="ml-2 align-middle text-xs font-normal text-muted-foreground">projeye göre düzenlenmiş</span>}
+        </h2>
+        {!readOnly && (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setEditingStages(true)}>
+              <ListChecks className="h-4 w-4" />
+              Kalemleri düzenle
+            </Button>
+            {type.has_sections && (
+              <Button variant="outline" onClick={() => setSectionDialog("new")}>
+                <Plus className="h-4 w-4" />
+                {type.section_label} ekle
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
@@ -166,6 +181,9 @@ export function StageBoard({ projectId, type, data, personnel, readOnly, pricing
         />
       )}
       {logTarget && <LogDialog target={logTarget} personnel={personnel} onClose={() => setLogTarget(null)} />}
+      {editingStages && (
+        <StageListDialog project={project} templateStages={type.stages} projectStages={projectStages} onClose={() => setEditingStages(false)} />
+      )}
     </div>
   );
 }
@@ -191,7 +209,7 @@ function StageTable({
         <StageRow
           key={progress.id}
           index={index + 1}
-          name={stage.name}
+          name={stageLabel(stage)}
           unit={stage.unit}
           progress={progress}
           logs={logsByProgress.get(progress.id) ?? []}
@@ -199,7 +217,7 @@ function StageTable({
           pricing={pricing}
           currency={currency}
           stageId={stage.id}
-          onAddLog={() => onAddLog(progress, stage.name, stage.unit)}
+          onAddLog={() => onAddLog(progress, stageLabel(stage), stage.unit)}
         />
       ))}
     </ol>
@@ -479,6 +497,62 @@ function SectionDialog({
             </Button>
           </div>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function StageListDialog({
+  project,
+  templateStages,
+  projectStages,
+  onClose,
+}: {
+  project: Pick<Project, "id" | "stage_mode">;
+  templateStages: ProjectTypeStage[];
+  projectStages: ProjectTypeStage[];
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [value, setValue] = useState<StageListValue>({ mode: project.stage_mode, items: toStageListItems(projectStages) });
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    const problem = validateStageList(value);
+    if (problem) {
+      toast.error(problem);
+      return;
+    }
+    setSaving(true);
+    try {
+      await repository().saveProjectStages(project.id, value.mode, value.items);
+      toast.success("İş kalemleri kaydedildi");
+      onClose();
+      router.refresh();
+    } catch (error) {
+      toast.error("Kaydedilemedi", { description: (error as Error)?.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>İş kalemlerini düzenle</DialogTitle>
+        </DialogHeader>
+        <StageListEditor templateStages={templateStages} value={value} onChange={setValue} disabled={saving} />
+        <p className="text-xs text-muted-foreground">İş kaydı girilmiş kalem projeden çıkarılamaz.</p>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>
+            Vazgeç
+          </Button>
+          <Button onClick={save} disabled={saving}>
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+            Kaydet
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

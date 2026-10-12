@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ProductionEntry, ProductionProjectOption, ProductionSaveJob, ProductionTarget } from "@/types/production";
-import type { ProjectType } from "@/types/project";
+import { stageLabel } from "@/lib/constants/project";
 
 export class ProductionRepository {
   constructor(private readonly supabase: SupabaseClient) {}
@@ -21,20 +21,24 @@ export class ProductionRepository {
       .eq("is_cancelled", false).eq("is_archived", false).order("project_code");
     if (error) throw error; return (data ?? []) as ProductionProjectOption[];
   }
-  /** Projenin metrajlı iş kalemleri (bölümlüyse "Bölüm · Kalem"). */
-  async listTargets(projectId: string, types: ProjectType[]): Promise<ProductionTarget[]> {
-    const [{ data: rows, error }, { data: sections, error: sectionError }] = await Promise.all([
-      this.supabase.from("project_stage_progress").select("id, section_id, stage_id").eq("project_id", projectId),
+  /** Projenin metrajlı iş kalemleri (bölümlüyse "Bölüm · Kalem"; projeye özel kalemler dahil). */
+  async listTargets(projectId: string): Promise<ProductionTarget[]> {
+    type StageRow = { name: string; unit: string | null; sort_order: number; poz_code: string | null };
+    const [{ data: rows, error }, { data: sections, error: sectionError }, { data: order, error: orderError }] = await Promise.all([
+      this.supabase.from("project_stage_progress").select("id, section_id, stage_id, stage:project_type_stages(name, unit, sort_order, poz_code)").eq("project_id", projectId),
       this.supabase.from("project_sections").select("id, name, sort_order").eq("project_id", projectId),
+      this.supabase.from("project_stages").select("stage_id, sort_order").eq("project_id", projectId),
     ]);
-    if (error) throw error; if (sectionError) throw sectionError;
-    const stages = new Map(types.flatMap((type) => type.stages).map((stage) => [stage.id, stage]));
+    if (error) throw error; if (sectionError) throw sectionError; if (orderError) throw orderError;
     const sectionById = new Map((sections ?? []).map((section) => [section.id as string, section as { name: string; sort_order: number }]));
+    // Projeye göre düzenlenmiş projede sıra projenin listesinden gelir.
+    const listOrder = new Map((order ?? []).map((row) => [row.stage_id as string, row.sort_order as number]));
+    const position = (stageId: string, stage: StageRow) => listOrder.get(stageId) ?? stage.sort_order;
     return (rows ?? [])
-      .map((row) => ({ row, stage: stages.get(row.stage_id as string), section: row.section_id ? sectionById.get(row.section_id as string) : undefined }))
+      .map((row) => ({ row, stage: row.stage as unknown as StageRow | null, section: row.section_id ? sectionById.get(row.section_id as string) : undefined }))
       .filter((item) => item.stage?.unit)
-      .sort((a, b) => (a.section?.sort_order ?? -1) - (b.section?.sort_order ?? -1) || (a.section?.name ?? "").localeCompare(b.section?.name ?? "", "tr") || a.stage!.sort_order - b.stage!.sort_order)
-      .map((item) => ({ progress_id: item.row.id as string, label: [item.section?.name, item.stage!.name].filter(Boolean).join(" · "), unit: item.stage!.unit! }));
+      .sort((a, b) => (a.section?.sort_order ?? -1) - (b.section?.sort_order ?? -1) || (a.section?.name ?? "").localeCompare(b.section?.name ?? "", "tr") || position(a.row.stage_id as string, a.stage!) - position(b.row.stage_id as string, b.stage!))
+      .map((item) => ({ progress_id: item.row.id as string, label: [item.section?.name, stageLabel(item.stage!)].filter(Boolean).join(" · "), unit: item.stage!.unit! }));
   }
   /** Ek iş fiyatları; yalnızca hakediş yetkisi olanlara döner (diğerlerine boş). */
   async getExtraPrices(itemIds: string[]): Promise<Record<string, number>> {

@@ -43,6 +43,7 @@ async function ProjectsContent({ searchParams }: Props) {
       showCreate={canWrite}
       canManageTypes={profile?.role === "site_chief"}
       exportProjects={exportResult.data}
+      showHpReport={types.some((type) => type.screen === "hp")}
       defaultArchiveScope="active"
       allowArchiveScopeFilter
     />

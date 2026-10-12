@@ -36,10 +36,14 @@ export default async function ProjectDetailPage({ params }: Props) {
   if (!project) notFound();
   const type = types.find((item) => item.id === project.project_type_id);
   if (!type) notFound();
+  const [hpSheets, projectStages] = await Promise.all([
+    type.screen === "hp" ? repository.getHpSheets(project.id) : Promise.resolve(null),
+    repository.getProjectStages(project, type),
+  ]);
 
   const pricing = canSeePrices
     ? await new HakedisRepository(supabase).getProjectPricing(
-        type.stages.map((stage) => stage.id),
+        projectStages.map((stage) => stage.id),
         progress.progress.map((row) => row.id),
         progress.logs.map((log) => log.id)
       )
@@ -49,7 +53,9 @@ export default async function ProjectDetailPage({ params }: Props) {
     <ProjectDetail
       project={project}
       type={type}
+      projectStages={projectStages}
       progress={progress}
+      hpSheets={hpSheets}
       personnel={personnel}
       readOnly={!canWrite}
       pricing={pricing}

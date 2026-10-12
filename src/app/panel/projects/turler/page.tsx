@@ -15,10 +15,11 @@ export const metadata = {
 /** Proje türleri ve iş kalemleri (birim fiyatlarıyla); yalnızca firma yöneticisi düzenler. */
 export default async function ProjectTypesPage() {
   const supabase = await createClient();
-  const [profile, account, types] = await Promise.all([
+  const [profile, account, types, addons] = await Promise.all([
     new UserRepository(supabase).getCurrent(),
     new CompanyRepository(supabase).getMyAccount(),
     new ProjectRepository(supabase).listTypes(true),
+    new CompanyRepository(supabase).getProjectAddons(),
   ]);
   if (profile?.role !== "site_chief" || !account.company) notFound();
 
@@ -38,7 +39,7 @@ export default async function ProjectTypesPage() {
           Firmanızın yaptığı iş türleri, iş kalemleri (aşamalar), birimleri ve birim fiyatları
         </p>
       </div>
-      <ProjectTypesManager types={types} stagePrices={stagePrices} currency={account.company.currency_code} />
+      <ProjectTypesManager types={types} stagePrices={stagePrices} currency={account.company.currency_code} addons={addons} />
     </div>
   );
 }
