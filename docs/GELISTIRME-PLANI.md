@@ -123,7 +123,10 @@ keşif dışı ekstra işçilik olabilir. Keşif %100 olunca "Keşif tamamlandı
   listesi ve fiyatları. **Veri girişi firmaya aittir:** proje açma, **keşif**, imalat, sonradan poz/fiyat güncelleme.
   Keşif süper admin'de yoktur; firmada proje yazma yetkisi olanlar girer.
 - **F3 (yapıldı, `20261105000001_kesif_imalat_poz.sql`)** Keşif (proje sayfası, firma girer) ve İmalatlar'da projenin kataloğuna göre poz seçimi; HP'de isteğe bağlı pafta; durum kuralı.
-- **F4** Eski ekranların ve tabloların kaldırılması; demo verisinin taşınması.
+- **F4 (yapıldı, migration yok)** Eski ekranların ve kodların kaldırılması (tür kalem düzenleyici ve şablonlar, "projeye göre
+  düzenle", eski aşama ekranı, eklenti ayarı; Proje Türleri salt okunur). Veritabanındaki eski fonksiyonlar (save_project_type,
+  save_project_stages vb.) ekrandan erişilmez; testlerin motoru olarak duruyor, ileride testlerle birlikte kaldırılabilir. **Veri taşıma yok:** kullanıcı eski demoları sildi ve yeni yapıyla
+  baştan kuruyor (12 Ekim 2026); eskiyle yeni karıştırılmaz.
 - **F5** Katalog içerikleri: önce telekom (HP odaklı, Kurumsal), sonra diğerleri.
 
 **Hedef yapı (ilk taslak; yukarıdaki kararlar ve veri tasarımı önceliklidir):**

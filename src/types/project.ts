@@ -18,20 +18,6 @@ export type ProjectTypeStage = {
   project_id: string | null;
 };
 
-/** template: türün bütün şablon kalemleri; custom: projeye göre düzenlenmiş liste */
-export type StageMode = "template" | "custom";
-
-/** Proje kalem listesi düzenlenirken bir satır (şablon kalemi ya da projeye özel kalem). */
-export type StageListItem = {
-  key: string;
-  /** Şablon kaleminde veya kayıtlı projeye özel kalemde dolu; yeni özel kalemde null */
-  stage_id: string | null;
-  template: boolean;
-  name: string;
-  unit: string;
-  poz_code: string;
-};
-
 export type ProjectType = {
   id: string;
   name: string;
@@ -70,7 +56,6 @@ export type Project = {
   completed_at: string | null;
   progress_notes: string | null;
   progress_percent: number;
-  stage_mode: StageMode;
   priority_order: number | null;
   /** Kurumsal projede toplam proje tarihi */
   project_date: string | null;

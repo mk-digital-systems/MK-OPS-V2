@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { isValidPoz } from "@/lib/constants/project";
 
 const optionalDate = z
   .string()
@@ -39,41 +38,6 @@ export const projectSchema = z
 
 export type ProjectFormValues = z.input<typeof projectSchema>;
 export type ProjectFormOutput = z.output<typeof projectSchema>;
-
-export const projectTypeSchema = z.object({
-  name: z.string().trim().min(2, "Tür adı en az 2 karakter olmalı").max(80),
-  description: z.string().trim().max(500),
-  has_sections: z.boolean(),
-  section_label: z.string().trim().min(2, "Bölüm adı en az 2 karakter olmalı").max(30),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).or(z.literal("")),
-  stages: z
-    .array(
-      z.object({
-        id: z.string().nullable(),
-        name: z.string().trim().min(1, "Aşama adı boş olamaz").max(80),
-        unit: z.string().trim().max(12),
-        poz_code: z
-          .string()
-          .trim()
-          .refine((value) => !value || isValidPoz(value), "Poz 3–5 karakter olmalı"),
-      })
-    )
-    .min(1, "En az bir aşama ekleyin"),
-});
-
-export type ProjectTypeFormValues = z.infer<typeof projectTypeSchema>;
-
-export const stageLogSchema = z.object({
-  log_date: z.string().min(1, "Tarih zorunlu"),
-  quantity: z
-    .string()
-    .trim()
-    .refine((value) => !value || (Number(value.replace(",", ".")) > 0), "Miktar sıfırdan büyük olmalı"),
-  team_leader_personnel_id: z.string(),
-  notes: z.string().trim().max(1000),
-});
-
-export type StageLogFormValues = z.infer<typeof stageLogSchema>;
 
 export const loginSchema = z.object({
   email: z.string().email("Geçerli bir e-posta girin"),

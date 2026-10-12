@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ClipboardPaste, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import type { Project, ProjectAddon, ProjectType } from "@/types/project";
+import type { Project, ProjectType } from "@/types/project";
 import { projectSchema, type ProjectFormOutput, type ProjectFormValues } from "@/lib/validations/project";
 import { createClient } from "@/lib/supabase/client";
 import { ProjectRepository } from "@/modules/projects/project-repository";
@@ -20,7 +20,6 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { HpSheetFields, emptyHpSheet, validateHpSheets } from "@/components/projects/hp-sheet-board";
-import { StageListEditor, validateStageList, type StageListValue } from "@/components/projects/stage-list-editor";
 import {
   CorporateStatusFields,
   saveCorporateStatus,
@@ -35,8 +34,6 @@ type Props = {
   project?: Project;
   types: ProjectType[];
   locations: string[];
-  /** Süper adminin açtığı proje eklentileri; kapalı eklentinin türleri yeni projede seçilemez. */
-  addons?: ProjectAddon[];
   /** Kurumsal projede ekip başı seçimi için (yeni proje). */
   personnel?: Personnel[];
 };
@@ -44,18 +41,18 @@ type Props = {
 type SheetDraft = ReturnType<typeof emptyHpSheet>;
 const MAX_SHEETS = 500;
 
-export function ProjectForm({ mode, project, types: allTypes, locations, addons = [], personnel = [] }: Props) {
+export function ProjectForm({ mode, project, types: allTypes, locations, personnel = [] }: Props) {
   const currentType = allTypes.find((type) => type.id === project?.project_type_id);
-  // HP / kurumsal projenin türü değişmez; standart proje yalnızca standart türler arasında değişir.
+  // Türler süper admin kataloğundan kurulur. HP / kurumsal projenin türü değişmez; standart proje yalnızca
+  // standart türler arasında değişir.
   const types =
     mode === "edit"
       ? currentType && currentType.screen !== "standard"
         ? [currentType]
         : allTypes.filter((type) => type.screen === "standard")
-      : allTypes.filter((type) => type.screen === "standard" || addons.includes(type.screen));
+      : allTypes;
   const [sheets, setSheets] = useState<SheetDraft[]>(() => [emptyHpSheet()]);
   const [pasteOpen, setPasteOpen] = useState(false);
-  const [stageList, setStageList] = useState<StageListValue>({ mode: "template", items: [] });
   const [corporateStatus, setCorporateStatus] = useState<CorporateStatusValue>({ status: "not_started", leaderId: "", completedAt: todayISODate() });
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -114,14 +111,6 @@ export function ProjectForm({ mode, project, types: allTypes, locations, addons 
         }
       }
       let savedId: string;
-      const customStages = mode === "create" && !isHp && stageList.mode === "custom";
-      if (customStages) {
-        const problem = validateStageList(stageList);
-        if (problem) {
-          toast.error(problem);
-          return;
-        }
-      }
       if (mode === "create" && isHp) {
         const problem = validateHpSheets(sheets);
         if (problem) {
@@ -138,15 +127,6 @@ export function ProjectForm({ mode, project, types: allTypes, locations, addons 
           await saveCorporateStatus(repository, savedId, corporateStatus, personnel).catch((error: Error) =>
             toast.error("Proje oluşturuldu ama durumu kaydedilemedi", { description: error.message })
           );
-        }
-        if (customStages) {
-          try {
-            await repository.saveProjectStages(savedId, "custom", stageList.items);
-          } catch (error) {
-            // Kalem listesi kaydedilemezse yarım proje bırakılmaz.
-            await repository.delete(savedId).catch(() => undefined);
-            throw error;
-          }
         }
       }
       toast.success(mode === "create" ? "Proje oluşturuldu" : "Proje güncellendi");
@@ -186,7 +166,7 @@ export function ProjectForm({ mode, project, types: allTypes, locations, addons 
         <CardContent className="grid gap-4 p-6 sm:grid-cols-2">
           <Field label="Proje türü" error={errors.project_type_id?.message} className="sm:col-span-2">
             <NativeSelect
-              {...form.register("project_type_id", { onChange: () => setStageList({ mode: "template", items: [] }) })}
+              {...form.register("project_type_id")}
               disabled={typeLocked}
             >
               {types.map((type) => (
@@ -208,18 +188,10 @@ export function ProjectForm({ mode, project, types: allTypes, locations, addons 
                 İş kalemleri imalatta Poz Listesi&apos;nden seçilir; keşfi proje sayfasından isteğe bağlı girebilirsiniz.
               </p>
             )}
-            {mode === "edit" && selectedType && selectedType.screen === "standard" && !selectedType.catalog_type_id && (
-              <p className="text-xs text-muted-foreground">
-                {project?.stage_mode === "custom"
-                  ? "İş kalemleri projeye göre düzenlenmiş; proje sayfasındaki “Kalemleri düzenle” ile değişir."
-                  : `Aşamalar: ${selectedType.stages.map((stage) => stage.name).join(" → ")}`}
-                {selectedType.has_sections && ` · ${selectedType.section_label} bazında takip`}
-              </p>
-            )}
             {typeLocked && (
               <p className="text-xs text-muted-foreground">
                 {currentType?.screen === "standard"
-                  ? "İş kaydı girilmiş projenin türü değiştirilemez."
+                  ? "İmalat girilmiş projenin türü değiştirilemez."
                   : "Bu projenin türü değiştirilemez; paftalar proje sayfasından düzenlenir."}
               </p>
             )}
@@ -267,19 +239,6 @@ export function ProjectForm({ mode, project, types: allTypes, locations, addons 
           </Field>
         </CardContent>
       </Card>
-      {mode === "create" && selectedType && selectedType.screen === "standard" && !selectedType.catalog_type_id && (
-        <Card>
-          <CardContent className="space-y-3 p-6">
-            <div>
-              <Label>İş kalemleri</Label>
-              {selectedType.has_sections && (
-                <p className="mt-1 text-xs text-muted-foreground">Kalemler her {selectedType.section_label.toLocaleLowerCase("tr-TR")} için ayrı takip edilir.</p>
-              )}
-            </div>
-            <StageListEditor templateStages={selectedType.stages} value={stageList} onChange={setStageList} />
-          </CardContent>
-        </Card>
-      )}
       {mode === "create" && isCorporate && (
         <Card>
           <CardContent className="space-y-3 p-6">

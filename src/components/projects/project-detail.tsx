@@ -17,10 +17,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { HpSheet, Project, ProjectProgressData, ProjectStatus, ProjectType, ProjectTypeStage } from "@/types/project";
+import type { HpSheet, Project, ProjectProgressData, ProjectStatus, ProjectType } from "@/types/project";
 import type { Personnel } from "@/types/work-plan";
-import type { CurrencyCode } from "@/types/auth";
-import type { ProjectPricing } from "@/types/hakedis";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { getDisplayImageUrl } from "@/lib/project-image-url";
 import { createClient } from "@/lib/supabase/client";
@@ -31,7 +29,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ProgressBar, ProjectStatusBadge, TypeDot } from "@/components/projects/project-status-indicators";
-import { StageBoard } from "@/components/projects/stage-board";
 import { HpSheetBoard } from "@/components/projects/hp-sheet-board";
 import { CorporateStatusPanel } from "@/components/projects/corporate-status-panel";
 import { PozBoard } from "@/components/projects/poz-board";
@@ -40,8 +37,6 @@ import type { PozItem } from "@/types/poz";
 type Props = {
   project: Project;
   type: ProjectType;
-  /** Projenin sıralı kalemleri (düzenlenmişse projenin listesi, değilse şablon). */
-  projectStages: ProjectTypeStage[];
   progress: ProjectProgressData;
   /** HP odaklı projede paftalar; diğer türlerde null. */
   hpSheets: HpSheet[] | null;
@@ -49,13 +44,11 @@ type Props = {
   pozes: PozItem[] | null;
   personnel: Personnel[];
   readOnly: boolean;
-  pricing: ProjectPricing | null;
-  currency: CurrencyCode;
 };
 
 type Busy = "status" | "archive" | "cancel" | "reactivate" | "delete" | null;
 
-export function ProjectDetail({ project, type, projectStages, progress, hpSheets, pozes, personnel, readOnly, pricing, currency }: Props) {
+export function ProjectDetail({ project, type, progress, hpSheets, pozes, personnel, readOnly }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<Busy>(null);
   const [reasonDialog, setReasonDialog] = useState<"hold" | "cancel" | null>(null);
@@ -254,7 +247,7 @@ export function ProjectDetail({ project, type, projectStages, progress, hpSheets
                   ? "Kurumsal proje"
                   : hpSheets
                   ? `${hpSheets.filter((sheet) => sheet.status === "completed").length} / ${hpSheets.length} pafta bitti`
-                  : `${projectStages.length} aşama${type.has_sections ? ` · ${progress.sections.length} ${type.section_label.toLocaleLowerCase("tr-TR")}` : ""}`}
+                  : "Proje"}
               </span>
             </div>
             <ProgressBar value={project.progress_percent} status={project.status} />
@@ -296,16 +289,11 @@ export function ProjectDetail({ project, type, projectStages, progress, hpSheets
       {pozes ? (
         <PozBoard projectId={project.id} pozes={pozes} data={progress} sheets={hpSheets} readOnly={!editable} />
       ) : isCorporate || hpSheets ? null : (
-        <StageBoard
-          project={project}
-          type={type}
-          projectStages={projectStages}
-          data={progress}
-          personnel={personnel}
-          readOnly={!editable}
-          pricing={pricing}
-          currency={currency}
-        />
+        <Card>
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            Bu projenin türü katalogdan kurulmamış; iş kalemleri poz listesinden kullanılamaz.
+          </CardContent>
+        </Card>
       )}
 
       <Dialog open={reasonDialog !== null} onOpenChange={(open) => !open && setReasonDialog(null)}>

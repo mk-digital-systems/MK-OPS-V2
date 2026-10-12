@@ -1,6 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AccountInfo } from "@/types/auth";
-import type { ProjectAddon } from "@/types/project";
 import { COMPANY_LOGO_BUCKET } from "@/lib/report-brand";
 
 const LOGO_EXTENSIONS: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
@@ -12,21 +11,6 @@ export class CompanyRepository {
     const { data, error } = await this.supabase.rpc("get_my_company");
     if (error) throw error;
     return (data as AccountInfo | null) ?? { is_super_admin: false, company: null };
-  }
-
-  /**
-   * Firmada açık HP / Kurumsal ekranları: firmaya atanan kataloglardaki türlerin ekran tipleri
-   * (geçiş için eski eklenti listesi de sayılır).
-   */
-  async getProjectAddons(): Promise<ProjectAddon[]> {
-    const [company, catalogTypes] = await Promise.all([
-      this.supabase.from("companies").select("project_addons").maybeSingle(),
-      this.supabase.from("catalog_project_types").select("screen").neq("screen", "standard"),
-    ]);
-    // Migration'lar kurulmadan önce sütun / tablo yoksa kapalı say.
-    const legacy = company.error ? [] : ((company.data?.project_addons as ProjectAddon[] | null) ?? []);
-    const fromCatalogs = catalogTypes.error ? [] : (catalogTypes.data ?? []).map((row) => row.screen as ProjectAddon);
-    return [...new Set([...legacy, ...fromCatalogs])];
   }
 
   async createCompany(name: string): Promise<AccountInfo> {

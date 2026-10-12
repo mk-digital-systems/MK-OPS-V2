@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { DEFAULT_PAGE_SIZE, type StageStatus } from "@/lib/constants/project";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants/project";
 import type {
   CorporateStatus,
   HpReport,
@@ -9,16 +9,12 @@ import type {
   PaginatedResult,
   Project,
   ProjectFilters,
-  ProjectAddon,
   ProjectInput,
   ProjectProgressData,
   ProjectSection,
   ProjectStatus,
   ProjectType,
-  ProjectTypeStage,
-  StageListItem,
   StageLog,
-  StageMode,
   StageProgress,
 } from "@/types/project";
 
@@ -239,63 +235,6 @@ export class ProjectRepository {
     }));
   }
 
-  async saveType(payload: {
-    id: string | null;
-    name: string;
-    description: string;
-    has_sections: boolean;
-    section_label: string;
-    color: string;
-    stages: { id: string | null; name: string; unit: string; poz_code: string }[];
-  }): Promise<string> {
-    const { data, error } = await this.supabase.rpc("save_project_type", {
-      p_id: payload.id,
-      p_name: payload.name,
-      p_description: payload.description,
-      p_has_sections: payload.has_sections,
-      p_section_label: payload.section_label,
-      p_color: payload.color,
-      p_stages: payload.stages.map((stage) => ({ id: stage.id, name: stage.name, unit: stage.unit, poz_code: stage.poz_code })),
-    });
-    if (error) throw error;
-    return data as string;
-  }
-
-  /** HP odaklı / kurumsal tür (aşamasız; eklenti süper admin tarafından açılır). */
-  async saveAddonType(payload: { id: string | null; name: string; description: string; color: string; screen: ProjectAddon }): Promise<string> {
-    const { data, error } = await this.supabase.rpc("save_addon_project_type", {
-      p_id: payload.id,
-      p_name: payload.name,
-      p_description: payload.description,
-      p_color: payload.color,
-      p_screen: payload.screen,
-    });
-    if (error) throw error;
-    return data as string;
-  }
-
-  async setTypeArchived(id: string, archived: boolean): Promise<void> {
-    const { error } = await this.supabase.from("project_types").update({ is_archived: archived }).eq("id", id);
-    if (error) throw error;
-  }
-
-  async deleteType(id: string): Promise<void> {
-    const { error } = await this.supabase.rpc("delete_project_type", { p_id: id });
-    if (error) throw error;
-  }
-
-  /** Projenin sıralı kalemleri: düzenlenmişse projenin listesi, değilse türün şablon kalemleri. */
-  async getProjectStages(project: Pick<Project, "id" | "stage_mode">, type: ProjectType): Promise<ProjectTypeStage[]> {
-    if (project.stage_mode !== "custom") return type.stages;
-    const { data, error } = await this.supabase
-      .from("project_stages")
-      .select("sort_order, stage:project_type_stages(*)")
-      .eq("project_id", project.id)
-      .order("sort_order");
-    if (error) throw error;
-    return (data ?? []).map((row) => row.stage as unknown as ProjectTypeStage).filter(Boolean);
-  }
-
   /** Katalogdan kurulan türün kataloğu (poz listesi bu katalogdan gelir); katalogsuz türde null. */
   async getTypeCatalogId(type: ProjectType): Promise<string | null> {
     if (!type.catalog_type_id) return null;
@@ -307,23 +246,6 @@ export class ProjectRepository {
   /** Keşif (firma girer): poz + miktar; listede olmayan pozların keşfi kalkar. */
   async saveKesif(projectId: string, items: { stage_id: string; quantity: number }[]): Promise<void> {
     const { error } = await this.supabase.rpc("save_project_kesif", { p_project_id: projectId, p_items: items });
-    if (error) throw error;
-  }
-
-  /** template: şablondaki bütün kalemler; custom: verilen sıralı liste (şablondan seçilen + projeye özel). */
-  async saveProjectStages(projectId: string, mode: StageMode, items: StageListItem[]): Promise<void> {
-    const { error } = await this.supabase.rpc("save_project_stages", {
-      p_project_id: projectId,
-      p_mode: mode,
-      p_items:
-        mode === "custom"
-          ? items.map((item) =>
-              item.template
-                ? { stage_id: item.stage_id }
-                : { stage_id: item.stage_id, name: item.name.trim(), unit: item.unit.trim(), poz_code: item.poz_code.trim() }
-            )
-          : [],
-    });
     if (error) throw error;
   }
 
@@ -416,48 +338,4 @@ export class ProjectRepository {
     return { sections: (sections.data ?? []) as ProjectSection[], progress: progressRows, logs };
   }
 
-  async addSection(projectId: string, payload: { name: string; location?: string; notes?: string }): Promise<void> {
-    const { error } = await this.supabase.from("project_sections").insert({
-      project_id: projectId,
-      name: payload.name.trim(),
-      location: emptyToNull(payload.location),
-      notes: emptyToNull(payload.notes),
-    });
-    if (error) throw error;
-  }
-
-  async updateSection(id: string, payload: { name: string; location?: string; notes?: string }): Promise<void> {
-    const { error } = await this.supabase
-      .from("project_sections")
-      .update({ name: payload.name.trim(), location: emptyToNull(payload.location), notes: emptyToNull(payload.notes) })
-      .eq("id", id);
-    if (error) throw error;
-  }
-
-  async deleteSection(id: string): Promise<void> {
-    const { error } = await this.supabase.from("project_sections").delete().eq("id", id);
-    if (error) throw error;
-  }
-
-  async updateStage(id: string, payload: { status?: StageStatus; target_quantity?: number | null }): Promise<void> {
-    const { error } = await this.supabase.from("project_stage_progress").update(payload).eq("id", id);
-    if (error) throw error;
-  }
-
-  async addLog(payload: {
-    progress_id: string;
-    log_date: string;
-    quantity: number | null;
-    team_leader_personnel_id: string | null;
-    team_leader_name: string | null;
-    notes: string | null;
-  }): Promise<void> {
-    const { error } = await this.supabase.from("project_stage_logs").insert(payload);
-    if (error) throw error;
-  }
-
-  async deleteLog(id: string): Promise<void> {
-    const { error } = await this.supabase.from("project_stage_logs").delete().eq("id", id);
-    if (error) throw error;
-  }
 }

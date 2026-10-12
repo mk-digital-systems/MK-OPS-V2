@@ -22,19 +22,6 @@ export type AdminCompany = {
   open_requests: number;
 };
 
-export const PROJECT_ADDONS: { key: ProjectAddon; label: string; description: string }[] = [
-  {
-    key: "hp",
-    label: "HP odaklı projeler",
-    description: "Pafta bazında durum ve ekip başı takibi; HP (home pass) bilgi olarak gösterilir",
-  },
-  {
-    key: "corporate",
-    label: "Kurumsal projeler",
-    description: "Elle durum, öncelik sırası ve lokasyon ile sade takip",
-  },
-];
-
 export type CatalogType = {
   id: string;
   name: string;
