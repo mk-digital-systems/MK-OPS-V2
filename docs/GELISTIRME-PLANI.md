@@ -1,6 +1,6 @@
 # MK OPS — Geliştirme Planı
 
-Son güncelleme: 12 Ekim 2026 (şubeler D1)
+Son güncelleme: 12 Ekim 2026 (şubeler D2 canlıda)
 
 Bu dosya, üzerinde çalışılacak geliştirmelerin listesidir. Eski MK-OPS projesi
 (`PORTFÖY/PANEL/MK-OPS`) silindiği için oradan alınacak fikirlerin iş mantığı
@@ -15,9 +15,27 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 
 ## ▶ Sıradaki çalışma — bir sonraki oturumda buradan devam edilecek
 
-10 Ekim 2026 itibarıyla. Yeni oturumda önce bu bölüm okunur, kullanıcıyla hangi başlıktan
+12 Ekim 2026 itibarıyla. Yeni oturumda önce bu bölüm okunur, kullanıcıyla hangi başlıktan
 devam edileceği kararlaştırılır. Her adım kullanıcının onayıyla ilerler; migration önce
 `tests/db` ile denenir, sonra `supabase/migrations` klasörüne konur.
+
+### 📍 Kaldığımız yer (12 Ekim 2026)
+
+- **Şubeler tamamlandı ve canlıda:** D1 (`20261021000001_branches.sql`) ve D2
+  (`20261022000001_branches_d2.sql`) kurulu, `main`'e birleştirildi, Vercel'e gitti. Kurulacak migration yok.
+- Veritabanı testleri: 14 dosya, 425 kontrol geçiyor (`npm run test:db`). Tip kontrolü ve lint temiz.
+- **Ekranlar tarayıcıda denenmedi.** Kullanıcı canlıda deneyecek; özellikle: şube açıp şefe atama,
+  iki şubede aynı gün iş planı, şube bazında puantaj onayı/kaldırma, başka şubenin deposuna sevkiyat,
+  şef girişinde hakediş/Genel Bakış'ın yalnızca kendi şubesini göstermesi. Gelen geri bildirim ilk iştir.
+- Sıradaki aday: **E — "Bugün" özeti** (aşağıda). C (ekip başı/saha paneli) ertelendi; satış işleri beklemede.
+- Kalan şube sınırları (gerekirse ayrı iş):
+  - Merkez deposunun stoku `inventory_materials.stock_quantity` içinde; Merkez'e erişimi olmayan şefe
+    ekranda gösterilmiyor ama API ile okunabilir (yalnızca miktar). Tam kapatmak stok yapısı değişikliği ister.
+  - Mevcut bir deponun şubesi ekrandan değiştirilemiyor (yeni depo menüde seçili şubeye açılır).
+  - Araç muayene/sigorta bildirimleri erişilebilen şubelere göre süzülüyor, menüde seçili şubeye göre değil.
+- Çalışma düzeni: dal adı `step-NN-...`; migration'ı kullanıcı Supabase SQL Editor'de çalıştırır
+  (proje `gbguxqaticxrjgsgfvfc`); kurulduğu anon RPC denemesiyle doğrulanır, sonra `main`'e
+  fast-forward birleştirilip gönderilir.
 
 ### Satış ve pazarlama (kullanıcı kararı: ilk müşteri gelene kadar beklemede)
 
@@ -45,12 +63,12 @@ devam edileceği kararlaştırılır. Her adım kullanıcının onayıyla ilerle
   atama (Kullanıcılar), proje/personel/araç formunda şube, menüde şube seçici (listeler süzülür), şef ve
   muhasebe yalnızca kendi şubeleri (RLS + fonksiyon içi yazma koruması). Kararlar: personel tek şube;
   puantaj onayı şube bazında; malzeme sevkiyatı anında; proje türleri/fiyatlar firma genelinde ortak.
-- [x] **D2 — Şubeler (devam)** (`20261022000001_branches_d2.sql`): günlük iş planı şube bazında (bugün firmada günde tek plan; `daily_work_plans`
-  benzersizliği şube+tarih olacak); imalat ve onay ekranları şubeye göre; ay sonu puantaj onayı şube bazında;
-  puantaj sayfasında şube süzgeci; hakediş raporu, taşeron listesi/ekstresi, Genel Bakış ve bildirimler
-  şubeye göre (bu fonksiyonlar şu an firma genelini tarıyor); malzeme stoku: depo formunda şube seçimi,
-  stok miktarlarının şubeye göre görünmesi, şef yalnızca kendi şubesinin deposundan gönderir; proje
-  listesinde şube rozeti.
+- [x] **D2 — Şubeler (devam)** (`20261022000001_branches_d2.sql`, canlıda): günlük iş planı ve taslaklar
+  şube bazında (şube+tarih benzersiz; menüde "Tüm şubeler" seçiliyse Merkez); imalat ekip başının şubesini
+  tutar; ay sonu puantaj onayı ve kilidi şube bazında (`get_attendance_month_approvals`); puantaj, hakediş,
+  Genel Bakış menüde seçili şubeye göre; bildirimler ve taşeron listesi/ekstresi erişilebilen şubelerle sınırlı;
+  depo şubeye bağlı, stok/çıkış/irsaliye yalnızca erişilebilen depolarda, başka şubenin deposuna sevkiyat
+  serbest; proje listesinde şube adı.
 - [ ] **E — "Bugün" özeti** (firma yöneticisinin açılış ekranı): hangi ekip nerede, ne yaptı,
   bekleyen onaylar, şube bazında kısa özet.
 - [ ] **C — Ekip başı ve saha paneli** (ertelendi). Taslak: ekip başı kullanıcısı personel kaydına
@@ -74,7 +92,7 @@ devam edileceği kararlaştırılır. Her adım kullanıcının onayıyla ilerle
 - [ ] **`delete-user` Edge Function:** mesajı hâlâ "şantiye şefi"; "firma yöneticisi" yapılıp deploy edilecek.
 - [ ] Kullanılmayan `teams` tablosu (ekip tanımı; taşeron artık personel kartından) — C aşamasında
   ekip başı için kullanılmazsa kaldırılabilir. `personnel.sgk_paid_by_main` kolonu da kullanılmıyor.
-- [ ] Ekranlar tarayıcıda uçtan uca denenmedi (rol bandı, yeni menü, onaylar, taşeron, puantaj grupları);
+- [ ] Ekranlar tarayıcıda uçtan uca denenmedi (rol bandı, yeni menü, onaylar, taşeron, puantaj grupları, şubeler);
   kullanıcı canlıda deniyor, gelen geri bildirime göre düzeltilecek.
 
 ---
@@ -111,8 +129,10 @@ devam edileceği kararlaştırılır. Her adım kullanıcının onayıyla ilerle
 | 25 | Ekipler (ekip başı + isteğe bağlı taşeron) ve taşeronlar: taşerona göre pay yüzdesi, taşeron hakedişi, harcama/ödeme ve bakiye, taşeron personeli ve ayrı maaş dökümü (`20261019000001_teams_subcontractors.sql`) | ✅ |
 | 26 | Taşeron personel kartından tanımlanır ("Kime çalışıyor"); firmanın ödediği maaşlar taşeron alacağından düşer; puantaj ve çıktılarda firma/taşeron ayrı; taşeronluk biterse ekibi firmaya geçer; Ekipler sayfası kaldırıldı (`20261020000001_subcontractor_personnel.sql`) | ✅ |
 | 27 | Taşeron ekranında ve Excel'inde işveren fiyatı/tutarı gösterilmez, yalnızca taşeronun kendi payı; veritabanı testleri İstanbul saat diliminde (CI düzeltmesi) | ✅ |
+| 28 | Şubeler D1: otomatik Merkez, şube açma, şef/muhasebeye şube atama, proje/personel/araç/depo şubeye bağlı, menüde şube seçici, şube bazlı erişim (`20261021000001_branches.sql`) | ✅ |
+| 29 | Şubeler D2: iş planı, imalat, puantaj onayı, hakediş, Genel Bakış, bildirimler, taşeron ve stok şube bazında (`20261022000001_branches_d2.sql`) | ✅ |
 
-Kurulu migration'lar: `20261005000000` … `20261020000001` (hepsi canlıda kurulu, 10 Ekim 2026). Kurulacak migration yok.
+Kurulu migration'lar: `20261005000000` … `20261022000001` (hepsi canlıda kurulu, 12 Ekim 2026). Kurulacak migration yok.
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.
 
 ---
