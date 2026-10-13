@@ -4,14 +4,14 @@ import { APP_NAME, SUPPORT_EMAIL, whatsappUrl } from "@/lib/constants/brand";
 
 export const metadata: Metadata = {
   title: "Kullanım Kılavuzu",
-  description: `${APP_NAME} kullanım kılavuzu: firma kurma, kullanıcılar ve yetkiler, projeler, iş planı, puantaj, malzeme stoku, araçlar, imalat ve hakediş.`,
+  description: `${APP_NAME} kullanım kılavuzu: firma kurma, yetkiler, poz listesi ve keşif, projeler, iş planı, puantaj, stok, araçlar, imalat ve hakediş.`,
   alternates: { canonical: "/kilavuz" },
 };
 
 const SECTIONS = [
   { id: "baslangic", title: "1. Firma kurma, katılım kodu ve kullanıcı onayı" },
   { id: "roller", title: "2. Roller ve modül yetkileri" },
-  { id: "projeler", title: "3. Proje türleri, aşamalar, bölümler ve metraj" },
+  { id: "projeler", title: "3. Proje türleri, poz listesi ve keşif" },
   { id: "hakedis", title: "4. Hakediş" },
   { id: "is-plani", title: "5. Günlük iş planı ve WhatsApp paylaşımı" },
   { id: "personel", title: "6. Personel, puantaj ve avans" },
@@ -24,7 +24,7 @@ const SECTIONS = [
 
 export default function GuidePage() {
   return (
-    <article className="text-[15px] leading-7 text-muted-foreground [&_a]:text-primary [&_a]:underline [&_h2]:mt-12 [&_h2]:scroll-mt-24 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-foreground [&_h3]:mt-6 [&_h3]:font-semibold [&_h3]:text-foreground [&_li]:mt-1 [&_ol]:mt-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mt-3 [&_strong]:text-foreground [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:pl-6">
+    <article className="mx-auto max-w-3xl text-[15px] leading-7 text-muted-foreground [&_a]:text-primary [&_a]:underline [&_h2]:mt-12 [&_h2]:scroll-mt-24 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-foreground [&_h3]:mt-6 [&_h3]:font-semibold [&_h3]:text-foreground [&_li]:mt-1 [&_ol]:mt-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mt-3 [&_strong]:text-foreground [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:pl-6">
       <h1 className="text-3xl font-semibold tracking-tight text-foreground">Kullanım Kılavuzu</h1>
       <p className="!mt-2">
         {APP_NAME} ile firmanızı kurmaktan hakediş raporu almaya kadar her şeyi adım adım anlatır. Menü adları panelde
@@ -55,6 +55,10 @@ export default function GuidePage() {
           <strong>kurucu Firma Yöneticisi</strong> olur.
         </li>
         <li>Firmanız kurulduğu anda 48 saatlik ücretsiz deneme başlar; bütün modüller açıktır.</li>
+        <li>
+          Firmanızın sektörünü (altyapı, telekom, elektrik…) bize bildirin. Sektörünüze uygun <strong>proje türlerini</strong> ve
+          başlangıç <strong>poz listesini</strong> {APP_NAME} ekibi kurar; poz listesini sonra siz düzenlersiniz (bkz. bölüm 3).
+        </li>
       </ol>
       <h3>Çalışanlarınızı ekleyin</h3>
       <ol>
@@ -92,34 +96,75 @@ export default function GuidePage() {
         Personel, Puantaj, Araçlar, Malzeme Stok, Araç Ekipmanları, İmalatlar ve Hakediş. Hakediş yetkisi olmayan kişi birim
         fiyatları ve tutarları hiçbir ekranda göremez.
       </p>
+      <p>
+        <strong>Poz Listesi</strong>&apos;ni firma yöneticileri ve Merkez şantiye şefi düzenler (poz ekleme, Excel&apos;den
+        aktarma, pasife alma). Birim fiyatları yalnızca hakediş yetkisi olanlar görür, girer ve günceller.
+      </p>
 
       <h2 id="projeler">{SECTIONS[2].title}</h2>
-      <h3>Proje türü tanımlayın</h3>
+      <h3>Proje türleri</h3>
       <p>
-        <strong>Projeler → Proje Türleri</strong> sayfasında işinize uyan türleri oluşturun. Hazır şablonlardan (Bina İnşaatı,
-        Altyapı Hattı, Doğalgaz Hattı, Elektrik Tesisatı, Fiber/Telekom Hattı, Araç Bakım/Servis, Genel İş) başlayıp
-        değiştirebilirsiniz. Her türün <strong>iş kalemleri</strong> (aşamaları) vardır (ör. Kazı, Boru döşeme, Dolgu). Kaleme birim
-        (m, m², adet…) verirseniz o kalemde <strong>metraj</strong> takip edilir ve İmalatlar&apos;da seçilebilir.
+        Proje türleri firmanızın sektörüne göre {APP_NAME} ekibi tarafından kurulur; <strong>Projeler → Proje Türleri</strong>{" "}
+        sayfasında görebilirsiniz. Yeni bir türe ihtiyacınız olursa Destek sayfasından bize yazın. Türlerin üç ekranı vardır:
       </p>
       <ul>
         <li>
-          <strong>Bölümlü türler:</strong> bir proje birden çok parçadan oluşuyorsa (blok, kat, pafta, hat kesimi) türde
-          &quot;bölümlü&quot; seçeneğini açın; her bölümün aşamaları ayrı izlenir.
+          <strong>Standart:</strong> iş kalemleri poz listenizden gelir; isterseniz keşif girer, imalatla metrajı izlersiniz.
         </li>
-        <li>Bir türdeki değişiklik o türdeki mevcut projelere de yansır.</li>
+        <li>
+          <strong>HP odaklı (telekom):</strong> standart ekrana ek olarak proje <strong>paftalara</strong> ayrılır. Her paftada
+          pafta no, HP (home pass) adedi, adres, görsel bağlantısı, durum ve ekip başı tutulur; biten paftaya bitiren ekip başı ve
+          bitiş tarihi girilir. Proje ilerlemesi biten paftalardan hesaplanır. HP yalnızca bilgidir, hakedişe girmez.{" "}
+          <strong>Projeler → HP Raporu</strong> genel, proje bazında ve seçtiğiniz tarih aralığında tamamlanan HP&apos;yi
+          gösterir.
+        </li>
+        <li>
+          <strong>Kurumsal (telekom):</strong> sade ekran; durum elle seçilir: Başlamadı, Kazı izni bekliyor, Devam ediyor
+          (mevcut ekip başıyla) veya Bitti (bitiren ekip başı ve bitiş tarihiyle).
+        </li>
       </ul>
-      <h3>Proje açın ve ilerlemeyi işleyin</h3>
+      <h3>Poz listesi (iş kalemleriniz)</h3>
+      <p>
+        <strong>Poz Listesi</strong> firmanıza özel iş kalemi listesidir; sektörünüzdeki bütün proje türleri aynı listeyi kullanır.
+        Her pozun grubu, poz no&apos;su (isteğe bağlı, serbest biçim), adı ve birimi (m, m², adet…) vardır.
+      </p>
+      <ul>
+        <li>
+          <strong>Poz ekle</strong> ile tek tek, <strong>Excel&apos;den yapıştır</strong> ile toplu ekleyin; Excel&apos;de poz no
+          veya adı eşleşen pozlar güncellenir. <strong>Katalogdan ekle</strong> sektörünüz için önerilen kalemleri getirir.
+        </li>
+        <li>
+          Kullanılmış poz silinmez, <strong>pasife</strong> alınır; imalatta artık seçilmez ama geçmiş kayıtlar korunur.
+          &quot;Pasifleri göster&quot; ile görüp yeniden açabilirsiniz.
+        </li>
+        <li>
+          <strong>Fiyat:</strong> her fiyat bir yürürlük tarihiyle tutulur. Pozun <strong>ilk fiyatı</strong> tarih seçilmezse
+          başlangıçtan geçerli olur; fiyat girilmeden önce yapılmış imalatlar da bu fiyatla hesaplanır. Fiyatı olan poza yeni
+          fiyat (zam) tarih seçilmezse bugünden geçerli olur. Yanlış girilen fiyat, fiyat geçmişinden <strong>düzeltilir</strong>{" "}
+          ya da silinir.
+        </li>
+        <li>
+          <strong>Toplu fiyat güncelle (eskalasyon):</strong> yüzdeyi (azalış için eksi) ve yürürlük tarihini yazın; seçtiğiniz
+          gruptaki fiyatı olan aktif pozların hepsine o tarihten geçerli yeni fiyat yazılır.
+        </li>
+      </ul>
+      <h3>Proje açın, keşif girin</h3>
       <ol>
         <li>
           <strong>Projeler → Yeni Proje</strong> ile kod, ad, konum, tür ve tarihleri girin.
         </li>
         <li>
-          Proje detayında her aşamaya hedef miktar girip <strong>iş kaydı</strong> ekleyin: tarih, miktar, ekip şefi, not.
-          İlerleme yüzdesi kayıtlardan otomatik hesaplanır.
+          Keşif <strong>isteğe bağlıdır</strong>. Proje detayındaki <strong>Keşif gir</strong> ile yapılacak işleri poz
+          listesinden seçip miktarlarını yazın. Keşif girilmişse her pozun yapılan ve kalan miktarı ile ilerleme yüzdesi
+          imalatlardan hesaplanır.
         </li>
         <li>
-          Projenin durumunu (Başlamadı, Devam Ediyor, Beklemede, Gecikti, Tamamlandı) güncelleyin. Vazgeçilen işler{" "}
-          <strong>İptal Projeler</strong> sayfasına taşınır ve gerekirse yeniden etkinleştirilir.
+          Keşifte olmayan pozlar da imalatta girilebilir; proje detayında &quot;Keşif dışı işler&quot; olarak ayrıca görünür.
+        </li>
+        <li>
+          İlk imalatla proje &quot;Devam Ediyor&quot; olur. Keşif tamamlansa da proje kendiliğinden kapanmaz;{" "}
+          <strong>Tamamlandı</strong> durumunu siz seçersiniz. Vazgeçilen işler <strong>İptal Projeler</strong> sayfasına taşınır
+          ve gerekirse yeniden etkinleştirilir.
         </li>
       </ol>
 
@@ -128,25 +173,24 @@ export default function GuidePage() {
       <h3>Fiyatlar nereden gelir?</h3>
       <ul>
         <li>
-          <strong>İş kalemleri:</strong> <strong>Projeler → Proje Türleri</strong> sayfasında her türün iş kalemleri (aşamaları)
-          birim ve <strong>birim fiyatla</strong> tanımlanır (ör. Kazı 120 ₺/m). Belirli bir projede fiyat farklıysa proje
-          detayında o kaleme projeye özel fiyat yazılır.
+          <strong>Pozlar:</strong> birim fiyatlar <strong>Poz Listesi</strong>&apos;ndeki yürürlük tarihli fiyatlardır. Her iş
+          kaydı, <strong>işin yapıldığı tarihte</strong> geçerli fiyatla hesaplanır.
         </li>
         <li>
-          <strong>Ek işler:</strong> listede olmayan işler İmalatlar&apos;da &quot;Ek İş&quot; satırı olarak açıklama, miktar,
-          birim ve birim fiyatla yazılır. Fiyatı imalatı yazan hakediş yetkilisi girer; yetkisi yoksa satır fiyatsız kaydedilir
-          ve <strong>Hakediş → Ayrıntı</strong> sekmesinde fiyatlanır.
+          <strong>Ek işler:</strong> poz listesinde olmayan işler İmalatlar&apos;da &quot;Ek İş&quot; satırı olarak açıklama,
+          miktar ve birimle yazılır; poz listesine eklenmez. İmalatı yazan hakediş yetkilisiyse fiyatı o anda girer. Değilse imalat
+          &quot;fiyat onayı bekliyor&quot; olur: hakediş yetkisi olan Merkez kullanıcısı <strong>Onaylar</strong> sayfasında her ek
+          işin birim fiyatını girip onaylar. Onaylanana kadar ek iş hakedişe girmez.
         </li>
       </ul>
       <h3>Miktarlar nereden gelir?</h3>
       <ul>
         <li>
           <strong>İmalatlar</strong>&apos;da projeye bağlı iş kalemi satırları kaydedildiği anda projeye iş kaydı olarak işlenir.
-          Proje detayında da elle iş kaydı girilebilir.
         </li>
         <li>
-          İş kaydının tutarı girildiği günkü fiyatla <strong>sabitlenir</strong>; fiyat sonradan değişse de geçmiş hakediş
-          değişmez. Fiyatı henüz girilmemiş kayıtlar, fiyat girildiğinde otomatik fiyatlanır.
+          Fiyata zam yapıldığında yalnızca yürürlük tarihinden sonraki işler yeni fiyatla hesaplanır; geçmiş hakediş değişmez.
+          Fiyatı henüz girilmemiş pozun kayıtları, fiyat girildiğinde kendi tarihlerine göre otomatik fiyatlanır.
         </li>
       </ul>
       <h3>Rapor</h3>
@@ -227,6 +271,20 @@ export default function GuidePage() {
           planında ve seçim listelerinde görünmez; reddedilen kayıt silinir.
         </li>
         <li>
+          <strong>Excel&apos;den toplu ekle:</strong> Ad Soyad, Görev, Telefon, TC Kimlik No, İşe Giriş ve Aylık Maaş sütunlarını
+          Excel&apos;den kopyalayıp yapıştırın, şubeyi seçin. Satırlar eklemeden önce kontrol edilir; &quot;35.000&quot; gibi
+          binlik ayraçlı tutarlar ve Excel tarihleri doğru okunur.
+        </li>
+        <li>
+          <strong>Toplu işlemler:</strong> listede personeli işaretleyip <strong>Seçilenleri şubeye taşı</strong> ile geçiş
+          tarihiyle başka şubeye, <strong>Taşerona / firmaya geçir</strong> ile bir taşeronun ekibine ya da firma personeline
+          aktarabilirsiniz.
+        </li>
+        <li>
+          <strong>Şube şube liste ve çıktı:</strong> birden fazla şubede personel listesi önce Merkez, sonra şubelerin açılış
+          sırasıyla bölümlere ayrılır. Yazdırırken bütün şubeleri (her şube ayrı sayfada) ya da tek bir şubeyi seçebilirsiniz.
+        </li>
+        <li>
           <strong>Puantaj:</strong> ay tablosunda her gün için Çalıştı, Çalışmadı, Mazeretsiz Gelmedi, İzinli, Raporlu veya
           Hafta Tatili işaretlenir. Aylık tabloyu Excel ya da Word olarak, kişi bazında puantajı Word olarak alabilirsiniz.
           Puantaj değişikliklerinin kendi geçmişi tutulur.
@@ -292,6 +350,11 @@ export default function GuidePage() {
           muhasebenin eklediği araç, firma yöneticisi veya Merkez şantiye şefi onaylayınca kullanıma açılır.
         </li>
         <li>
+          <strong>Excel&apos;den toplu ekle:</strong> Plaka, Marka, Model, KM, Muayene Tarihi ve Sigorta Tarihi sütunlarını
+          yapıştırarak çok sayıda aracı tek seferde ekleyin. Seçtiğiniz araçları <strong>Seçilenleri şubeye taşı</strong> ile geçiş
+          tarihiyle başka şubeye aktarabilirsiniz.
+        </li>
+        <li>
           <strong>Yakıt:</strong> her alımda tarih, kilometre ve litre girilir; aylık yakıt dökümü araç sayfasında görünür.
         </li>
         <li>
@@ -308,18 +371,18 @@ export default function GuidePage() {
           yalnızca miktarları girersiniz (iş planında listeden seçilen proje doğrudan gelir).
         </li>
         <li>
-          <strong>İş Kalemi Ekle</strong> ile projenin iş kalemini (bölümlü projelerde bölümüyle) seçip miktarı girin; birim
-          otomatik gelir. Kaydedince bu satır projeye iş kaydı olarak düşer; proje ilerlemesi ve hakediş kendiliğinden
-          güncellenir.
+          <strong>İş Kalemi Ekle</strong> ile poz listenizden pozu seçip miktarı girin; birim otomatik gelir. HP odaklı
+          projelerde işin yapıldığı <strong>paftayı</strong> da seçebilirsiniz (isteğe bağlı). Kaydedince bu satır projeye iş
+          kaydı olarak düşer; keşif ilerlemesi ve hakediş kendiliğinden güncellenir.
         </li>
         <li>
-          Listede olmayan bir iş yapıldıysa <strong>Ek İş Ekle</strong> ile açıklama, miktar, birim ve (yetkiniz varsa) birim
-          fiyat yazın. Ek işler hakedişe dahildir. Projesi olmayan işler için &quot;Listede olmayan iş&quot; seçilip başlık
-          yazılır.
+          Poz listesinde olmayan bir iş yapıldıysa <strong>Ek İş Ekle</strong> ile açıklama, miktar ve birim yazın. Hakediş
+          yetkiniz varsa birim fiyatı da girersiniz; yoksa fiyat <strong>Onaylar</strong> sayfasında girilip onaylanınca hakedişe
+          eklenir (bkz. bölüm 4). Projesi olmayan işler için &quot;Listede olmayan iş&quot; seçilip başlık yazılır.
         </li>
         <li>
           İmalat düzenlenince ya da silinince projedeki iş kaydı da güncellenir ya da silinir. İmalattan gelen kayıtlar proje
-          detayında &quot;İmalat&quot; etiketiyle görünür ve yalnızca İmalatlar&apos;dan değiştirilebilir.
+          detayındaki &quot;İmalat kayıtları&quot; bölümünde görünür ve yalnızca İmalatlar&apos;dan değiştirilebilir.
         </li>
         <li>
           &quot;Kaydet ve Paylaş&quot; ile günlük imalat raporu firma logolu PDF olarak hazırlanır ve WhatsApp&apos;tan
@@ -359,7 +422,7 @@ export default function GuidePage() {
         <li>
           <strong>Bildirimler:</strong> menünün üstündeki zil; okunmamış sayısını gösterir. Katılım isteği, destek yanıtı,
           deneme/plan bitişi (firma yöneticisi), geciken ya da 3 gün içinde bitecek projeler, 15 gün içinde muayene/sigorta tarihi
-          gelen araçlar ve fiyatı girilmemiş hakediş kayıtları burada çıkar. Herkes yalnızca yetkisi olan konuları görür;
+          gelen araçlar, fiyatı girilmemiş hakediş kayıtları ve fiyat onayı bekleyen ek işli imalatlar burada çıkar. Herkes yalnızca yetkisi olan konuları görür;
           bildirime tıklayınca ilgili sayfa açılır.
         </li>
         <li>

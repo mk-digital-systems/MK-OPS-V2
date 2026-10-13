@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Mail, MessageCircle } from "lucide-react";
 import {
   APP_NAME,
-  APP_TAGLINE,
+  APP_SLOGAN,
   COMPANY_LEGAL_NAME,
   SUPPORT_EMAIL,
   whatsappUrl,
@@ -28,7 +28,7 @@ export function SiteFooter() {
             <BrandLogo size={32} />
             <span className="font-semibold">{APP_NAME}</span>
           </Link>
-          <p className="text-sm text-muted-foreground">{APP_TAGLINE}</p>
+          <p className="text-sm text-muted-foreground">{APP_SLOGAN}</p>
         </div>
         <div className="space-y-2">
           <p className="text-sm font-semibold">
@@ -60,7 +60,7 @@ export function SiteFooter() {
         <div className="space-y-2">
           <p className="text-sm font-semibold">İletişim ve yasal</p>
           <ul className="space-y-1 text-sm">
-            {LEGAL_LINKS.slice(0, 3).map((link) => (
+            {LEGAL_LINKS.map((link) => (
               <li key={link.href}>
                 <Link href={link.href} className="text-muted-foreground hover:text-foreground">
                   {link.label}

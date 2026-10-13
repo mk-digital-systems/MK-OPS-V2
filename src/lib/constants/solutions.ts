@@ -25,50 +25,50 @@ export const SOLUTIONS: Solution[] = [
     shortTitle: "Hakediş takibi",
     title: "Hakediş Takibi ve Raporlama Programı",
     description:
-      "İş kalemi birim fiyatları, sahadan gelen metrajlar ve ek işlerle hakedişinizi otomatik hesaplayın; dönem raporunu PDF ve Excel olarak alın.",
+      "Poz listenizdeki birim fiyatlar ve sahadan gelen metrajlarla hakedişinizi otomatik hesaplayın; fiyat değişse de geçmiş tutar korunur. PDF ve Excel rapor.",
     intro:
-      "Sahada yapılan işin parasal değerini Excel'de elle toplamak hem zaman alır hem hataya açıktır. MK OPS, iş kalemlerinizin birim fiyatlarını ve sahadan girilen miktarları birleştirerek hakedişinizi her gün güncel tutar.",
+      "Sahada yapılan işin parasal değerini Excel'de elle toplamak hem zaman alır hem hataya açıktır. MK OPS, poz listenizdeki birim fiyatları ve sahadan girilen miktarları birleştirerek hakedişinizi her gün güncel tutar.",
     problem: {
       title: "Hakediş neden zorlaşır?",
       points: [
         "Metrajlar ekiplerden farklı kanallarla (WhatsApp, kâğıt, telefon) gelir; toplanırken kaybolur.",
-        "Birim fiyat değişince geçmiş dönemlerin tutarı da yanlışlıkla değişir.",
+        "Birim fiyat değişince (eskalasyon, zam) geçmiş dönemlerin tutarı da yanlışlıkla değişir.",
         "Plan dışı ek işler unutulur ya da fiyatsız kalır.",
-        "Dönem sonunda proje ve iş kalemi bazında döküm hazırlamak günler sürer.",
+        "Dönem sonunda proje ve poz bazında döküm hazırlamak günler sürer.",
       ],
     },
     sections: [
       {
-        title: "İş kalemleri ve birim fiyatlar",
-        text: "Her iş türü için iş kalemlerini birimi ve birim fiyatıyla bir kez tanımlarsınız.",
+        title: "Poz listesi ve yürürlük tarihli fiyatlar",
+        text: "İş kalemleriniz firmanıza özel poz listesinde durur; her pozun birim fiyatı yürürlük tarihiyle tutulur.",
         bullets: [
-          "Kazı (m), beton (m³), boru döşeme (m), montaj (adet) gibi kalemler",
-          "Belirli bir projede farklı fiyat geçerliyse projeye özel fiyat",
-          "Fiyatları yalnızca yetki verdiğiniz kişiler görür",
+          "Poz no, grup, ad ve birim; elle veya Excel'den toplu yükleme",
+          "Zam ya da eskalasyon: tek poza yeni fiyat veya bütün listeye yüzde artış, seçtiğiniz tarihten geçerli",
+          "Fiyatları yalnızca hakediş yetkisi verdiğiniz kişiler görür ve değiştirir",
         ],
       },
       {
         title: "Sahadan gelen metraj otomatik hakedişe dönüşür",
-        text: "Günlük imalat girilirken proje ve iş kalemi seçilip miktar yazılır; tutar o günkü fiyatla hesaplanır.",
+        text: "Günlük imalat girilirken proje ve poz seçilip miktar yazılır; tutar işin yapıldığı tarihteki fiyatla hesaplanır.",
         bullets: [
-          "Fiyat kayıt anında sabitlenir; sonradan değişse de geçmiş hakediş değişmez",
-          "Fiyatı henüz girilmemiş kayıtlar fiyat girilince otomatik fiyatlanır",
-          "Plan dışı ek işler açıklama, miktar, birim ve fiyatla hakedişe eklenir",
+          "Yeni fiyat yalnızca yürürlük tarihinden sonraki işleri etkiler; geçmiş hakediş değişmez",
+          "Fiyatı henüz girilmemiş pozun kayıtları fiyat girilince kendi tarihlerine göre fiyatlanır",
+          "Listede olmayan ek işler imalatta yazılır; yetkili kişi fiyatını girip onaylayınca hakedişe girer",
         ],
       },
       {
         title: "Dönem raporu tek tıkla",
         text: "Hakediş döneminizi (ör. her ayın 20'si) bir kez ayarlarsınız; rapor hazır gelir.",
         bullets: [
-          "Proje, iş kalemi ve ekip şefi bazında döküm",
+          "Proje, poz ve ekip başı bazında döküm",
           "Firma logolu PDF ve çok sayfalı Excel çıktısı",
           "Panelde bugün, bu hafta ve bu dönemin toplamı; fiyatsız kayıt uyarısı",
         ],
       },
     ],
     steps: [
-      "Proje türlerinizi ve iş kalemlerinizi birim fiyatlarıyla tanımlayın.",
-      "Ekipler her gün imalatı proje ve iş kalemi seçerek girsin.",
+      "Poz listenizi birim fiyatlarıyla elle ya da Excel'den yükleyin.",
+      "Ekipler her gün imalatı proje ve poz seçerek girsin.",
       "Hakediş sayfasında dönemi seçin; raporu PDF veya Excel olarak indirin.",
     ],
     audience: [
@@ -79,11 +79,15 @@ export const SOLUTIONS: Solution[] = [
     faq: [
       {
         q: "Birim fiyatı değiştirirsem geçmiş hakediş değişir mi?",
-        a: "Hayır. Her iş kaydı girildiği günkü fiyatla sabitlenir; fiyat değişikliği yalnızca sonraki kayıtları etkiler.",
+        a: "Hayır. Yeni fiyat bir yürürlük tarihiyle girilir; her iş kaydı yapıldığı tarihte geçerli fiyatla hesaplanır. Önceki işler eski fiyatla kalır.",
+      },
+      {
+        q: "Bütün fiyatlara aynı oranda zam yapabilir miyim?",
+        a: "Evet. Yüzdeyi ve geçerlilik tarihini yazarsınız; seçilen pozların hepsine o tarihten geçerli yeni fiyat yazılır.",
       },
       {
         q: "Listede olmayan bir iş yapıldıysa ne olur?",
-        a: "İmalat girilirken \"Ek iş\" satırı olarak açıklama, miktar, birim ve fiyatla yazılır ve hakedişe dahil edilir.",
+        a: "İmalat girilirken ek iş olarak açıklama, miktar ve birimiyle yazılır. Hakediş yetkisi olan kişi fiyatını girip onaylayınca hakedişe dahil edilir; ek iş poz listenize eklenmez.",
       },
       {
         q: "Fiyatları herkes görebilir mi?",
@@ -97,7 +101,7 @@ export const SOLUTIONS: Solution[] = [
     shortTitle: "Günlük iş takibi",
     title: "Günlük İş Planı ve Saha İmalat Takibi",
     description:
-      "Günlük iş planını hazırlayın, ekiplere WhatsApp'tan gönderin; akşam imalatı proje ve iş kalemiyle girin, ilerleme ve hakediş kendiliğinden güncellensin.",
+      "Günlük iş planını hazırlayın, ekiplere WhatsApp'tan gönderin; akşam imalatı proje ve pozla girin; metraj ve hakediş kendiliğinden güncellensin.",
     intro:
       "Sabah kimin hangi işe gideceği, akşam kimin ne kadar iş yaptığı… MK OPS günlük iş planını ve saha imalatını aynı yerde tutar; projelerin ilerlemesi bu kayıtlardan kendiliğinden hesaplanır.",
     problem: {
@@ -120,10 +124,10 @@ export const SOLUTIONS: Solution[] = [
       },
       {
         title: "Günlük imalat raporu",
-        text: "Akşam her ekip başı için yapılan işler proje ve iş kalemi seçilerek miktarıyla girilir.",
+        text: "Akşam her ekip başı için yapılan işler proje ve poz seçilerek miktarıyla girilir.",
         bullets: [
           "\"İş Planından Doldur\" ile ekipler ve projeler forma hazır gelir",
-          "Kaydedilen miktar projeye iş kaydı olarak işlenir; ilerleme yüzdesi güncellenir",
+          "Kaydedilen miktar projeye iş kaydı olarak işlenir; keşif girilmişse ilerleme yüzdesi güncellenir",
           "Günlük rapor firma logolu PDF olarak paylaşılır",
         ],
       },
@@ -158,7 +162,7 @@ export const SOLUTIONS: Solution[] = [
       },
       {
         q: "İmalat girince proje ayrıca güncellenmeli mi?",
-        a: "Hayır. İş kalemi seçilerek girilen miktar projeye otomatik işlenir; imalat düzenlenirse proje de güncellenir.",
+        a: "Hayır. Poz seçilerek girilen miktar projeye otomatik işlenir; imalat düzenlenirse proje de güncellenir.",
       },
     ],
     related: ["hakedis-takibi", "proje-metraj-takibi", "puantaj-personel-takibi"],
@@ -237,35 +241,35 @@ export const SOLUTIONS: Solution[] = [
   {
     slug: "proje-metraj-takibi",
     shortTitle: "Proje ve metraj takibi",
-    title: "Proje, İş Kalemi ve Metraj Takibi",
+    title: "Proje, Poz Listesi ve Metraj Takibi",
     description:
-      "Her iş türü için iş kalemlerini tanımlayın; projeleri bölüm bölüm, metrajla ve ilerleme yüzdesiyle izleyin. Geciken projeler için bildirim alın.",
+      "Sektörünüze uygun proje türleri ve kendi poz listenizle projeleri metrajla izleyin; keşif girin, ilerlemeyi görün, geciken projeler için bildirim alın.",
     intro:
-      "Bina, altyapı hattı, doğalgaz, elektrik ya da servis işi… Her işin aşamaları farklıdır. MK OPS'ta iş türlerinizi kendiniz tanımlar, projeleri aşama aşama ve metrajla takip edersiniz.",
+      "Altyapı hattı, doğalgaz, elektrik, telekom ya da bina işi… Her sektörün proje türleri ve iş kalemleri farklıdır. MK OPS'ta proje türleri sektörünüze göre hazır gelir; iş kalemleriniz kendi poz listenizdir, projeleri metrajla takip edersiniz.",
     problem: {
       title: "Proje takibi neden tabloda kaybolur?",
       points: [
-        "Her iş türünün aşamaları farklıdır; tek tip tablo hepsine uymaz.",
-        "Büyük projeler blok, kat ya da hat kesimi gibi parçalara ayrılır.",
+        "Her sektörün proje türleri ve iş kalemleri farklıdır; tek tip tablo hepsine uymaz.",
+        "Keşifte öngörülen miktar ile sahada yapılan iş ayrı tablolarda kalır.",
         "Gecikmeler fark edildiğinde iş işten geçmiş olur.",
       ],
     },
     sections: [
       {
-        title: "Kendi iş türleriniz",
-        text: "Hazır şablonlardan başlayın ya da sıfırdan oluşturun.",
+        title: "Sektörünüze göre proje türleri, size ait poz listesi",
+        text: "Proje türleri firmanızın sektörüne göre kurulum sırasında tanımlanır; iş kalemlerinizi poz listenizde siz yönetirsiniz.",
         bullets: [
-          "Bina inşaatı, altyapı hattı, doğalgaz, elektrik, fiber, araç servisi ve genel iş şablonları",
-          "İş kalemlerine birim verince metraj takibi açılır",
-          "Bir türdeki değişiklik o türdeki projelere de yansır",
+          "Poz no, grup başlığı, ad ve birimle iş kalemleri; elle veya Excel'den yükleme",
+          "Kullanılmayan poz silinmez, pasife alınır; geçmiş kayıtlar bozulmaz",
+          "Telekom projelerinde pafta bazında HP (home pass) takibi ve tarih aralıklı HP raporu",
         ],
       },
       {
-        title: "Bölümler ve ilerleme",
-        text: "Projeyi parçalara ayırıp her parçayı ayrı izleyin.",
+        title: "Keşif ve ilerleme",
+        text: "Projeye keşif girmek isteğe bağlıdır: poz ve miktar yazarsınız, sahadan gelen imalat keşfe göre ilerler.",
         bullets: [
-          "Bölümlü projeler: blok, kat, pafta, hat kesimi",
-          "Hedef miktar ve yapılan miktardan otomatik ilerleme yüzdesi",
+          "Keşif girilmişse ilerleme yüzdesi keşifteki miktara göre hesaplanır",
+          "Keşif dışı işler de aynı projeye işlenir; proje kendiliğinden kapanmaz, tamamlandı elle işaretlenir",
           "Durum: Başlamadı, Devam Ediyor, Beklemede, Gecikti, Tamamlandı",
         ],
       },
@@ -280,23 +284,27 @@ export const SOLUTIONS: Solution[] = [
       },
     ],
     steps: [
-      "İş türünüzü şablondan seçip iş kalemlerini düzenleyin.",
-      "Projeyi açın; gerekiyorsa bölümlere ayırıp hedef miktarları girin.",
-      "Günlük imalat girildikçe ilerlemeyi panelden izleyin.",
+      "Poz listenizi elle ya da Excel'den yükleyin.",
+      "Projeyi sektörünüzün proje türüyle açın; isterseniz keşfini girin.",
+      "Günlük imalat girildikçe metrajı ve ilerlemeyi panelden izleyin.",
     ],
     audience: [
       "Aynı anda çok sayıda proje yürüten müteahhitler",
-      "Hat ve şebeke işi yapan altyapı firmaları",
+      "Hat ve şebeke işi yapan altyapı ve telekom firmaları",
       "Proje bazlı çalışan servis ve montaj firmaları",
     ],
     faq: [
       {
-        q: "Kendi aşamalarımı tanımlayabilir miyim?",
-        a: "Evet. İş türlerini ve iş kalemlerini tamamen siz belirlersiniz; şablonlar yalnızca başlangıçtır.",
+        q: "Kendi iş kalemlerimi tanımlayabilir miyim?",
+        a: "Evet. Poz listesi firmanıza özeldir; poz no, ad, birim ve fiyatları siz belirlersiniz. Proje türleri ise sektörünüze göre kurulumda hazırlanır.",
       },
       {
-        q: "Metraj zorunlu mu?",
-        a: "Hayır. Birimi olmayan iş kalemleri yalnızca durumla (başladı / bitti) izlenir.",
+        q: "Keşif girmek zorunlu mu?",
+        a: "Hayır. Keşif girilmezse imalatlar yine projeye işlenir ve metraj toplamları görünür; yalnızca ilerleme yüzdesi hesaplanmaz.",
+      },
+      {
+        q: "Keşif tamamlanınca proje kapanır mı?",
+        a: "Hayır. Keşif dışı iş çıkabileceği için proje kendiliğinden tamamlanmaz; tamamlandı olarak elle işaretlenir.",
       },
     ],
     related: ["gunluk-is-takibi", "hakedis-takibi", "denetim-gunlugu"],
@@ -455,7 +463,7 @@ export const SOLUTIONS: Solution[] = [
         title: "Hangi kayıtlar izlenir?",
         text: "Operasyonun ve paranın döndüğü modüllerin hepsi kapsanır.",
         bullets: [
-          "Projeler, proje türleri, bölümler, aşamalar ve iş kayıtları",
+          "Projeler, poz listesi ve fiyatları, keşif ve iş kayıtları",
           "Hakediş birim fiyatları, iş planları ve imalat kayıtları",
           "Personel, avans, araçlar, malzeme tanımları, depolar ve kategoriler",
           "Kullanıcı rolleri, modül yetkileri ve firma ayarları",

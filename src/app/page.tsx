@@ -139,7 +139,7 @@ const SOLUTIONS = [
 ];
 
 const MORE = [
-  { icon: FolderKanban, title: "İş ve proje takibi", text: "Aşama, ilerleme, gecikme ve sorumlu ekip." },
+  { icon: FolderKanban, title: "İş ve proje takibi", text: "Poz listesi, keşif, ilerleme ve sorumlu ekip." },
   { icon: CarFront, title: "Araç ve yakıt", text: "Araç-personel eşleşmesi, yakıt ve kilometre." },
   { icon: Wallet, title: "Avans ve ödeme günleri", text: "Personel avansları ve ücrete esas günler." },
   { icon: Hammer, title: "Günlük faaliyet raporu", text: "Ekiplerin günlük yaptığı işler, PDF rapor." },

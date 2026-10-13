@@ -36,7 +36,7 @@ export default function ConstructionTrackingPage() {
   return (
     <article>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <section className="overflow-hidden border-b bg-[radial-gradient(circle_at_80%_0%,#dbeafe,transparent_34%)]">
+      <section className="overflow-hidden border-b bg-[radial-gradient(circle_at_80%_0%,#dbeafe,transparent_34%)] dark:bg-[radial-gradient(circle_at_80%_0%,#1e3a8a66,transparent_34%)]">
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 lg:grid-cols-[.9fr_1.1fr] lg:py-24">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[.18em] text-primary">Şantiye takip programı</p>

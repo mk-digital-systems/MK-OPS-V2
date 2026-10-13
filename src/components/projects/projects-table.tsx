@@ -245,7 +245,7 @@ export function ProjectsTable({
             <CardContent className="py-14 text-center text-sm text-muted-foreground">
               {types.length === 0 && showCreate ? (
                 <>
-                  Önce <Link href="/panel/projects/turler" className="font-medium text-primary underline">Proje Türleri</Link> sayfasından proje türlerinizi tanımlayın.
+                  Firmanıza henüz proje türü kurulmadı. Kurulum için <Link href="/panel/support" className="font-medium text-primary underline">Destek</Link> sayfasından bize yazın.
                 </>
               ) : (
                 "Kriterlere uyan proje yok."

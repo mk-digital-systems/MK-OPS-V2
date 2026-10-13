@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 export default function SolutionsPage() {
   return (
-    <div className="text-[15px] leading-7 text-muted-foreground">
+    <div className="mx-auto max-w-4xl text-[15px] leading-7 text-muted-foreground">
       <h1 className="text-3xl font-semibold tracking-tight text-foreground">Birbirine bağlı şantiye çözümleri</h1>
       <p className="mt-3">
         {APP_NAME}, sahada ekiplerle çalışan firmaların günlük operasyonunu tek panelde toplar. Her modül, sonraki

@@ -13,7 +13,6 @@ const PAGE_PROOF: Record<string, { src: string; alt: string; caption: string }> 
   "hakedis-takibi": { src: "/images/panel/dash.png", alt: "Hakediş toplamlarını gösteren MK OPS genel bakış ekranı", caption: "Günlük imalatların parasal karşılığı bugün, bu hafta ve dönem toplamında görünür." },
   "gunluk-is-takibi": { src: "/images/panel/plan.png", alt: "Ekip, araç ve projelerin yer aldığı günlük iş planı ekranı", caption: "Personel, araç, ekip türü ve proje tek günlük planda birleşir." },
   "irsaliye-malzeme-takibi": { src: "/images/panel/stok.png", alt: "Merkez ve saha depolarını gösteren malzeme stok ekranı", caption: "Toplam stok ile Merkez ve saha depolarındaki dağılım aynı satırda izlenir." },
-  "proje-metraj-takibi": { src: "/images/panel/proje.png", alt: "Proje ilerleme ve metraj takip ekranı", caption: "İş kalemleri ilerledikçe projenin tamamlanma oranı güncellenir." },
   "puantaj-personel-takibi": { src: "/images/panel/puantaj.png", alt: "Aylık personel puantaj takip tablosu", caption: "Çalışma, izin, rapor ve hafta tatili günleri ay boyunca tek tabloda." },
   "arac-ekipman-takibi": { src: "/images/panel/zimmet.png", alt: "Araç ve personele ekipman zimmetleme ekranı", caption: "Ekipmanın depodan araca veya personele uzanan zimmet geçmişi kayıt altında." },
   "denetim-gunlugu": { src: "/images/panel/dash-tall.png", alt: "MK OPS yönetim paneli ve bildirimleri", caption: "Operasyon kayıtları yetki ve işlem geçmişiyle birlikte yönetilir." },
@@ -43,7 +42,7 @@ const CONNECTIONS: Record<string, { title: string; href: string; text: string }[
   "puantaj-personel-takibi": [
     { title: "Personel kartı", href: "/cozumler/puantaj-personel-takibi", text: "İşe giriş, görev ve aktiflik bilgisi kaynağıdır." },
     { title: "Şube günleri", href: "/cok-subeli-santiye-yonetimi", text: "Ay içinde hangi şubede kaç gün çalıştığı görünür." },
-    { title: "Taşeron kesintisi", href: "/taseron-takibi", text: "Taşeron personeli ve SGK sorumluluğu ayrıştırılır." },
+    { title: "Taşeron kesintisi", href: "/taseron-takibi", text: "Taşeron personeli kendi ekibinin altında ayrı izlenir." },
   ],
   "arac-ekipman-takibi": [
     { title: "İş planı", href: "/cozumler/gunluk-is-takibi", text: "Araç günlük ekibe bağlanır." },
@@ -108,7 +107,7 @@ export default async function SolutionPage({ params }: Params) {
   };
 
   return (
-    <article className="text-[15px] leading-7 text-muted-foreground">
+    <article className="mx-auto max-w-4xl text-[15px] leading-7 text-muted-foreground">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }} />
 

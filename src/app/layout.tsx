@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     template: `%s · ${APP_NAME}`,
   },
   description:
-    `${APP_NAME} — ${APP_TAGLINE}. Projeler, personel, puantaj, depo ve araçlar tek panelde.`,
+    `${APP_NAME} — ${APP_TAGLINE}: projeler, personel, puantaj, depo ve araçlar tek panelde.`,
   applicationName: APP_NAME,
   openGraph: { siteName: APP_NAME, locale: "tr_TR", type: "website", images: "/opengraph-image" },
   twitter: { card: "summary_large_image", images: "/opengraph-image" },

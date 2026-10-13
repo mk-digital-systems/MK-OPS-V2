@@ -1,5 +1,6 @@
 export const APP_NAME = "MK OPS";
-export const APP_TAGLINE = "Şantiyenizi A'dan Z'ye tek yerden yönetin: sahadaki ekipten Merkez'deki onaya.";
+export const APP_TAGLINE = "Şantiye ve Saha Yönetimi";
+export const APP_SLOGAN = "Şantiyenizi A'dan Z'ye tek yerden yönetin: sahadaki ekipten Merkez'deki onaya.";
 export const APP_LOGO_SRC = "/images/logo-mk-ops.png";
 export const FILE_NAME_PREFIX = "MK-OPS";
 export const SUPPORT_EMAIL = "iletisim@mk-digitalsystems.com";

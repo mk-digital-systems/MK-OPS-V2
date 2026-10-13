@@ -1,6 +1,6 @@
 # MK OPS — Geliştirme Planı
 
-Son güncelleme: 12 Ekim 2026 gece (HP ve Kurumsal eklentileri canlıda; F — sektör yapısı ve poz listesi planı)
+Son güncelleme: 13 Ekim 2026 (F1–F4 canlıda; toplu personel/araç işlemleri; SEO sayfaları ve kılavuz yeni yapıya göre)
 
 Bu dosya, üzerinde çalışılacak geliştirmelerin listesidir. Eski MK-OPS projesi
 (`PORTFÖY/PANEL/MK-OPS`) silindiği için oradan alınacak fikirlerin iş mantığı
@@ -15,24 +15,32 @@ da burada özetlenmiştir; artık tek referans bu dosyadır.
 
 ## ▶ Sıradaki çalışma — bir sonraki oturumda buradan devam edilecek
 
-12 Ekim 2026 itibarıyla. Yeni oturumda önce bu bölüm okunur, kullanıcıyla hangi başlıktan
+13 Ekim 2026 itibarıyla. Yeni oturumda önce bu bölüm okunur, kullanıcıyla hangi başlıktan
 devam edileceği kararlaştırılır. Her adım kullanıcının onayıyla ilerler; migration önce
 `tests/db` ile denenir, sonra `supabase/migrations` klasörüne konur.
 
-### 📍 Kaldığımız yer (12 Ekim 2026 gece)
+### 📍 Kaldığımız yer (13 Ekim 2026)
 
-- **Bugün canlıya çıkanlar** (`20261029000001` … `20261102000001`, hepsi kurulu, `main`'de):
-  - Süper admin → Yönet → **Proje ayarları**: şirket bazında proje eklentileri (HP odaklı / Kurumsal).
-  - **HP odaklı proje**: pafta no, HP adedi, adres, görsel ve not ile toplu pafta girişi (Excel'den yapıştırma); pafta
-    durumu ve ekip başı; proje durumu paftalardan; **HP raporu** (genel, proje bazında, tarih aralığında tamamlanan HP).
-    HP (home pass) yalnızca bilgidir, hakedişe girmez. **Henüz iş kalemi yok**; F'de kalemli olacak.
-  - **Kurumsal proje**: durum elle (Başlamadı / Devam ediyor / Kazı izni bekliyor / Bitti), ekip başı, toplam proje
-    tarihi, öncelik, lokasyon filtresi.
-  - **Projeye göre iş kalemleri ve poz** ("şablondaki hepsi" ya da "projeye göre düzenle"); poz elle, 3–5 karakter.
-    F'de bu yapı yeniden ele alınacak.
-  - **İmalattaki özel iş kalemi (ek iş)**: fiyatı hakediş yetkilisi Onaylar'da girip onaylar; o zamana kadar hakedişe girmez.
-  - BGFD (kabin) türü yapılmayacak: eski, iptal olmuş bir proje türü.
-- **Sıradaki iş: F — Sektör yapısı, proje türleri ve poz listesi** (aşağıda). Panel karıştığı için önce bu düzenlenecek.
+- **Canlıda ve `main`'de** (migration'lar `20261029000001` … `20261107000001`, hepsi kurulu):
+  - **F1–F4 tamamlandı** (ayrıntı aşağıda "F — Adımlar"): süper admin katalogları, firma Poz Listesi (yürürlük tarihli
+    fiyat, toplu eskalasyon), keşif ve imalatta poz seçimi, eski kalem ekranlarının kaldırılması.
+  - **HP odaklı ve Kurumsal proje** ekranları kataloğa bağlı; HP projesinde paftalar + poz (imalatta isteğe bağlı pafta).
+  - **İmalattaki ek iş:** poz listesine girmez; hakediş yetkilisi değilse fiyatı Onaylar'da girilip onaylanır.
+  - **Personel ve araçta toplu işlemler** (`20261106000001_bulk_branch_change.sql`): Excel'den toplu ekleme, seçilenleri
+    geçiş tarihiyle şubeye taşıma, personeli taşerona / firmaya geçirme.
+  - **Sayı okuma:** "35.000", "125.000" gibi binlik ayraçlı sayılar doğru okunur (ortak `src/lib/bulk-import.ts`).
+  - **Poz fiyatı** (`20261107000001_poz_first_price.sql`): pozun ilk fiyatı tarihsiz girilirse başlangıçtan geçerli
+    (önceki imalatlar fiyatlanır), sonraki tarihsiz fiyat bugünden; fiyat geçmişinde düzeltme ve silme.
+  - **Personel listesi şube şube** (önce Merkez, sonra şubelerin açılış sırası); çıktı bütün şubeler (şube başına sayfa)
+    ya da tek şube.
+  - **SEO sayfaları** (kullanıcının çalışması, `0203e6e`) gözden geçirildi: alt bilgide bütün yasal bağlantılar, gerçek
+    olmayan SGK iddiası kaldırıldı, `APP_TAGLINE` kısa ad / `APP_SLOGAN` uzun cümle olarak ayrıldı, uzun açıklamalar
+    kısaltıldı, açık renkli hero'lara karanlık mod, yasal sayfalarda okunur genişlik. Çözüm sayfaları (hakediş, proje)
+    ve **kullanım kılavuzu** poz listesi, keşif, HP/Kurumsal, ek iş onayı ve toplu işlemlere göre yeniden yazıldı.
+    `proje.png` ekran görüntüsü eski aşama ekranını gösterdiği için çözüm sayfasından çıkarıldı; yenisi çekilince eklenir.
+- **Sıradaki adaylar:** F5 (kullanıcı gerçek bir poz listesi getirince; telekom önce), C (ekip başı saha paneli,
+  ertelendi), taşeronun kendi girişi, resmi tatiller, küçük teknik işler (aşağıda). Satış işleri ilk müşteriye kadar beklemede.
+- BGFD (kabin) türü yapılmayacak: eski, iptal olmuş bir proje türü.
 
 ### F — Sektör yapısı, proje türleri ve poz listesi (12 Ekim 2026 kararı)
 
@@ -127,7 +135,10 @@ keşif dışı ekstra işçilik olabilir. Keşif %100 olunca "Keşif tamamlandı
   düzenle", eski aşama ekranı, eklenti ayarı; Proje Türleri salt okunur). Veritabanındaki eski fonksiyonlar (save_project_type,
   save_project_stages vb.) ekrandan erişilmez; testlerin motoru olarak duruyor, ileride testlerle birlikte kaldırılabilir. **Veri taşıma yok:** kullanıcı eski demoları sildi ve yeni yapıyla
   baştan kuruyor (12 Ekim 2026); eskiyle yeni karıştırılmaz.
-- **F5** Katalog içerikleri: önce telekom (HP odaklı, Kurumsal), sonra diğerleri.
+- **Sonrası (yapıldı):** toplu personel/araç ekleme ve şube tayini (`20261106000001`), ilk poz fiyatı başlangıçtan ve
+  fiyat düzeltme (`20261107000001`), personel listesi şube şube.
+- **F5 (bekliyor)** Katalog içerikleri: önce telekom (HP odaklı, Kurumsal), sonra diğerleri. Kullanıcı gerçek bir poz
+  listesi getirince başlanır.
 
 **Hedef yapı (ilk taslak; yukarıdaki kararlar ve veri tasarımı önceliklidir):**
 1. **Sektör seçimi:** kurulumda ve Ayarlar'da, çoklu.
@@ -146,7 +157,8 @@ F5 diğer sektörler.
 
 **Açık konular:**
 - Bölge (müteahhitlik) katsayısı gerçekte var mı? Bilinmiyor; şimdilik eklenmiyor.
-- HP / Kurumsal ekranlarını bugünkü gibi süper admin mi açar, yoksa telekom sektörü seçilince mi açılır?
+- ~~HP / Kurumsal ekranlarını kim açar?~~ Çözüldü (F1): ekran tipi katalogdaki türdedir; süper admin firmaya kataloğu
+  atayınca türler kurulur.
 - Telekom öneri listesi: kullanıcının kontrolüyle, poz kodsuz ve kurum adı geçmeden hazırlanacak. İnternetten veya
   yapay zekâdan alınan "Türk Telekom poz listesi" gerçek kaynak değildir; kodları uydurmadır, kullanılmaz.
 - Resmi kurumların birim fiyat listeleri (inşaat, yol, su, elektrik) F5'te kaynak ve kullanım şartlarıyla değerlendirilecek.
@@ -235,8 +247,7 @@ F5 diğer sektörler.
 
 - [ ] **`MK-OPS/` klasörü:** eski proje v2 deposunun içinde, izlenmiyor ama içinde `.env` var;
   yanlışlıkla commit edilmesin diye depo dışına taşınmalı (ya da `.git/info/exclude`). Kullanıcıya sorulacak.
-- [ ] **`src/app/favicon.ico`:** paletli PNG içeriyor; `npm run dev` (Turbopack) bütün sayfalarda 500
-  veriyor (canlı etkilenmiyor). RGBA olarak yeniden üretilecek.
+- [x] ~~**`src/app/favicon.ico`:** paletli PNG; dev sunucusunda 500.~~ Düzeldi; dev sunucusunda bütün sayfalar 200 dönüyor.
 - [ ] **`delete-user` Edge Function:** mesajı hâlâ "şantiye şefi"; "firma yöneticisi" yapılıp deploy edilecek.
 - [ ] Kullanılmayan `teams` tablosu (ekip tanımı; taşeron artık personel kartından) — C aşamasında
   ekip başı için kullanılmazsa kaldırılabilir. `personnel.sgk_paid_by_main` kolonu da kullanılmıyor.
@@ -254,7 +265,7 @@ F5 diğer sektörler.
 | 3 | Şirket kurma, kodla katılma, 48 saatlik deneme | ✅ |
 | 4 | Süper admin paneli, destek talepleri, plan atama | ✅ |
 | 5 | Landing sayfası, panel `/panel` altında, yasal sayfalar | ✅ |
-| 6 | Sektörden bağımsız proje modülü (türler, aşamalar, bölümler, metraj) | ✅ |
+| 6 | Sektörden bağımsız proje modülü (türler, aşamalar, bölümler, metraj) — F'de katalog ve poz listesiyle değişti | ✅ |
 | 7 | Hakediş: aşama/proje birim fiyatı, fiyat sabitleme, dönem raporu, Excel, Genel Bakış kartı, "Hakediş" modül yetkisi | ✅ |
 | 7a | İş planında ekibe araç atamak opsiyonel | ✅ |
 | 8 | Firma logosu ve adı tüm çıktılarda; hakediş PDF'i (logo filigranlı) | ✅ |
@@ -286,8 +297,18 @@ F5 diğer sektörler.
 | 34 | Personel/araç şube geçmişi, puantajda şube dağılımı, yakıtta şube; irsaliye başına bildirim (`20261027000001_branch_history.sql`) | ✅ |
 | 35 | Bekleyen irsaliyeyi geri çekme; muhasebe talep irsaliyesini kontrol eder; Genel Bakış araç uyarıları seçili şubeye göre (`20261028000001_receipt_withdraw.sql`) | ✅ |
 | 36 | Genel Bakış'ta "Bugün" özeti: ekipler, imalat durumu, bugünkü puantaj, şube özeti | ✅ |
+| 37 | SEO sayfaları: şantiye takip programı, çok şubeli yönetim, taşeron, yakıt, Excel karşılaştırması, ücretsiz puantaj şablonu; panel ekran görüntüleri | ✅ |
+| 38 | HP odaklı proje (pafta, HP adedi, HP raporu), imalatta ek iş fiyat onayı (`20261029000001` … `20261101000002`) | ✅ |
+| 39 | Kurumsal proje ekranı (`20261102000001_corporate_projects.sql`) | ✅ |
+| 40 | F1 — Süper admin katalogları: sektör, proje türleri, önerilen kalemler, firmaya atama (`20261103000001_catalogs.sql`) | ✅ |
+| 41 | F2 — Firma Poz Listesi: elle, Excel'den, katalogdan; yürürlük tarihli fiyat, toplu eskalasyon (`20261104000001_poz_list.sql`) | ✅ |
+| 42 | F3 — Keşif, imalatta poz seçimi, HP'de pafta, iş tarihindeki fiyat (`20261105000001_kesif_imalat_poz.sql`) | ✅ |
+| 43 | F4 — Eski tür kalem düzenleyici, şablonlar, aşama ekranı ve eklenti ayarı kaldırıldı (migration yok) | ✅ |
+| 44 | Personel ve araçta Excel'den toplu ekleme, toplu şube tayini, taşerona geçirme (`20261106000001_bulk_branch_change.sql`) | ✅ |
+| 45 | Binlik ayraçlı sayı okuma; ilk poz fiyatı başlangıçtan, fiyat düzeltme (`20261107000001_poz_first_price.sql`); personel listesi ve çıktısı şube şube | ✅ |
+| 46 | SEO düzeltmeleri; çözüm sayfaları ve kullanım kılavuzu poz listesi / keşif yapısına göre güncellendi | ✅ |
 
-Kurulu migration'lar: `20261005000000` … `20261028000001` (12 Ekim 2026).
+Kurulu migration'lar: `20261005000000` … `20261107000001` (13 Ekim 2026).
 **Kural:** Kurulmuş bir migration dosyası asla değiştirilmez; her değişiklik yeni dosyadır.
 
 ---
