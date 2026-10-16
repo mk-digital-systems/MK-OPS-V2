@@ -86,7 +86,7 @@ function legacyDescription(name: string, quantity: number, unit: string) {
   return `${name} — ${Number(quantity).toLocaleString("tr-TR")} ${unit}`;
 }
 
-export function ProductionsManager({ initialDate, personnel, initialEntries, readOnly, projects, projectTypes, canSeePrices, initialExtraPrices, currency }: {
+export function ProductionsManager({ initialDate, personnel, initialEntries, readOnly, projects, projectTypes, canSeePrices, initialExtraPrices, currency, chiefIds }: {
   initialDate: string;
   personnel: Personnel[];
   initialEntries: ProductionEntry[];
@@ -97,6 +97,8 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
   canSeePrices: boolean;
   initialExtraPrices: Record<string, number>;
   currency: CurrencyCode;
+  /** İş planında ekip şefi (ekip başı) yazılmış personel; imalat yalnızca bunlara girilir. */
+  chiefIds: string[];
 }) {
   const { effectiveBranchId, branches, multiBranch } = useBranches();
   const brand = useReportBrand();
@@ -120,6 +122,12 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
   const activePersonnel = useMemo(() => personnel.filter((person) => person.is_active).sort((a, b) => a.full_name.localeCompare(b.full_name, "tr")), [personnel]);
   /** Ekip başının şubesi: imalat yalnızca o şubenin projelerine yazılır. */
   const leaderBranch = (team: FormTeam) => (multiBranch ? personnel.find((person) => person.id === team.personnelId)?.branch_id ?? null : null);
+  // Ekip adı: iş planında ekip başı yazılmış kişiler (şube, taşeron ve firma personeli dahil); hiç plan yoksa herkes.
+  const teamLeaderOptions = useMemo(() => {
+    if (!chiefIds.length) return activePersonnel;
+    const allowed = new Set([...chiefIds, ...teams.map((team) => team.personnelId).filter(Boolean)]);
+    return activePersonnel.filter((person) => allowed.has(person.id));
+  }, [activePersonnel, chiefIds, teams]);
   const personnelById = useMemo(() => new Map(personnel.map((person) => [person.id, person])), [personnel]);
   const filteredReport = useMemo(
     () => reportEntries.filter((entry) => personnelFilter === "all" || entry.team_leader_personnel_id === personnelFilter),
@@ -413,7 +421,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
     <div className="space-y-5">
       {teams.map((team, teamIndex) => { const accent = accents[teamIndex % accents.length]; return <section key={team.key} className={`overflow-hidden rounded-lg border border-l-4 ${accent.border}`}>
         <div className={`flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-end sm:justify-between ${accent.soft}`}>
-          <div className="w-full max-w-md space-y-2"><Label className={accent.label}>Ekip Adı</Label><Select disabled={readOnly} value={team.personnelId || undefined} onValueChange={(value) => updateTeam(teamIndex, { personnelId: value })}><SelectTrigger><SelectValue placeholder="Personel seçin" /></SelectTrigger><SelectContent>{groupByBranch(activePersonnel, (person) => person.branch_id, branches, multiBranch).map((section) => <SelectGroup key={section.id}>{section.name && <SelectLabel>{section.name}</SelectLabel>}{section.items.map((person) => <SelectItem key={person.id} value={person.id} disabled={teams.some((other, index) => index !== teamIndex && other.personnelId === person.id)}>{person.full_name}</SelectItem>)}</SelectGroup>)}</SelectContent></Select></div>
+          <div className="w-full max-w-md space-y-2"><Label className={accent.label}>Ekip Adı</Label><Select disabled={readOnly} value={team.personnelId || undefined} onValueChange={(value) => updateTeam(teamIndex, { personnelId: value })}><SelectTrigger><SelectValue placeholder="Personel seçin" /></SelectTrigger><SelectContent>{groupByBranch(teamLeaderOptions, (person) => person.branch_id, branches, multiBranch).map((section) => <SelectGroup key={section.id}>{section.name && <SelectLabel>{section.name}</SelectLabel>}{section.items.map((person) => <SelectItem key={person.id} value={person.id} disabled={teams.some((other, index) => index !== teamIndex && other.personnelId === person.id)}>{person.full_name}</SelectItem>)}</SelectGroup>)}</SelectContent></Select></div>
           {!readOnly && teams.length > 1 && <Button type="button" size="icon" variant="ghost" title="Ekibi kaldır" onClick={() => removeTeam(teamIndex)}><Trash2 className="h-4 w-4" /></Button>}
         </div>
         <div className="space-y-4 p-4">{team.jobs.map((job, jobIndex) => { const jobTargets = job.projectId ? targets[job.projectId] : undefined; return <div key={job.key} className={`border-2 ${accent.jobBorder} bg-background p-4`}>

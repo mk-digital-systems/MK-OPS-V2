@@ -184,6 +184,10 @@ export function WorkPlanEditor({
     [personnel]
   );
 
+  /** Ekibin grubu: şefi taşeron personeliyse o taşeron, değilse firma (null). Ekip yalnızca kendi grubundan kurulur. */
+  const groupOf = (personnelId: string | null | undefined) =>
+    activePersonnel.find((p) => p.id === personnelId)?.subcontractor_id ?? null;
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
@@ -254,8 +258,9 @@ export function WorkPlanEditor({
       prev.map((team) => {
         if (team.client_id !== clientId) return team;
 
+        // Şef başka gruptan seçilirse (ör. taşeron personeli) önceki üyelerden farklı gruptakiler çıkarılır.
         const others = team.members.filter(
-          (m) => !m.is_chief && m.personnel_id !== personnelId
+          (m) => !m.is_chief && m.personnel_id !== personnelId && groupOf(m.personnel_id) === (person.subcontractor_id ?? null)
         );
 
         const members = ensureChiefFirst([
@@ -290,6 +295,11 @@ export function WorkPlanEditor({
       ?.members.some(
         (member) => !member.is_chief && member.personnel_id === personnelId
       );
+    const teamChief = teams.find((team) => team.client_id === clientId)?.chief_personnel_id;
+    if (!alreadySelected && groupOf(teamChief) !== (person.subcontractor_id ?? null)) {
+      toast.error("Taşeron ekibi yalnızca taşeronun kendi personelinden, firma ekibi yalnızca firma personelinden kurulur.");
+      return;
+    }
     if (
       !alreadySelected &&
       personnelIdsUsedByOtherTeams(clientId).has(personnelId)
@@ -951,10 +961,15 @@ export function WorkPlanEditor({
                 </div>
 
                 <div className="flex flex-wrap gap-2">
+                  {!team.chief_personnel_id && (
+                    <p className="text-xs text-muted-foreground">Önce ekip şefini seçin; ekip şefin grubundan (firma ya da bağlı olduğu taşeron) kurulur.</p>
+                  )}
                   {activePersonnel
                     .filter(
                       (p) =>
+                        Boolean(team.chief_personnel_id) &&
                         p.id !== team.chief_personnel_id &&
+                        (p.subcontractor_id ?? null) === groupOf(team.chief_personnel_id) &&
                         !personnelIdsUsedByOtherTeams(team.client_id).has(p.id)
                     )
                     .map((p) => {

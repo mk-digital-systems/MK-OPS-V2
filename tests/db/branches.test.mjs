@@ -154,6 +154,12 @@ check("şef yalnızca kendi şubesinin planını görür", (await one(chief, `se
 e = await asErr(owner, `insert into public.daily_work_plans (plan_date, branch_id) values ($1, $2)`, [planDate, merkez.id]);
 check("bir şubede günde tek plan", !!e, e);
 
+// İmalatta ekip adı olarak iş planında ekip şefi yazılmış kişiler; şube yetkisiyle süzülür.
+await sys(`insert into public.daily_work_plan_teams (company_id, plan_id, chief_personnel_id, chief_name, chief_phone, project_name, project_code, team_type, vehicle_plate, sort_order)
+  values ($3, $1, $2, 'Merkez Usta', '05550000000', 'Proje', '-', 'Genel', '-', 0)`, [merkezPlan.id, merkezPerson.id, company.id]);
+check("firma yöneticisi ekip şeflerini görür", (await one(owner, `select public.get_team_chief_ids() r`)).r.includes(merkezPerson.id));
+check("başka şubenin ekip şefi şefe görünmez", !(await one(chief, `select public.get_team_chief_ids() r`)).r.includes(merkezPerson.id));
+
 const aEntry = (await sys(`select branch_id from public.production_entries where team_leader_personnel_id = $1`, [aPerson.id])).rows[0];
 check("imalat ekip başının şubesini tutar", aEntry?.branch_id === branchA);
 
