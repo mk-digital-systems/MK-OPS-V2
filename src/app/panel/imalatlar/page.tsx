@@ -28,7 +28,7 @@ export default async function ProductionsPage({
   const monthEnd = `${month}-${String(new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate()).padStart(2, "0")}`;
   const productionRepository = new ProductionRepository(supabase);
   const userRepository = new UserRepository(supabase);
-  const [personnel, entries, canWrite, canSeePrices, projects, types, account] = await Promise.all([
+  const [personnel, entries, canWrite, canSeePrices, projects, types, account, chiefIds] = await Promise.all([
     new PersonnelRepository(supabase).list({ activeOnly: true, branchId }),
     productionRepository.listEntries(monthStart, monthEnd, branchId),
     userRepository.canWrite("productions"),
@@ -36,6 +36,7 @@ export default async function ProductionsPage({
     productionRepository.listProjectOptions(branchId),
     new ProjectRepository(supabase).listTypes(true),
     new CompanyRepository(supabase).getMyAccount(),
+    productionRepository.listTeamChiefIds(),
   ]);
   const extraPrices = canSeePrices
     ? await productionRepository.getExtraPrices(
@@ -47,6 +48,7 @@ export default async function ProductionsPage({
     <ProductionsManager
       initialDate={initialDate}
       personnel={personnel}
+      chiefIds={chiefIds}
       initialEntries={entries}
       readOnly={!canWrite}
       projects={projects}

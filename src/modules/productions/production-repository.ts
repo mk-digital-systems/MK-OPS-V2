@@ -11,6 +11,12 @@ export class ProductionRepository {
     if (error) throw error;
     return (data ?? []).map((entry) => ({ ...entry, jobs: [...(entry.production_jobs ?? [])].sort((a,b) => a.sort_order-b.sort_order).map((job) => ({ ...job, items: [...(job.production_items ?? [])].sort((a,b) => a.sort_order-b.sort_order) })) })) as ProductionEntry[];
   }
+  /** İş planında en az bir kez ekip şefi (ekip başı) yazılmış personel kimlikleri. */
+  async listTeamChiefIds(): Promise<string[]> {
+    const { data, error } = await this.supabase.rpc("get_team_chief_ids");
+    if (error) throw error;
+    return (data as string[] | null) ?? [];
+  }
   async saveEntry(input: { entry_id?: string | null; work_date: string; leader_id: string; leader_name: string; work_plan_id: string | null; jobs: ProductionSaveJob[] }): Promise<string> {
     const { data, error } = await this.supabase.rpc("save_production_entry", { p_entry_id: input.entry_id ?? null, p_work_date: input.work_date, p_team_leader_personnel_id: input.leader_id, p_team_leader_name: input.leader_name, p_source_work_plan_id: input.work_plan_id, p_jobs: input.jobs });
     if (error) throw error; return data as string;
