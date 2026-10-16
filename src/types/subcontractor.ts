@@ -66,6 +66,16 @@ export type SubcontractorStatement = {
   carried_balance: number;
   balance: number;
   rows: SubcontractorWorkRow[];
+  /** Firmanın taşeron personeline verdiği avans ve maaş ödemeleri (satır satır; bakiyeye zaten salary_total ile yansır). */
+  personnel_payments?: {
+    id: string;
+    personnel_id: string;
+    full_name: string;
+    advance_date: string;
+    amount: number;
+    kind: "advance" | "salary";
+    notes: string | null;
+  }[];
   salaries: {
     personnel_id: string;
     full_name: string;

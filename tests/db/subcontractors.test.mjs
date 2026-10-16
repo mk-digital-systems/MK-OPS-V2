@@ -158,6 +158,9 @@ check("ekstre: pay 5×100×%60 = 300", Number(aug.share_total) === 300, aug.shar
 check("ekstre: avans 120 + maaş ödemesi 80 = 200 taşeron hesabından düşer",
   Number(aug.salary_total) === 200 && aug.salaries.length === 1 && Number(aug.salaries[0].advance_paid) === 120 && Number(aug.salaries[0].salary_paid) === 80, JSON.stringify(aug.salaries));
 check("ekstre: kalan bakiye 300 − 200", Number(aug.balance) === 100, aug.balance);
+check("ekstre: personele verilen avans ve maaş ödemesi satır satır listelenir",
+  aug.personnel_payments.length === 2 && aug.personnel_payments.reduce((sum, row) => sum + Number(row.amount), 0) === 200
+  && aug.personnel_payments.some((row) => row.kind === "advance") && aug.personnel_payments.some((row) => row.kind === "salary"), JSON.stringify(aug.personnel_payments));
 const sept = (await one(acc, `select public.get_subcontractor_statement($1, '2026-09-01', '2026-09-30') r`, [ahmetSub])).r;
 check("maaş kesintisi sonraki döneme devreder", Number(sept.carried_balance) === 100, sept.carried_balance);
 

@@ -86,6 +86,9 @@ export function SubcontractorDetail({
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const money = (value: number | string | null | undefined) => formatMoney(value, currency);
+  const personnelPayments = statement?.personnel_payments ?? [];
+  const advanceTotal = personnelPayments.filter((payment) => payment.kind !== "salary").reduce((sum, payment) => sum + Number(payment.amount), 0);
+  const salaryPaidTotal = personnelPayments.filter((payment) => payment.kind === "salary").reduce((sum, payment) => sum + Number(payment.amount), 0);
   const periodLabel = `${formatDate(start)} – ${formatDate(end)}`;
   const todayIso = new Date().toLocaleDateString("en-CA");
 
@@ -469,15 +472,42 @@ export function SubcontractorDetail({
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {statement.by_category.length > 0 && (
+            {(statement.by_category.length > 0 || personnelPayments.length > 0) && (
               <div className="flex flex-wrap gap-2">
                 {statement.by_category.map((item) => (
                   <Badge key={item.category_name} className="border bg-background text-foreground">
                     {item.category_name}: {money(item.amount)}
                   </Badge>
                 ))}
+                {advanceTotal > 0 && (
+                  <Badge className="border bg-background text-foreground">Personel avansı: {money(advanceTotal)}</Badge>
+                )}
+                {salaryPaidTotal > 0 && (
+                  <Badge className="border bg-background text-foreground">Personel maaş ödemesi: {money(salaryPaidTotal)}</Badge>
+                )}
               </div>
             )}
+            {personnelPayments.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Personele verilen avans ve maaş ödemeleri</p>
+                {personnelPayments.map((payment) => (
+                  <div key={payment.id} className="flex flex-col gap-1 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-medium">
+                        {payment.full_name} · {payment.kind === "salary" ? "Maaş ödemesi" : "Avans"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(payment.advance_date)}
+                        {payment.notes ? ` · ${payment.notes}` : ""}
+                      </p>
+                    </div>
+                    <strong className="tabular-nums">{money(payment.amount)}</strong>
+                  </div>
+                ))}
+                <p className="text-xs text-muted-foreground">Personel kartından girilir; buradan değiştirilmez. Tutarlar taşeron bakiyesinden zaten düşülmüştür.</p>
+              </div>
+            )}
+            {statement.transactions.length > 0 && <p className="pt-1 text-sm font-medium">Diğer harcama ve ödemeler</p>}
             {statement.transactions.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">Bu dönemde kayıt yok.</p>
             ) : (
