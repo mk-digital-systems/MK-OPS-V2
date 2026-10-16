@@ -254,6 +254,12 @@ export function WorkPlanEditor({
       return;
     }
 
+    // Şefe araç atanmışsa plaka otomatik gelir (ekipte henüz araç seçilmemişse ve araç başka ekipte kullanılmıyorsa).
+    const assignedVehicle = vehicles.find((vehicle) => vehicle.assigned_personnel_id === person.id);
+    const usedPlates = vehiclePlatesUsedByOtherTeams(clientId);
+    const autoPlate =
+      assignedVehicle && !usedPlates.has(assignedVehicle.plate.trim().toLocaleUpperCase("tr-TR")) ? assignedVehicle.plate : null;
+
     setTeams((prev) =>
       prev.map((team) => {
         if (team.client_id !== clientId) return team;
@@ -280,6 +286,7 @@ export function WorkPlanEditor({
           chief_personnel_id: person.id,
           chief_name: person.full_name,
           chief_phone: person.phone ?? team.chief_phone,
+          vehicle_plate: team.vehicle_plate || autoPlate || "",
           members,
         };
       })

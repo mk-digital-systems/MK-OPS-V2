@@ -19,6 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import type { PozItem } from "@/types/poz";
+import { KesifLinesEditor } from "@/components/projects/sheet-kesif";
 
 const repository = () => new ProjectRepository(createClient());
 const statusOrder = (status: HpSheetStatus) => HP_SHEET_STATUSES.findIndex((item) => item.value === status);
@@ -44,6 +46,8 @@ export function HpSheetBoard({
   readOnly: boolean;
 }) {
   const [adding, setAdding] = useState(false);
+  const cancelledSheets = sheets.filter((sheet) => sheet.status === "cancelled");
+  sheets = sheets.filter((sheet) => sheet.status !== "cancelled");
   const sorted = [...sheets].sort(
     (a, b) => statusOrder(a.status) - statusOrder(b.status) || a.sort_order - b.sort_order || a.sheet_no.localeCompare(b.sheet_no, "tr")
   );
@@ -88,6 +92,22 @@ export function HpSheetBoard({
               <SheetRow key={sheet.id} sheet={sheet} personnel={personnel} readOnly={readOnly} />
             ))}
           </div>
+        )}
+
+        {cancelledSheets.length > 0 && (
+          <details className="rounded-xl border border-rose-200 dark:border-rose-900">
+            <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-rose-700 dark:text-rose-300">
+              İptal edilen paftalar ({cancelledSheets.length})
+            </summary>
+            <div className="border-t">
+              {cancelledSheets.map((sheet) => (
+                <SheetRow key={sheet.id} sheet={sheet} personnel={personnel} readOnly={readOnly} />
+              ))}
+            </div>
+            <p className="border-t px-4 py-2 text-xs text-muted-foreground">
+              İptal paftalar toplamlara ve HP raporuna girmez. Durumu değiştirerek yeniden açabilirsiniz.
+            </p>
+          </details>
         )}
       </CardContent>
       {adding && <AddSheetDialog projectId={projectId} nextOrder={sheets.length + 1} onClose={() => setAdding(false)} />}
@@ -303,6 +323,7 @@ export const emptyHpSheet = (): HpSheetInput & { key: string } => ({
   address: "",
   image_url: "",
   notes: "",
+  kesif: [],
 });
 
 /** Proje oluştururken ve sonradan pafta eklerken kullanılan alanlar. */
@@ -311,11 +332,14 @@ export function HpSheetFields({
   title,
   onChange,
   onRemove,
+  pozes,
 }: {
   sheet: HpSheetInput;
   title: string;
   onChange: (patch: Partial<HpSheetInput>) => void;
   onRemove?: () => void;
+  /** Verilirse paftaya isteğe bağlı keşif satırları eklenebilir (proje oluştururken) */
+  pozes?: PozItem[];
 }) {
   return (
     <div className="grid gap-3 rounded-xl bg-muted/30 p-4 sm:grid-cols-2">
@@ -353,6 +377,17 @@ export function HpSheetFields({
         <Label>Not</Label>
         <Textarea rows={2} value={sheet.notes} onChange={(event) => onChange({ notes: event.target.value })} />
       </div>
+      {pozes && pozes.length > 0 && (
+        <div className="space-y-2 sm:col-span-2">
+          <Label>Keşif (isteğe bağlı)</Label>
+          <p className="text-xs text-muted-foreground">Bu paftada yapılacak işleri ve miktarını girin; girmezseniz pafta keşifsiz ilerler.</p>
+          <KesifLinesEditor
+            pozes={pozes}
+            lines={sheet.kesif?.length ? sheet.kesif : []}
+            onChange={(kesif) => onChange({ kesif })}
+          />
+        </div>
+      )}
     </div>
   );
 }

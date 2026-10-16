@@ -28,6 +28,8 @@ export default async function SubcontractorDetailPage({
   const supabase = await createClient();
   const userRepository = new UserRepository(supabase);
   const repository = new SubcontractorRepository(supabase);
+  // Biten ayların araç kirası taşeronun hesabına yazılır (bir kez; tekrar çağrılması zararsız).
+  await repository.chargeVehicleRent();
   const [profile, canSeePrices, account, subcontractor, personnel] = await Promise.all([
     userRepository.getCurrent(),
     userRepository.canWrite("hakedis"),

@@ -6,6 +6,8 @@ import type {
   HpSheet,
   HpSheetInput,
   HpSheetStatus,
+  SheetKesifRow,
+  CancelledSheet,
   PaginatedResult,
   Project,
   ProjectFilters,
@@ -38,10 +40,11 @@ export class ProjectRepository {
     let query = this.supabase.from("projects").select("*", { count: "exact" });
 
     const scope = filters.archiveScope ?? "active";
-    if (scope === "active") query = query.eq("is_archived", false).eq("is_cancelled", false);
+    // Aktif: tamamlananlar ayrı alandadır ("completed"); "all" iptal ve arşiv dahil her şeyi getirir (arama için).
+    if (scope === "active") query = query.eq("is_archived", false).eq("is_cancelled", false).neq("status", "completed");
+    else if (scope === "completed") query = query.eq("is_archived", false).eq("is_cancelled", false).eq("status", "completed");
     else if (scope === "archived") query = query.eq("is_archived", true).eq("is_cancelled", false);
     else if (scope === "cancelled") query = query.eq("is_cancelled", true);
-    else query = query.eq("is_cancelled", false);
 
     if (filters.status && filters.status !== "all") query = query.eq("status", filters.status);
     if (filters.projectTypeId && filters.projectTypeId !== "all") query = query.eq("project_type_id", filters.projectTypeId);
@@ -250,6 +253,56 @@ export class ProjectRepository {
   }
 
   // ---------------------------------------------------------------- HP paftaları
+  /** İptal edilen paftalar (iptal edilmemiş projelerdeki); iptal projeler alanında listelenir. */
+  async listCancelledSheets(branchId?: string | null): Promise<CancelledSheet[]> {
+    let query = this.supabase
+      .from("project_hp_sheets")
+      .select("id, sheet_no, hp_count, address, project_id, updated_at, projects!inner(project_code, name, branch_id)")
+      .eq("status", "cancelled")
+      .order("updated_at", { ascending: false })
+      .limit(500);
+    if (branchId) query = query.eq("projects.branch_id", branchId);
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []).map((row) => {
+      const project = row.projects as unknown as { project_code: string; name: string };
+      return {
+        id: row.id as string,
+        sheet_no: row.sheet_no as string,
+        hp_count: row.hp_count as number,
+        address: (row.address as string | null) ?? null,
+        project_id: row.project_id as string,
+        project_code: project.project_code,
+        project_name: project.name,
+        cancelled_at: row.updated_at as string,
+      };
+    });
+  }
+
+  /** HP projesinde paftalara girilen keşif (poz + miktar). */
+  async getSheetKesif(projectId: string): Promise<SheetKesifRow[]> {
+    const { data, error } = await this.supabase
+      .from("project_sheet_kesif")
+      .select("sheet_id, progress_id, target_quantity, project_stage_progress(stage_id)")
+      .eq("project_id", projectId);
+    if (error) throw error;
+    return (data ?? []).map((row) => ({
+      sheet_id: row.sheet_id as string,
+      progress_id: row.progress_id as string,
+      stage_id: (row.project_stage_progress as unknown as { stage_id: string } | null)?.stage_id ?? "",
+      target_quantity: Number(row.target_quantity),
+    }));
+  }
+
+  /** Bütün pafta keşfini değiştirir; items: { sheet_id, stageId, quantity }. */
+  async saveSheetKesif(projectId: string, items: { sheet_id: string; stageId: string; quantity: number }[]): Promise<void> {
+    const { error } = await this.supabase.rpc("save_sheet_kesif", {
+      p_project_id: projectId,
+      p_items: items.map((item) => ({ sheet_id: item.sheet_id, stage_id: item.stageId, quantity: item.quantity })),
+    });
+    if (error) throw error;
+  }
+
   async getHpSheets(projectId: string): Promise<HpSheet[]> {
     const { data, error } = await this.supabase
       .from("project_hp_sheets")

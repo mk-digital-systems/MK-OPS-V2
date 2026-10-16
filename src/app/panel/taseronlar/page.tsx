@@ -20,6 +20,8 @@ export default async function SubcontractorsPage() {
   const canManage = profile?.role === "site_chief" || profile?.role === "company_manager" || canSeePrices;
   if (!canManage || !account.company) notFound();
 
-  const items = await new SubcontractorRepository(supabase).list();
+  const repository = new SubcontractorRepository(supabase);
+  await repository.chargeVehicleRent();
+  const items = await repository.list();
   return <SubcontractorsManager initialItems={items} currency={account.company.currency_code} />;
 }

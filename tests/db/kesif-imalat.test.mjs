@@ -118,8 +118,30 @@ await imalat("2026-11-10", [{ stage_id: kablo, quantity: 300, sheet_id: sheet },
 const hpLogs = (await sys(`select l.sheet_id, l.quantity::float q from public.project_stage_logs l join public.project_stage_progress sp on sp.id = l.progress_id where sp.project_id = $1 order by l.quantity desc`, [hp])).rows;
 check("pafta written on log (optional)", hpLogs.length === 2 && hpLogs[0].sheet_id === sheet && hpLogs[1].sheet_id === null, JSON.stringify(hpLogs));
 check("pafta on production item", (await sys(`select count(*)::int n from public.production_items where sheet_id = $1`, [sheet])).rows[0].n === 1);
-check("HP status still from sheets", (await one(owner, `select status from public.projects where id = $1`, [hp])).status === "waiting");
+check("HP projesinde imalat girilince proje devam ediyor", (await one(owner, `select status from public.projects where id = $1`, [hp])).status === "in_progress");
+
+// Pafta bazlı keşif: her paftaya poz + miktar; ilerleme keşiften, tamamlama sorulur
+const sk = (items) => as(owner, `select public.save_sheet_kesif($1, $2::jsonb)`, [hp, JSON.stringify(items)]).then(() => null, (err) => err.message);
+e = await sk([{ sheet_id: sheet, stage_id: kablo, quantity: 600 }, { sheet_id: otherSheet, stage_id: kablo, quantity: 400 }]);
+check("pafta keşfi kaydedilir", !e, e);
+const hpRow = await one(owner, `select target_quantity::float t from public.project_stage_progress where project_id = $1 and stage_id = $2`, [hp, kablo]);
+check("projedeki poz hedefi paftaların toplamı", hpRow.t === 1000, JSON.stringify(hpRow));
+p = await one(owner, `select progress_percent, status, completion_ready from public.projects where id = $1`, [hp]);
+check("HP ilerlemesi keşiften (400/1000)", p.progress_percent === 40 && p.status === "in_progress" && p.completion_ready === false, JSON.stringify(p));
+e = await sk([{ sheet_id: sheet, stage_id: kablo, quantity: 300 }, { sheet_id: sheet, stage_id: kablo, quantity: 5 }]);
+check("aynı paftada aynı poz iki kez olmaz", /iki kez/.test(e ?? ""), e);
+e = await sk([{ sheet_id: sheet, stage_id: kablo, quantity: 400 }]);
+p = await one(owner, `select progress_percent, completion_ready from public.projects where id = $1`, [hp]);
+check("keşif tamamlanınca HP projesi tamamlamaya hazır", !e && p.progress_percent === 100 && p.completion_ready === true, JSON.stringify(p));
+check("pafta keşfi yalnızca HP projesinde", /yalnızca HP/.test((await as(owner, `select public.save_sheet_kesif($1, '[]'::jsonb)`, [project]).then(() => null, (err) => err.message)) ?? ""));
+
 e = await as(owner, `select public.save_production_entry(null, '2026-11-11', $1, 'Ahmet Usta', null, $2::jsonb)`, [leader, JSON.stringify([{ project_id: project, sort_order: 0, items: [{ kind: "stage", stage_id: kazi, quantity: 1, sheet_id: otherSheet, sort_order: 0 }] }])]).then(() => null, (err) => err.message);
 check("pafta of another project rejected", /pafta bu projeye ait değil/.test(e ?? ""), e);
+
+// İptal paftalar: toplamlara ve HP raporuna girmez
+await as(owner, `update public.project_hp_sheets set status = 'cancelled' where id = $1`, [otherSheet]);
+check("iptal pafta kaydedilir", (await one(owner, `select status from public.project_hp_sheets where id = $1`, [otherSheet])).status === "cancelled");
+const rep = (await one(owner, `select public.hp_report('2020-01-01', '2030-01-01') r`)).r;
+check("iptal pafta HP raporunda yok", rep.projects.find((x) => x.id === hp)?.sheet_count === 1, JSON.stringify(rep.projects.find((x) => x.id === hp)));
 
 process.exit(0);

@@ -86,6 +86,7 @@ export const HP_SHEET_STATUSES = [
   { value: "permit_waiting", label: "Kazı izni bekliyor", color: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300" },
   { value: "in_progress", label: "Devam ediyor", color: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300" },
   { value: "completed", label: "Bitti", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" },
+  { value: "cancelled", label: "İptal", color: "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300" },
 ] as const;
 
 export function getHpSheetStatusMeta(status: string) {

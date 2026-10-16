@@ -83,7 +83,7 @@ export function VehiclesManager({
       else next.delete(id);
       return next;
     });
-  const [fuelForm, setFuelForm] = useState({ date: new Date().toISOString().slice(0, 10), km: "", liters: "", notes: "", branch_id: "" });
+  const [fuelForm, setFuelForm] = useState({ date: new Date().toISOString().slice(0, 10), km: "", liters: "", unit_price: "", notes: "", branch_id: "" });
   const currentMonth = new Date().toISOString().slice(0, 7);
   const [reportMonth, setReportMonth] = useState(currentMonth);
   const [dateFrom, setDateFrom] = useState(`${currentMonth}-01`);
@@ -97,6 +97,7 @@ export function VehiclesManager({
       current_km: 0,
       inspection_date: "",
       insurance_date: "",
+      monthly_rent: 0,
       notes: "",
     },
   });
@@ -111,6 +112,7 @@ export function VehiclesManager({
       current_km: 0,
       inspection_date: "",
       insurance_date: "",
+      monthly_rent: 0,
       notes: "",
     });
     setOpen(true);
@@ -127,6 +129,7 @@ export function VehiclesManager({
       current_km: vehicle.current_km,
       inspection_date: vehicle.inspection_date ?? "",
       insurance_date: vehicle.insurance_date ?? "",
+      monthly_rent: Number(vehicle.monthly_rent ?? 0),
       notes: vehicle.notes ?? "",
     });
     setOpen(true);
@@ -134,7 +137,7 @@ export function VehiclesManager({
 
   function openFuel(vehicle: Vehicle) {
     setFuelVehicle(vehicle);
-    setFuelForm({ date: new Date().toISOString().slice(0, 10), km: String(vehicle.current_km), liters: "", notes: "", branch_id: "" });
+    setFuelForm({ date: new Date().toISOString().slice(0, 10), km: String(vehicle.current_km), liters: "", unit_price: "", notes: "", branch_id: "" });
   }
 
   function openAssignment(vehicle: Vehicle) {
@@ -161,10 +164,11 @@ export function VehiclesManager({
     const liters = Number(fuelForm.liters);
     if (!Number.isInteger(km) || km < fuelVehicle.current_km) { toast.error(`Kilometre en az ${fuelVehicle.current_km} olmalıdır`); return; }
     if (!Number.isFinite(liters) || liters <= 0) { toast.error("Geçerli litre girin"); return; }
+    if (fuelForm.unit_price && !(Number(fuelForm.unit_price) > 0)) { toast.error("Geçerli litre fiyatı girin"); return; }
     setLoading(true);
     try {
       const repository = new VehicleRepository(createClient());
-      const created = await repository.recordFuelPurchase({ vehicle_id: fuelVehicle.id, fuel_date: fuelForm.date, odometer_km: km, liters, notes: fuelForm.notes, branch_id: fuelForm.branch_id || null });
+      const created = await repository.recordFuelPurchase({ vehicle_id: fuelVehicle.id, fuel_date: fuelForm.date, odometer_km: km, liters, unit_price: fuelForm.unit_price ? Number(fuelForm.unit_price) : null, notes: fuelForm.notes, branch_id: fuelForm.branch_id || null });
       setFuelLogs((current) => [created, ...current]);
       setVehicles((current) => current.map((vehicle) => vehicle.id === fuelVehicle.id ? { ...vehicle, current_km: Math.max(vehicle.current_km, km) } : vehicle));
       setFuelVehicle(null); toast.success("Yakıt ve kilometre kaydı eklendi");
@@ -533,6 +537,13 @@ export function VehiclesManager({
                 />
               </div>
               <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="monthly_rent">Aylık kira (isteğe bağlı)</Label>
+                <Input id="monthly_rent" type="number" min={0} step="0.01" inputMode="decimal" {...form.register("monthly_rent")} />
+                <p className="text-xs text-muted-foreground">
+                  Araç taşeronun personeline (ekip başı dahil) atalıysa kira, atalı kaldığı gün oranıyla her ay sonu taşeronun hesabına kesinti olarak yazılır.
+                </p>
+              </div>
+              <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="vehicle_notes">Not</Label>
                 <Textarea id="vehicle_notes" {...form.register("notes")} />
               </div>
@@ -552,6 +563,8 @@ export function VehiclesManager({
             <div className="space-y-2"><Label>Yakıt Tarihi</Label><Input type="date" max={new Date().toISOString().slice(0, 10)} value={fuelForm.date} onChange={(event) => setFuelForm((value) => ({ ...value, date: event.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3"><div className="space-y-2"><Label>Yeni Kilometre</Label><Input type="number" min={fuelVehicle?.current_km ?? 0} step="1" value={fuelForm.km} onChange={(event) => setFuelForm((value) => ({ ...value, km: event.target.value }))} /></div>
               <div className="space-y-2"><Label>Alınan Yakıt (Litre)</Label><Input type="number" min="0.001" step="0.001" value={fuelForm.liters} onChange={(event) => setFuelForm((value) => ({ ...value, liters: event.target.value }))} /></div></div>
+            <div className="space-y-2"><Label>Litre fiyatı (isteğe bağlı)</Label><Input type="number" min="0.01" step="0.01" inputMode="decimal" value={fuelForm.unit_price} onChange={(event) => setFuelForm((value) => ({ ...value, unit_price: event.target.value }))} />
+              {Number(fuelForm.liters) > 0 && Number(fuelForm.unit_price) > 0 && <p className="text-xs text-muted-foreground">Toplam: <strong>{(Number(fuelForm.liters) * Number(fuelForm.unit_price)).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> · araç taşeron personelindeyse taşeronun hesabına yazılır</p>}</div>
             <div className="space-y-2"><Label>Not</Label><Textarea value={fuelForm.notes} onChange={(event) => setFuelForm((value) => ({ ...value, notes: event.target.value }))} /></div>
             <Button className="w-full" disabled={loading} onClick={saveFuel}>{loading && <Loader2 className="h-4 w-4 animate-spin" />}Yakıt Kaydını Ekle</Button>
           </div>

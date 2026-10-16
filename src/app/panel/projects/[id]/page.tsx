@@ -33,8 +33,9 @@ export default async function ProjectDetailPage({ params }: Props) {
   if (!project) notFound();
   const type = types.find((item) => item.id === project.project_type_id);
   if (!type) notFound();
-  const [hpSheets, catalogId] = await Promise.all([
+  const [hpSheets, sheetKesif, catalogId] = await Promise.all([
     type.screen === "hp" ? repository.getHpSheets(project.id) : Promise.resolve(null),
+    type.screen === "hp" ? repository.getSheetKesif(project.id) : Promise.resolve([]),
     repository.getTypeCatalogId(type),
   ]);
   // Katalogdan kurulan türde iş kalemleri firmanın poz listesinden (o katalog) gelir.
@@ -48,6 +49,7 @@ export default async function ProjectDetailPage({ params }: Props) {
       type={type}
       progress={progress}
       hpSheets={hpSheets}
+      sheetKesif={sheetKesif}
       pozes={pozes}
       personnel={personnel}
       readOnly={!canWrite}

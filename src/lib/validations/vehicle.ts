@@ -23,6 +23,7 @@ export const vehicleSchema = z.object({
     .max(10_000_000, "Kilometre değeri çok yüksek"),
   inspection_date: z.string().optional().or(z.literal("")),
   insurance_date: z.string().optional().or(z.literal("")),
+  monthly_rent: z.coerce.number().min(0, "Kira negatif olamaz").max(100_000_000, "Kira değeri çok yüksek"),
   notes: z.string().trim().max(2000).optional().or(z.literal("")),
 });
 
