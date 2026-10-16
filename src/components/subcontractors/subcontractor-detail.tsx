@@ -354,8 +354,10 @@ export function SubcontractorDetail({
             <Stat label="Bu dönem ödenen / harcanan" value={money(statement.paid_total)} />
             <Stat
               label={`Kalan bakiye · ${balanceWord(statement.balance)}`}
-              value={money(Math.abs(Number(statement.balance)))}
-              hint={`Önceki dönemden devreden: ${money(Math.abs(Number(statement.carried_balance)))} · ${balanceWord(statement.carried_balance)}`}
+              value={money(statement.balance)}
+              negative={Number(statement.balance) < -0.004}
+              hint={`Önceki dönemden devreden: ${money(statement.carried_balance)} · ${balanceWord(statement.carried_balance)}`}
+              hintNegative={Number(statement.carried_balance) < -0.004}
               strong
             />
           </div>
@@ -758,12 +760,35 @@ function balanceWord(value: number | string) {
   return "hesap kapalı";
 }
 
-function Stat({ label, value, hint, strong }: { label: string; value: string; hint?: string; strong?: boolean }) {
+function Stat({
+  label,
+  value,
+  hint,
+  strong,
+  negative,
+  hintNegative,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  strong?: boolean;
+  /** Eksi bakiye: kırmızı uyarı */
+  negative?: boolean;
+  hintNegative?: boolean;
+}) {
   return (
-    <div className={cn("rounded-2xl border bg-card p-4", strong && "border-primary/40 bg-primary/5")}>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-xl font-semibold tabular-nums">{value}</p>
-      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+    <div
+      className={cn(
+        "rounded-2xl border bg-card p-4",
+        strong && "border-primary/40 bg-primary/5",
+        negative && "border-rose-300 bg-rose-50 dark:border-rose-900 dark:bg-rose-950/40"
+      )}
+    >
+      <p className={cn("text-xs text-muted-foreground", negative && "text-rose-700 dark:text-rose-300")}>{label}</p>
+      <p className={cn("mt-1 text-xl font-semibold tabular-nums", negative && "text-rose-600 dark:text-rose-400")}>{value}</p>
+      {hint && (
+        <p className={cn("mt-1 text-xs text-muted-foreground", hintNegative && "font-medium text-rose-600 dark:text-rose-400")}>{hint}</p>
+      )}
     </div>
   );
 }
