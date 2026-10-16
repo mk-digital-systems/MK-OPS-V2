@@ -112,7 +112,7 @@ check("template poz clashing with own item in a project rejected", /Aynı poz/.t
 
 // Proje ilerlemesi ve bölümler -----------------------------------------------------------------------
 await as(chief, `update public.project_stage_progress set status = 'done' where project_id = $1`, [p2]);
-check("custom project completes from its own list", (await one(`select status from public.projects where id = $1`, [p2])).status === "completed");
+check("custom project asks to complete from its own list", await one(`select status = 'in_progress' and completion_ready as ok from public.projects where id = $1`, [p2]).then((r) => r.ok));
 const site = (await one(`select public.save_project_type(null, 'Site', null, true, 'Blok', null, '[{"name":"Temel"},{"name":"Çatı"}]'::jsonb) id`)).id;
 const p3 = (await one(`insert into public.projects (project_code, name, location, project_type_id) values ('S-1', 'Site', 'Merkez', $1) returning id`, [site])).id;
 const siteTemel = (await one(`select id from public.project_type_stages where project_type_id = $1 and name = 'Temel'`, [site])).id;

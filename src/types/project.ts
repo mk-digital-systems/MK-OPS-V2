@@ -46,6 +46,8 @@ export type Project = {
   status: ProjectStatus;
   hold_reason: string | null;
   has_activity: boolean;
+  /** Planlanan bütün imalatlar tamamlandı; proje sayfası "tamamlayalım mı?" diye sorar. */
+  completion_ready?: boolean;
   received_at: string | null;
   start_date: string | null;
   estimated_end_date: string | null;

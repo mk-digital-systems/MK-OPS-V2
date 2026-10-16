@@ -85,6 +85,7 @@ check("fixed amounts don't change", (await amounts())[1].a === 720);
 await imalat("2026-11-04", [{ stage_id: boru, quantity: 50 }]);
 p = await one(owner, `select status, progress_percent from public.projects where id = $1`, [project]);
 check("keşif 100% -> project NOT completed", p.status === "in_progress" && p.progress_percent === 100, JSON.stringify(p));
+check("keşif tamamlanınca proje tamamlamaya hazır işaretlenir (sorulur)", (await one(owner, `select completion_ready from public.projects where id = $1`, [project])).completion_ready === true);
 await as(owner, `update public.projects set status = 'completed' where id = $1`, [project]);
 await imalat("2026-11-05", [{ stage_id: kutu, quantity: 1 }]);
 check("manual completion kept after more imalat", (await one(owner, `select status from public.projects where id = $1`, [project])).status === "completed");
