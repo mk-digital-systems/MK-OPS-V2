@@ -60,7 +60,7 @@ export default async function PersonnelDetailPage({
     attendanceRepository.getPersonnelDetail(id, year, month),
     supabase
       .from("personnel_advances")
-      .select("id, personnel_id, advance_date, amount, notes, created_at")
+      .select("id, personnel_id, advance_date, amount, kind, notes, created_at")
       .eq("personnel_id", id)
       .gte("advance_date", monthStart)
       .lte("advance_date", monthEnd)

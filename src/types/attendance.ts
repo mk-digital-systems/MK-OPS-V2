@@ -126,6 +126,8 @@ export type PersonnelAdvance = {
   personnel_id: string;
   advance_date: string;
   amount: number;
+  /** advance: avans; salary: maaş ödemesi */
+  kind?: "advance" | "salary";
   notes: string | null;
   created_at: string;
 };

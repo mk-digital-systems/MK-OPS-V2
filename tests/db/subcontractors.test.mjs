@@ -148,13 +148,61 @@ await as(chief, `select public.save_attendance_changes($1::jsonb)`, [JSON.string
   { personnel_id: worker1, attendance_date: "2026-08-04", status: "worked" },
   { personnel_id: worker2, attendance_date: "2026-08-04", status: "worked" },
 ])]);
+const noPay = (await one(acc, `select public.get_subcontractor_statement($1, '2026-08-01', '2026-08-31') r`, [ahmetSub])).r;
+check("ödeme girilmeden hak edilen maaş hesaptan düşmez, ekstrede görünür (2 gün × 3000/30 = 200)",
+  Number(noPay.salary_total) === 0 && noPay.salaries.length === 1 && Number(noPay.salaries[0].earned) === 200, JSON.stringify(noPay.salaries));
+// Firma işçiye 120 avans verdi, ay sonunda 80 maaş ödedi: toplam 200 taşeron hesabından düşer.
+await as(owner, `insert into public.personnel_advances (personnel_id, advance_date, amount, kind) values ($1, '2026-08-10', 120, 'advance'), ($1, '2026-08-31', 80, 'salary')`, [worker1]);
 const aug = (await one(acc, `select public.get_subcontractor_statement($1, '2026-08-01', '2026-08-31') r`, [ahmetSub])).r;
 check("ekstre: pay 5×100×%60 = 300", Number(aug.share_total) === 300, aug.share_total);
-check("ekstre: maaşı girilen işçinin 2 günü (3000/30×2) düşer, maaşı 0 olan düşmez",
-  Number(aug.salary_total) === 200 && aug.salaries.length === 1 && aug.salaries[0].full_name === "Ahmet Ekip İşçi 1", JSON.stringify(aug.salaries));
+check("ekstre: avans 120 + maaş ödemesi 80 = 200 taşeron hesabından düşer",
+  Number(aug.salary_total) === 200 && aug.salaries.length === 1 && Number(aug.salaries[0].advance_paid) === 120 && Number(aug.salaries[0].salary_paid) === 80, JSON.stringify(aug.salaries));
 check("ekstre: kalan bakiye 300 − 200", Number(aug.balance) === 100, aug.balance);
 const sept = (await one(acc, `select public.get_subcontractor_statement($1, '2026-09-01', '2026-09-30') r`, [ahmetSub])).r;
 check("maaş kesintisi sonraki döneme devreder", Number(sept.carried_balance) === 100, sept.carried_balance);
+
+// --- hakediş dönemini kapatma: ekstre saklanır, kapalı döneme kayıt girilemez ----------------------------------
+const category0 = (await sys(`select id from public.subcontractor_expense_categories where company_id = $1 order by sort_order limit 1`, [company.id])).rows[0].id;
+let closeErr = await asErr(acc, `select public.close_subcontractor_period($1, '2026-08-01', '2099-12-31')`, [ahmetSub]);
+check("bitmemiş dönem kapatılamaz", /bitmeden/.test(closeErr ?? ""), closeErr);
+closeErr = await asErr(chief, `select public.close_subcontractor_period($1, '2026-08-01', '2026-08-31')`, [ahmetSub]);
+check("hakediş yetkisi olmayan dönemi kapatamaz", !!closeErr, closeErr);
+const closureId = (await one(acc, `select public.close_subcontractor_period($1, '2026-08-01', '2026-08-31') id`, [ahmetSub])).id;
+check("biten dönem kapatılır", !!closureId);
+closeErr = await asErr(acc, `select public.close_subcontractor_period($1, '2026-08-15', '2026-09-15')`, [ahmetSub]);
+check("kapalı dönemle çakışan dönem kapatılamaz", /kapatılmış/.test(closeErr ?? ""), closeErr);
+const saved = (await one(acc, `select statement from public.subcontractor_period_closures where id = $1`, [closureId])).statement;
+check("kapanıştaki ekstre saklanır (hakediş 300, personele ödenen 200, bakiye 100)",
+  Number(saved.share_total) === 300 && Number(saved.salary_total) === 200 && Number(saved.balance) === 100, JSON.stringify({ s: saved.share_total, p: saved.salary_total, b: saved.balance }));
+closeErr = await asErr(acc, `insert into public.subcontractor_transactions (subcontractor_id, category_id, transaction_date, amount) values ($1, $2, '2026-08-20', 10)`, [ahmetSub, category0]);
+check("kapalı döneme ödeme girilemez", /kapatıldı/.test(closeErr ?? ""), closeErr);
+closeErr = await asErr(owner, `insert into public.personnel_advances (personnel_id, advance_date, amount) values ($1, '2026-08-25', 10)`, [worker1]);
+check("kapalı döneme taşeron personeli avansı girilemez", /kapatıldı/.test(closeErr ?? ""), closeErr);
+closeErr = await asErr(acc, `insert into public.subcontractor_transactions (subcontractor_id, category_id, transaction_date, amount) values ($1, $2, '2026-09-02', 10)`, [ahmetSub, category0]);
+check("açık döneme ödeme girilebilir", !closeErr, closeErr);
+closeErr = await asErr(acc, `select public.reopen_subcontractor_period($1)`, [closureId]);
+check("yalnızca firma yöneticisi dönemi yeniden açar", !!closeErr, closeErr);
+await as(owner, `select public.reopen_subcontractor_period($1)`, [closureId]);
+check("yeniden açılınca kayıt girilebilir", !(await asErr(acc, `insert into public.subcontractor_transactions (subcontractor_id, category_id, transaction_date, amount) values ($1, $2, '2026-08-20', 10)`, [ahmetSub, category0])));
+await sys(`delete from public.subcontractor_transactions where transaction_date in ('2026-08-20', '2026-09-02') and amount = 10`);
+
+// Dönem kapanınca kalan bakiye sonraki döneme devreder; fazla ödeme devreden borç (eksi bakiye) olur.
+await as(owner, `select public.close_subcontractor_period($1, '2026-08-01', '2026-08-31')`, [ahmetSub]);
+await as(acc, `insert into public.subcontractor_transactions (subcontractor_id, category_id, transaction_date, amount) values ($1, $2, '2026-09-02', 1000)`, [ahmetSub, category0]);
+const septOver = (await one(acc, `select public.get_subcontractor_statement($1, '2026-09-01', '2026-09-30') r`, [ahmetSub])).r;
+check("kapalı dönemden kalan bakiye (100) sonraki dönemin devredeni", Number(septOver.carried_balance) === 100, septOver.carried_balance);
+check("fazla ödeme eksi bakiye olur (taşeron borçlu)", Number(septOver.balance) < 0, septOver.balance);
+const octCarry = (await one(acc, `select public.get_subcontractor_statement($1, '2026-10-01', '2026-10-31') r`, [ahmetSub])).r;
+check("eksi bakiye de sonraki döneme devreder", Number(octCarry.carried_balance) === Number(septOver.balance), `${octCarry.carried_balance} / ${septOver.balance}`);
+await as(owner, `select public.reopen_subcontractor_period(id) from public.subcontractor_period_closures where subcontractor_id = '${ahmetSub}'`);
+await sys(`delete from public.subcontractor_transactions where transaction_date = '2026-09-02' and amount = 1000`);
+
+// Maaşı 0 olan taşeron işçisine de avans verilirse fiilen verilen tutar taşeronun hesabından düşer;
+// maaşından fazla avans (personel taşerona borçlu) da böyle düşer.
+await as(owner, `insert into public.personnel_advances (personnel_id, advance_date, amount) values ($1, '2026-10-05', 50), ($2, '2026-10-06', 5000)`, [worker2, worker1]);
+const oct = (await one(acc, `select public.get_subcontractor_statement($1, '2026-10-01', '2026-10-31') r`, [ahmetSub])).r;
+check("maaşı 0 işçiye ve fazla verilen avans taşeron hesabından düşer (50 + 5000)",
+  Number(oct.salary_total) === 5050 && oct.salaries.length === 2, JSON.stringify(oct.salaries));
 check("taşeron işçisi ana firma maaş dökümünde yok",
   !(await one(owner, `select public.get_monthly_payroll(2026, 8) r`)).r.some((row) => row.personnel_id === worker1));
 
@@ -166,7 +214,7 @@ check("puantajda personelin taşeronu döner", w1?.subcontractor_name === "Ahmet
 check("firma personelinde taşeron boş", augAttendance.some((row) => row.id === ownLeader && row.subcontractor_id === null));
 // Puantaj ekranı ayın pazarlarını hafta tatili olarak ekler; pazarlar da ücretli olduğu için kesintiye girer.
 const augBefore = (await one(acc, `select public.get_subcontractor_statement($1, '2026-08-01', '2026-08-31') r`, [ahmetSub])).r;
-check("pazar hafta tatilleri de maaş kesintisine girer", Number(augBefore.salary_total) > 200, augBefore.salary_total);
+check("pazar hafta tatilleri hak edilen maaşa girer", augBefore.salaries.reduce((sum, row) => sum + Number(row.earned), 0) > 200, JSON.stringify(augBefore.salaries));
 
 await as(chief, `select public.set_personnel_subcontractor($1, false)`, [ahmetP]);
 const off = (await sys(`select s.is_active, p.subcontractor_id from public.subcontractors s join public.personnel p on p.id = s.personnel_id where s.id = $1`, [ahmetSub])).rows[0];

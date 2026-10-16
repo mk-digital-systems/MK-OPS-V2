@@ -91,6 +91,7 @@ export function PersonnelDetail({
   );
   const [advanceAmount, setAdvanceAmount] = useState("");
   const [advanceNotes, setAdvanceNotes] = useState("");
+  const [advanceKind, setAdvanceKind] = useState<"advance" | "salary">("advance");
   const [advanceSaving, setAdvanceSaving] = useState(false);
   const [advanceItems, setAdvanceItems] = useState(advances);
 
@@ -150,7 +151,7 @@ export function PersonnelDetail({
   async function saveAdvance() {
     const amount = Number(advanceAmount.replace(",", "."));
     if (!advanceDate || !Number.isFinite(amount) || amount <= 0) {
-      toast.error("Geçerli bir tarih ve avans tutarı girin");
+      toast.error("Geçerli bir tarih ve tutar girin");
       return;
     }
     setAdvanceSaving(true);
@@ -164,17 +165,18 @@ export function PersonnelDetail({
           personnel_id: personnel.id,
           advance_date: advanceDate,
           amount,
+          kind: advanceKind,
           notes: advanceNotes.trim() || null,
           created_by: authData.user.id,
         })
-        .select("id, personnel_id, advance_date, amount, notes, created_at")
+        .select("id, personnel_id, advance_date, amount, kind, notes, created_at")
         .single();
       if (error) throw error;
       setAdvanceItems((current) => [
         { ...savedAdvance, amount: Number(savedAdvance.amount) } as PersonnelAdvance,
         ...current,
       ]);
-      toast.success("Avans kaydedildi");
+      toast.success(advanceKind === "salary" ? "Maaş ödemesi kaydedildi" : "Avans kaydedildi");
       setAdvanceOpen(false);
       setAdvanceAmount("");
       setAdvanceNotes("");
@@ -187,7 +189,7 @@ export function PersonnelDetail({
           : error instanceof Error
             ? error.message
             : "Supabase kaydı oluşturulamadı";
-      toast.error("Avans kaydedilemedi", { description: message });
+      toast.error("Kayıt eklenemedi", { description: message });
     } finally {
       setAdvanceSaving(false);
     }
@@ -433,7 +435,7 @@ export function PersonnelDetail({
             {canWriteAdvances && (
               <Button size="sm" onClick={() => setAdvanceOpen(true)}>
                 <Plus className="h-4 w-4" />
-                Avans Ekle
+                Avans / Maaş Ödemesi
               </Button>
             )}
           </div>
@@ -446,7 +448,7 @@ export function PersonnelDetail({
               ["HT", `${payroll?.weekly_rest_days ?? 0} gün`],
               ["Pazar Mesaisi", `${payroll?.overtime_days ?? 0} gün`],
               ["Brüt Hakediş", money(payroll?.gross_accrued)],
-              ["Avans Toplamı", money(payroll?.advance_total)],
+              ["Verilen (avans + maaş ödemesi)", money(payroll?.advance_total)],
               ["Net Alacak", money(payroll?.net_receivable)],
               ["Hak Edilen Gün", `${payroll?.payable_days ?? 0} gün`],
             ].map(([label, value]) => (
@@ -458,17 +460,19 @@ export function PersonnelDetail({
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-medium">Avans Dökümü</p>
+            <p className="mb-2 text-sm font-medium">Avans ve Maaş Ödemeleri</p>
             {advanceItems.length === 0 ? (
               <p className="rounded-xl border p-3 text-sm text-muted-foreground">
-                Bu ay için avans kaydı bulunmuyor.
+                Bu ay için avans veya maaş ödemesi kaydı bulunmuyor.
               </p>
             ) : (
               <div className="space-y-2">
                 {advanceItems.map((advance) => (
                   <div key={advance.id} className="flex flex-col gap-1 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <p className="text-sm font-medium">{formatDate(advance.advance_date)}</p>
+                      <p className="text-sm font-medium">
+                        {formatDate(advance.advance_date)} · {advance.kind === "salary" ? "Maaş ödemesi" : "Avans"}
+                      </p>
                       <p className="text-xs text-muted-foreground">{advance.notes?.trim() || "Açıklama yok"}</p>
                     </div>
                     <strong>{money(advance.amount)}</strong>
@@ -483,9 +487,24 @@ export function PersonnelDetail({
       <Dialog open={advanceOpen} onOpenChange={setAdvanceOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Avans Ekle</DialogTitle>
+            <DialogTitle>Avans / Maaş Ödemesi</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="advance_kind">Tür</Label>
+              <select
+                id="advance_kind"
+                className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
+                value={advanceKind}
+                onChange={(event) => setAdvanceKind(event.target.value as "advance" | "salary")}
+              >
+                <option value="advance">Avans</option>
+                <option value="salary">Maaş ödemesi</option>
+              </select>
+              {personnel.subcontractor_id && (
+                <p className="text-xs text-muted-foreground">Taşeron personeli: verilen tutar taşeronun hesabından düşülür.</p>
+              )}
+            </div>
             <div className="space-y-2">
               <Label htmlFor="advance_date">Tarih</Label>
               <Input id="advance_date" type="date" value={advanceDate} onChange={(event) => setAdvanceDate(event.target.value)} />
@@ -499,7 +518,7 @@ export function PersonnelDetail({
               <Textarea id="advance_notes" value={advanceNotes} onChange={(event) => setAdvanceNotes(event.target.value)} />
             </div>
             <Button className="w-full" onClick={saveAdvance} disabled={advanceSaving}>
-              {advanceSaving ? "Kaydediliyor..." : "Avansı Kaydet"}
+              {advanceSaving ? "Kaydediliyor..." : "Kaydet"}
             </Button>
           </div>
         </DialogContent>

@@ -60,13 +60,40 @@ export type SubcontractorStatement = {
   share_total: number;
   company_total: number;
   unpriced_count: number;
-  /** Firmanın ödediği maaşlar (taşeron ve ekibi, puantaja göre). */
+  /** Firmanın taşeron personeline ödediği avans + maaş ödemeleri. */
   salary_total: number;
   paid_total: number;
   carried_balance: number;
   balance: number;
   rows: SubcontractorWorkRow[];
-  salaries: { personnel_id: string; full_name: string; monthly_salary: number; payable_days: number; amount: number }[];
+  salaries: {
+    personnel_id: string;
+    full_name: string;
+    monthly_salary: number;
+    payable_days: number;
+    /** Puantaja göre hak edilen maaş (bilgi) */
+    earned: number;
+    advance_paid: number;
+    salary_paid: number;
+    /** Taşeron hesabından düşen: avans + maaş ödemesi */
+    amount: number;
+  }[];
   transactions: (SubcontractorTransaction & { category_name: string })[];
   by_category: { category_name: string; amount: number }[];
+};
+
+/** Kapatılmış hakediş dönemi (kapanıştaki ekstre değişmez saklanır). */
+export type SubcontractorClosure = {
+  id: string;
+  period_start: string;
+  period_end: string;
+  closed_at: string;
+};
+
+/** Kapalı dönem görünümü: saklanan ekstre + kapanıştan sonra değişiklik var mı. */
+export type ClosedStatementInfo = {
+  closure: SubcontractorClosure;
+  /** Kapanıştan sonra bu döneme kayıt (ör. geriye dönük imalat) girildi: canlı bakiye saklanandan farklı. */
+  changed: boolean;
+  liveBalance: number;
 };
