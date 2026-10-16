@@ -122,7 +122,7 @@ export function AppShell({
   const brand = useReportBrand();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { branches, multiBranch, selectedId, select, headOffice } = useBranches();
+  const { branches, multiBranch, selectedId, select, canApprove } = useBranches();
 
   async function handleLogout() {
     const supabase = createClient();
@@ -137,11 +137,11 @@ export function AppShell({
   }
 
   function canSee(item: NavItem) {
-    if (item.headOffice) return headOffice;
+    if (item.headOffice) return canApprove;
     if (item.roles) return item.roles.includes(profile.role);
     if (item.href === "/panel/hakedis") return writableModules.includes("hakedis");
     // Poz listesini Merkez yetkisi olanlar düzenler, hakediş yetkisi olanlar fiyatını görür.
-    if (item.href === "/panel/poz-listesi") return headOffice || writableModules.includes("hakedis");
+    if (item.href === "/panel/poz-listesi") return canApprove || writableModules.includes("hakedis");
     if (item.href === "/panel/taseronlar") {
       return profile.role === "site_chief" || profile.role === "company_manager" || writableModules.includes("hakedis");
     }

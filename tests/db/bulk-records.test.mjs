@@ -39,7 +39,7 @@ check("bulk personnel inserted", (await one(owner, `select count(*)::int n from 
 let e = await asErr(owner, `insert into public.personnel (full_name, tc_identity_number, branch_id) values ('A Kişi', '22222222222', $1), ('B Kişi', '22222222222', $1)`, [bolu]);
 check("duplicate TC in batch rejects whole batch", !!e && (await one(owner, `select count(*)::int n from public.personnel where full_name in ('A Kişi', 'B Kişi')`)).n === 0, e);
 await as(branchChief, `insert into public.personnel (full_name, branch_id) values ('Şube Bir', $1), ('Şube İki', $1)`, [bolu]);
-check("branch chief bulk insert goes to approval", (await one(owner, `select count(*)::int n from public.personnel where full_name like 'Şube %' and approval_status = 'pending'`)).n === 2);
+check("branch chief bulk insert is approved directly", (await one(owner, `select count(*)::int n from public.personnel where full_name like 'Şube %' and approval_status = 'approved'`)).n === 2);
 await as(owner, `insert into public.vehicles (plate, brand, model, current_km, branch_id) values ('34 ABC 01', 'Ford', 'Transit', 1000, $1), ('34 ABC 02', 'Fiat', 'Doblo', 0, $1)`, [bolu]);
 e = await asErr(owner, `insert into public.vehicles (plate, brand, model, branch_id) values ('34 ABC 01', 'Ford', 'Transit', $1)`, [bolu]);
 check("duplicate plate rejected", !!e, e);
@@ -54,8 +54,8 @@ const otherBranch = (await sys(`select id from public.branches where company_id 
 e = await asErr(owner, `select public.change_records_branch('personnel', $1::uuid[], $2, current_date)`, [people, otherBranch]);
 check("other company's branch rejected", /Şube bulunamadı/.test(e ?? ""), e);
 const n = (await one(owner, `select public.change_records_branch('personnel', $1::uuid[], $2, current_date) n`, [people, duzce])).n;
-check("bulk transfer moved 3 personnel", n === 3 && (await one(owner, `select count(*)::int n from public.personnel where branch_id = $1`, [duzce])).n === 3, n);
-check("branch history written for each", (await one(owner, `select count(distinct personnel_id)::int n from public.personnel_branch_history where branch_id = $1`, [duzce])).n === 3);
+check("bulk transfer moved 5 personnel", n === 5 && (await one(owner, `select count(*)::int n from public.personnel where branch_id = $1`, [duzce])).n === 5, n);
+check("branch history written for each", (await one(owner, `select count(distinct personnel_id)::int n from public.personnel_branch_history where branch_id = $1`, [duzce])).n === 5);
 const vehicles = (await sys(`select id from public.vehicles where branch_id = $1`, [bolu])).rows.map((r) => r.id);
 await as(owner, `select public.change_records_branch('vehicle', $1::uuid[], $2, current_date)`, [vehicles, merkez]);
 check("bulk transfer vehicles", (await one(owner, `select count(*)::int n from public.vehicles where branch_id = $1`, [merkez])).n === 2);
@@ -67,9 +67,9 @@ check("foreign record rejects whole batch", /bulunamadı/.test(e ?? "") && (awai
 const sub = (await one(owner, `insert into public.subcontractors (name, share_percent) values ('Usta Taşeron', 20) returning id`)).id;
 const duzcePeople = (await sys(`select id from public.personnel where branch_id = $1`, [duzce])).rows.map((r) => r.id);
 await as(owner, `update public.personnel set subcontractor_id = $1 where id = any($2::uuid[])`, [sub, duzcePeople]);
-check("bulk assign to subcontractor", (await one(owner, `select count(*)::int n from public.personnel where subcontractor_id = $1`, [sub])).n === 3);
+check("bulk assign to subcontractor", (await one(owner, `select count(*)::int n from public.personnel where subcontractor_id = $1`, [sub])).n === 5);
 await as(branchChief, `update public.personnel set subcontractor_id = null where id = any($1::uuid[])`, [duzcePeople]);
-check("branch chief cannot change other branch's personnel", (await one(owner, `select count(*)::int n from public.personnel where subcontractor_id = $1`, [sub])).n === 3);
+check("branch chief cannot change other branch's personnel", (await one(owner, `select count(*)::int n from public.personnel where subcontractor_id = $1`, [sub])).n === 5);
 await as(owner, `update public.personnel set subcontractor_id = null where id = any($1::uuid[])`, [duzcePeople]);
 check("bulk back to company employee", (await one(owner, `select count(*)::int n from public.personnel where subcontractor_id is not null`)).n === 0);
 

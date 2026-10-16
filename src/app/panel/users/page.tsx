@@ -33,7 +33,6 @@ export default async function UsersPage() {
       joinCode={account.company?.join_code ?? null}
       branches={myBranches.branches}
       branchAssignments={myBranches.assignments ?? []}
-      headOfficeUsers={myBranches.head_office_users ?? []}
     />
   );
 }

@@ -7,7 +7,7 @@ export class BranchRepository {
   async getMine(): Promise<MyBranches> {
     const { data, error } = await this.supabase.rpc("get_my_branches");
     if (error) throw error;
-    return (data as MyBranches | null) ?? { branches: [], total_count: 0, head_office: false, assignments: null };
+    return (data as MyBranches | null) ?? { branches: [], total_count: 0, head_office: false, can_approve: false, assignments: null };
   }
 
   /** Yalnızca firma yöneticisi. */

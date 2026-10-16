@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { ProjectTypeShortcuts } from "@/components/projects/project-type-shortcuts";
 import { useBranches } from "@/components/layout/branch-provider";
+import { groupByBranch } from "@/lib/branch-groups";
 import { ProgressBar, ProjectStatusBadge, TypeDot } from "@/components/projects/project-status-indicators";
 
 type Props = {
@@ -52,8 +53,9 @@ export function ProjectsTable({
   allowArchiveScopeFilter = false,
 }: Props) {
   const router = useRouter();
-  const { multiBranch, branchName } = useBranches();
-  const branchSuffix = (id: string) => (multiBranch && branchName(id) ? ` · ${branchName(id)}` : "");
+  const { multiBranch, branchName, branches } = useBranches();
+  const sections = groupByBranch(result.data, (project) => project.branch_id, branches, multiBranch);
+  const branchSuffix = (id: string) => (multiBranch && sections.length < 2 && branchName(id) ? ` · ${branchName(id)}` : "");
   const pathname = usePathname();
   const params = useSearchParams();
   const [pending, startTransition] = useTransition();
@@ -267,7 +269,11 @@ export function ProjectsTable({
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {result.data.map((project) => {
+                  {sections.flatMap((section) => [
+                    ...(section.name ? [<tr key={`h-${section.id}`}><td colSpan={6} className="bg-muted/60 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{section.name} · {section.items.length} proje</td></tr>] : []),
+                    ...section.items,
+                  ]).map((project) => {
+                    if (!("id" in project)) return project;
                     const type = typeById.get(project.project_type_id);
                     return (
                       <tr key={project.id} className="transition-colors hover:bg-muted/40">
@@ -301,7 +307,11 @@ export function ProjectsTable({
             </div>
 
             <div className="grid gap-3 md:hidden">
-              {result.data.map((project) => {
+              {sections.flatMap((section) => [
+                ...(section.name ? [<p key={`h-${section.id}`} className="border-b pb-1 pt-2 text-sm font-semibold">{section.name} · {section.items.length} proje</p>] : []),
+                ...section.items,
+              ]).map((project) => {
+                if (!("id" in project)) return project;
                 const type = typeById.get(project.project_type_id);
                 return (
                   <Link key={project.id} href={`/panel/projects/${project.id}`} className="rounded-2xl border bg-card p-4">

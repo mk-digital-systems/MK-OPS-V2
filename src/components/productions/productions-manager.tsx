@@ -17,10 +17,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CompanyLogo, useReportBrand } from "@/components/layout/company-brand-provider";
 import { useBranches } from "@/components/layout/branch-provider";
+import { groupByBranch } from "@/lib/branch-groups";
 
 /** stage: projenin iş kalemi (projeye iş kaydı açar); extra: fiyatlı ek iş; note: eski serbest metin */
 type FormLine = { key: string; itemId: string | null; kind: ProductionItemKind; progressId: string; sheetId: string; description: string; quantity: string; unit: string; unitPrice: string };
@@ -97,7 +98,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
   initialExtraPrices: Record<string, number>;
   currency: CurrencyCode;
 }) {
-  const { effectiveBranchId } = useBranches();
+  const { effectiveBranchId, branches, multiBranch } = useBranches();
   const brand = useReportBrand();
   const initialDailyEntries = initialEntries.filter((entry) => entry.work_date === initialDate);
   const [date, setDate] = useState(initialDate);
@@ -117,6 +118,8 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
   const [appliedRange, setAppliedRange] = useState({ from: `${month}-01`, to: `${month}-${String(new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate()).padStart(2, "0")}` });
 
   const activePersonnel = useMemo(() => personnel.filter((person) => person.is_active).sort((a, b) => a.full_name.localeCompare(b.full_name, "tr")), [personnel]);
+  /** Ekip başının şubesi: imalat yalnızca o şubenin projelerine yazılır. */
+  const leaderBranch = (team: FormTeam) => (multiBranch ? personnel.find((person) => person.id === team.personnelId)?.branch_id ?? null : null);
   const personnelById = useMemo(() => new Map(personnel.map((person) => [person.id, person])), [personnel]);
   const filteredReport = useMemo(
     () => reportEntries.filter((entry) => personnelFilter === "all" || entry.team_leader_personnel_id === personnelFilter),
@@ -410,7 +413,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
     <div className="space-y-5">
       {teams.map((team, teamIndex) => { const accent = accents[teamIndex % accents.length]; return <section key={team.key} className={`overflow-hidden rounded-lg border border-l-4 ${accent.border}`}>
         <div className={`flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-end sm:justify-between ${accent.soft}`}>
-          <div className="w-full max-w-md space-y-2"><Label className={accent.label}>Ekip Adı</Label><Select disabled={readOnly} value={team.personnelId || undefined} onValueChange={(value) => updateTeam(teamIndex, { personnelId: value })}><SelectTrigger><SelectValue placeholder="Personel seçin" /></SelectTrigger><SelectContent>{activePersonnel.map((person) => <SelectItem key={person.id} value={person.id} disabled={teams.some((other, index) => index !== teamIndex && other.personnelId === person.id)}>{person.full_name}</SelectItem>)}</SelectContent></Select></div>
+          <div className="w-full max-w-md space-y-2"><Label className={accent.label}>Ekip Adı</Label><Select disabled={readOnly} value={team.personnelId || undefined} onValueChange={(value) => updateTeam(teamIndex, { personnelId: value })}><SelectTrigger><SelectValue placeholder="Personel seçin" /></SelectTrigger><SelectContent>{groupByBranch(activePersonnel, (person) => person.branch_id, branches, multiBranch).map((section) => <SelectGroup key={section.id}>{section.name && <SelectLabel>{section.name}</SelectLabel>}{section.items.map((person) => <SelectItem key={person.id} value={person.id} disabled={teams.some((other, index) => index !== teamIndex && other.personnelId === person.id)}>{person.full_name}</SelectItem>)}</SelectGroup>)}</SelectContent></Select></div>
           {!readOnly && teams.length > 1 && <Button type="button" size="icon" variant="ghost" title="Ekibi kaldır" onClick={() => removeTeam(teamIndex)}><Trash2 className="h-4 w-4" /></Button>}
         </div>
         <div className="space-y-4 p-4">{team.jobs.map((job, jobIndex) => { const jobTargets = job.projectId ? targets[job.projectId] : undefined; return <div key={job.key} className={`border-2 ${accent.jobBorder} bg-background p-4`}>
@@ -421,7 +424,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value={FREE_JOB}>Listede olmayan iş (serbest)</SelectItem>
-                  {projects.map((project) => <SelectItem key={project.id} value={project.id}>{project.project_code} · {project.name}</SelectItem>)}
+                  {groupByBranch(projects.filter((project) => !leaderBranch(team) || project.branch_id === leaderBranch(team) || project.id === job.projectId), (project) => project.branch_id, branches, multiBranch).map((section) => <SelectGroup key={section.id}>{section.name && <SelectLabel>{section.name}</SelectLabel>}{section.items.map((project) => <SelectItem key={project.id} value={project.id}>{project.project_code} · {project.name}</SelectItem>)}</SelectGroup>)}
                   {job.projectId && !projects.some((project) => project.id === job.projectId) && <SelectItem value={job.projectId}>{job.title || "Proje"} (arşivde)</SelectItem>}
                 </SelectContent>
               </Select>
@@ -484,7 +487,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
           if (selectedHistoryDate && selectedHistoryDate !== historyDate) return null;
           return <section key={historyDate} className="overflow-hidden rounded-lg border">
             <button type="button" onClick={() => selectHistoryDate(historyDate)} className="flex w-full items-center justify-between bg-muted/50 px-4 py-3 text-left hover:bg-muted"><strong>{formatDate(historyDate)}</strong><span className="text-sm text-muted-foreground">{entries.length} ekip</span></button>
-            <div className="space-y-4 p-4">{entries.map((entry) => <article key={entry.id} className="border-l-4 border-l-primary border p-4"><h4 className="font-bold">Ekip: {entry.team_leader_name_snapshot}</h4><div className="mt-3 space-y-3">{entry.jobs.map((job, jobIndex) => <div key={job.id} className="border p-3"><div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b pb-2"><strong>İş / Proje {jobIndex + 1}</strong><strong>ID: {job.project_code_snapshot || "-"}</strong></div><h5 className="mb-3 text-center font-bold">{job.project_name_snapshot}</h5><div className="space-y-2">{job.items.map((item, itemIndex) => <div key={item.id} className="grid grid-cols-[30px_minmax(0,1fr)] gap-2 text-sm"><strong>{itemIndex + 1}:</strong><span>{legacyDescription(item.item_name_snapshot, item.quantity, item.unit_snapshot)}</span></div>)}</div></div>)}</div></article>)}</div>
+            <div className="space-y-4 p-4">{groupByBranch(entries, (e) => e.branch_id, branches, multiBranch).map((section) => <div key={section.id} className="space-y-4">{section.name && <h3 className="border-b pb-1 text-sm font-semibold">{section.name}</h3>}{section.items.map((entry) => <article key={entry.id} className="border-l-4 border-l-primary border p-4"><h4 className="font-bold">Ekip: {entry.team_leader_name_snapshot}</h4><div className="mt-3 space-y-3">{entry.jobs.map((job, jobIndex) => <div key={job.id} className="border p-3"><div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b pb-2"><strong>İş / Proje {jobIndex + 1}</strong><strong>ID: {job.project_code_snapshot || "-"}</strong></div><h5 className="mb-3 text-center font-bold">{job.project_name_snapshot}</h5><div className="space-y-2">{job.items.map((item, itemIndex) => <div key={item.id} className="grid grid-cols-[30px_minmax(0,1fr)] gap-2 text-sm"><strong>{itemIndex + 1}:</strong><span>{legacyDescription(item.item_name_snapshot, item.quantity, item.unit_snapshot)}</span></div>)}</div></div>)}</div></article>)}</div>)}</div>
           </section>;
         })}</div>
         {!filteredReport.length && <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">Seçilen tarih aralığı ve ekip için imalat kaydı bulunamadı.</p>}

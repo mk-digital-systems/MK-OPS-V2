@@ -30,7 +30,7 @@ export default async function DashboardPage() {
   const today = await new TodayRepository(supabase).get(branchId).catch(() => null);
   const branchNames = Object.fromEntries(myBranches.branches.map((branch) => [branch.id, branch.name]));
   // Onay bekleyen kayıtlar bütün şubelerden sayılır (Onaylar sayfası da bütün şubeleri gösterir).
-  const pendingApprovals = myBranches.head_office
+  const pendingApprovals = myBranches.can_approve
     ? (
         await Promise.all(
           [

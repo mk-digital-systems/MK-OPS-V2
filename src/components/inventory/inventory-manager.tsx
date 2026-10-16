@@ -61,7 +61,7 @@ export function InventoryManager({ initialMaterials, initialCatalogs, initialCat
   const [loading, setLoading] = useState(false);
 
   // Kullanıcı yalnızca erişebildiği şubelerin depolarını görür (stok, giriş, çıkış); sevkiyatta varış deposu serbesttir.
-  const { branches, multiBranch, branchName, effectiveBranchId, headOffice } = useBranches();
+  const { branches, multiBranch, branchName, effectiveBranchId, canApprove } = useBranches();
   const ownLocations = branches.length ? locations.filter((item) => branches.some((branch) => branch.id === item.branch_id)) : locations;
   const ownTotal = (lot: InventoryMaterial) => ownLocations.reduce((sum, location) => sum + stockAt(lot, location), 0);
   const viewLocation = ownLocations.find((item) => item.id === stockView) ?? null;
@@ -170,12 +170,12 @@ export function InventoryManager({ initialMaterials, initialCatalogs, initialCat
       {!filtered.length && <p className="py-10 text-center text-sm text-muted-foreground">{catalogs.length ? "Bu filtrede malzeme bulunamadı." : "Henüz malzeme yok. Önce kategorilerinizi ve depolarınızı tanımlayıp \"Yeni Malzeme\" ile kataloğa ekleyin."}</p>}
     </section>
 
-    <ReceiptHistory receipts={receipts} locations={locations} canReview={headOffice} currentUserId={currentUserId} loading={loading} onReview={(id, approve) => run((repository) => repository.reviewReceipt(id, approve), approve ? "İrsaliye onaylandı ve stoğa işlendi" : "İrsaliye reddedildi")} onWithdraw={(id) => run((repository) => repository.withdrawReceipt(id), "İrsaliye geri çekildi")} />
+    <ReceiptHistory receipts={receipts} locations={locations} canReview={canApprove} currentUserId={currentUserId} loading={loading} onReview={(id, approve) => run((repository) => repository.reviewReceipt(id, approve), approve ? "İrsaliye onaylandı ve stoğa işlendi" : "İrsaliye reddedildi")} onWithdraw={(id) => run((repository) => repository.withdrawReceipt(id), "İrsaliye geri çekildi")} />
     <ShipmentHistory shipments={shipments} locations={locations} readOnly={readOnly} onUndo={setUndoShipmentTarget} />
 
     <ExportDialog key={exportOpen ? "open" : "closed"} open={exportOpen} setOpen={setExportOpen} initialCategory={category} catalogs={catalogs} categories={categories} locations={ownLocations} materials={materials} />
     <CatalogDialog open={catalogOpen} setOpen={setCatalogOpen} categories={categories} loading={loading} onSave={async (payload) => { const ok = await run((repository) => repository.createCatalogMaterial(payload), "Malzeme kataloğa eklendi"); if (ok) setCatalogOpen(false); }} />
-    <ReceiptDialog open={receiptOpen} setOpen={setReceiptOpen} catalogs={catalogs} categories={categories} locations={ownLocations} loading={loading} onSave={async (payload) => { const ok = await run((repository) => repository.createReceipt(payload), headOffice ? "İrsaliye stoğa işlendi" : "İrsaliye onaya gönderildi; firma yöneticisi veya Merkez şantiye şefi onaylayınca stoğa girer"); if (ok) setReceiptOpen(false); }} />
+    <ReceiptDialog open={receiptOpen} setOpen={setReceiptOpen} catalogs={catalogs} categories={categories} locations={ownLocations} loading={loading} onSave={async (payload) => { const ok = await run((repository) => repository.createReceipt(payload), canApprove ? "İrsaliye stoğa işlendi" : "İrsaliye onaya gönderildi; firma yöneticisi veya Merkez şantiye şefi onaylayınca stoğa girer"); if (ok) setReceiptOpen(false); }} />
     <TransferDialog key={transferOpen ? "t-open" : "t-closed"} open={transferOpen} setOpen={setTransferOpen} materials={materials} locations={ownLocations} targets={locations} loading={loading} onSave={async (payload) => { const ok = await run((repository) => repository.createTransfer(payload), "Sevkiyat kaydedildi"); if (ok) setTransferOpen(false); }} />
     <MovementDialog key={movement ? `${movement.material.id}-${movement.locationId}` : "none"} state={movement} setState={setMovement} locations={ownLocations} personnel={personnel} loading={loading} onSave={async (payload) => { const ok = await run((repository) => repository.recordMovement(payload), "Malzeme stoktan düşüldü"); if (ok) setMovement(null); }} />
     <ManageListDialog

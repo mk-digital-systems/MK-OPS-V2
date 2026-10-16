@@ -16,9 +16,11 @@ export class ProductionRepository {
     if (error) throw error; return data as string;
   }
   /** İmalatta seçilebilen projeler: iptal ve arşiv dışı. */
-  async listProjectOptions(): Promise<ProductionProjectOption[]> {
-    const { data, error } = await this.supabase.from("projects").select("id, project_code, name, project_type_id")
+  async listProjectOptions(branchId?: string | null): Promise<ProductionProjectOption[]> {
+    let query = this.supabase.from("projects").select("id, project_code, name, project_type_id, branch_id")
       .eq("is_cancelled", false).eq("is_archived", false).order("project_code");
+    if (branchId) query = query.eq("branch_id", branchId);
+    const { data, error } = await query;
     if (error) throw error; return (data ?? []) as ProductionProjectOption[];
   }
   /**
