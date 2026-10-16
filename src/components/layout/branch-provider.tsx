@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo } from "react";
+import { Fragment, createContext, useContext, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { BRANCH_COOKIE, type Branch } from "@/types/branch";
 
@@ -70,7 +70,13 @@ export function BranchProvider({
     };
   }, [branches, totalCount, headOffice, canApprove, selectedId, router]);
 
-  return <BranchContext.Provider value={value}>{children}</BranchContext.Provider>;
+  // Şube değişince sayfa içeriği yeniden kurulur: listeler ilk gelen veriyi state'te tuttuğundan,
+  // anahtar olmadan seçim yenilemeden sonra da eski şubenin verisini göstermeye devam ederdi.
+  return (
+    <BranchContext.Provider value={value}>
+      <Fragment key={selectedId ?? "all"}>{children}</Fragment>
+    </BranchContext.Provider>
+  );
 }
 
 export function useBranches() {
