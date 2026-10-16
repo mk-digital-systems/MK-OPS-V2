@@ -3,14 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, FileSpreadsheet, Loader2, Pencil, Plus, Tags, Trash2, UserRound } from "lucide-react";
+import { ArrowLeft, FileSpreadsheet, Loader2, Lock, LockOpen, Pencil, Plus, Tags, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import type { CurrencyCode } from "@/types/auth";
 import type { Personnel } from "@/types/work-plan";
 import type { PayrollRow } from "@/types/attendance";
 import type {
+  ClosedStatementInfo,
   Subcontractor,
   SubcontractorCategory,
+  SubcontractorClosure,
   SubcontractorStatement,
 } from "@/types/subcontractor";
 import type { HakedisPeriod } from "@/lib/hakedis";
@@ -45,6 +47,9 @@ export function SubcontractorDetail({
   start,
   end,
   statement,
+  closures,
+  closedInfo,
+  canReopen,
   categories: initialCategories,
   payroll,
   payrollYear,
@@ -59,6 +64,9 @@ export function SubcontractorDetail({
   end: string;
   /** Hakediş yetkisi yoksa null: tutarlar gösterilmez. */
   statement: SubcontractorStatement | null;
+  closures: SubcontractorClosure[];
+  closedInfo: ClosedStatementInfo | null;
+  canReopen: boolean;
   categories: SubcontractorCategory[];
   payroll: PayrollRow[];
   payrollYear: number;
@@ -79,6 +87,35 @@ export function SubcontractorDetail({
   const [busy, setBusy] = useState(false);
   const money = (value: number | string | null | undefined) => formatMoney(value, currency);
   const periodLabel = `${formatDate(start)} – ${formatDate(end)}`;
+  const todayIso = new Date().toLocaleDateString("en-CA");
+
+  async function closePeriod() {
+    if (!window.confirm(`${periodLabel} dönemi kapatılsın mı? Ekstre olduğu gibi saklanır; kapalı döneme ödeme ve personel avansı/maaş ödemesi girilemez.`)) return;
+    setBusy(true);
+    try {
+      await new SubcontractorRepository(createClient()).closePeriod(subcontractor.id, start, end);
+      toast.success("Dönem kapatıldı");
+      router.refresh();
+    } catch (error) {
+      toast.error("Dönem kapatılamadı", { description: (error as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function reopenPeriod() {
+    if (!closedInfo || !window.confirm("Kapalı dönem yeniden açılsın mı? Kapanıştaki kayıt silinir; dönem yeniden canlı hesaplanır.")) return;
+    setBusy(true);
+    try {
+      await new SubcontractorRepository(createClient()).reopenPeriod(closedInfo.closure.id);
+      toast.success("Dönem yeniden açıldı");
+      router.refresh();
+    } catch (error) {
+      toast.error("Dönem açılamadı", { description: (error as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  }
   const monthLabel = `${MONTH_NAMES[payrollMonth - 1]} ${payrollYear}`;
 
   function navigate(changes: Record<string, string>) {
@@ -268,11 +305,45 @@ export function SubcontractorDetail({
                 <option key={period.start} value={`${period.start}|${period.end}`}>
                   {period.label}
                   {period.isActive ? " (aktif)" : ""}
+                  {closures.some((closure) => closure.period_start === period.start && closure.period_end === period.end) ? " · kapalı" : ""}
                 </option>
               ))}
             </NativeSelect>
           </div>
+          {!closedInfo && end < todayIso && (
+            <Button variant="outline" size="sm" disabled={busy} onClick={closePeriod}>
+              <Lock className="h-4 w-4" />
+              Dönemi kapat
+            </Button>
+          )}
+          {closedInfo && canReopen && (
+            <Button variant="ghost" size="sm" disabled={busy} onClick={reopenPeriod}>
+              <LockOpen className="h-4 w-4" />
+              Yeniden aç
+            </Button>
+          )}
         </div>
+      )}
+
+      {(tab === "ozet" || tab === "odemeler") && closedInfo && (
+        <div
+          className={cn(
+            "rounded-xl border px-4 py-3 text-sm",
+            closedInfo.changed
+              ? "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+              : "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
+          )}
+        >
+          <strong>Bu dönem {formatDate(closedInfo.closure.closed_at.slice(0, 10))} tarihinde kapatıldı;</strong> kapanıştaki kayıt gösteriliyor.
+          {closedInfo.changed
+            ? ` Kapanıştan sonra bu döneme kayıt girildi: güncel bakiye ${money(closedInfo.liveBalance)}. Fark bir sonraki dönemin devreden bakiyesine yansır.`
+            : " Kapanıştan sonra değişiklik yok."}
+        </div>
+      )}
+      {!closedInfo && statement && end < todayIso && tab === "ozet" && (
+        <p className="text-xs text-muted-foreground">
+          Bu dönem bitti ama kapatılmadı. Ödemeleri girdikten sonra dönemi kapatın; ekstre olduğu gibi saklanır ve geçmişten görülür.
+        </p>
       )}
 
       {tab === "ozet" && statement && (
@@ -282,9 +353,9 @@ export function SubcontractorDetail({
             <Stat label="Personele ödenen avans + maaş" value={money(statement.salary_total)} hint="Firmanın taşeron adına ödediği" />
             <Stat label="Bu dönem ödenen / harcanan" value={money(statement.paid_total)} />
             <Stat
-              label="Kalan bakiye"
-              value={money(statement.balance)}
-              hint={`Devreden: ${money(statement.carried_balance)}`}
+              label={`Kalan bakiye · ${balanceWord(statement.balance)}`}
+              value={money(Math.abs(Number(statement.balance)))}
+              hint={`Önceki dönemden devreden: ${money(Math.abs(Number(statement.carried_balance)))} · ${balanceWord(statement.carried_balance)}`}
               strong
             />
           </div>
@@ -677,6 +748,14 @@ function CategoriesDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+/** Bakiye işareti: artı = firma taşerona borçlu (taşeron alacaklı), eksi = firma fazla ödedi (taşeron borçlu). */
+function balanceWord(value: number | string) {
+  const amount = Number(value);
+  if (amount > 0.004) return "taşeron alacaklı";
+  if (amount < -0.004) return "taşeron borçlu";
+  return "hesap kapalı";
 }
 
 function Stat({ label, value, hint, strong }: { label: string; value: string; hint?: string; strong?: boolean }) {

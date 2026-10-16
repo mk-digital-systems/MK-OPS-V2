@@ -50,11 +50,21 @@ export default async function SubcontractorDetailPage({
     ? monthParam.split("-").map(Number)
     : [today.getFullYear(), today.getMonth() + 1];
 
-  const [statement, categories, payroll] = await Promise.all([
+  const [liveStatement, categories, payroll, closures, closed] = await Promise.all([
     canSeePrices ? repository.getStatement(id, start, end) : Promise.resolve(null),
     canSeePrices ? repository.listCategories() : Promise.resolve([]),
     repository.getPayroll(id, year, month),
+    canSeePrices ? repository.listClosures(id) : Promise.resolve([]),
+    canSeePrices ? repository.getClosedStatement(id, start, end) : Promise.resolve(null),
   ]);
+  // Kapatılmış dönem hep kapanıştaki kayıttan gösterilir; sonradan değişen bakiye uyarı olur.
+  const statement = closed ? closed.statement : liveStatement;
+  const closedInfo =
+    closed && liveStatement
+      ? { closure: closed.closure, changed: Number(liveStatement.balance) !== Number(closed.statement.balance), liveBalance: Number(liveStatement.balance) }
+      : closed
+        ? { closure: closed.closure, changed: false, liveBalance: Number(closed.statement.balance) }
+        : null;
 
   return (
     <SubcontractorDetail
@@ -64,6 +74,9 @@ export default async function SubcontractorDetailPage({
       start={start}
       end={end}
       statement={statement}
+      closures={closures}
+      closedInfo={closedInfo}
+      canReopen={profile?.role === "site_chief"}
       categories={categories}
       payroll={payroll}
       payrollYear={year}
