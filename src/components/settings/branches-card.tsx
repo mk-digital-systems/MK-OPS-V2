@@ -13,12 +13,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 
 /** Firma yöneticisi: şube açar, adını değiştirir, boş şubeyi siler. Merkez silinemez. */
-export function BranchesCard({ initialBranches }: { initialBranches: Branch[] }) {
+export function BranchesCard({ initialBranches, branchLimit }: { initialBranches: Branch[]; branchLimit?: number }) {
   const router = useRouter();
   const [branches, setBranches] = useState(initialBranches);
   const [name, setName] = useState("");
   const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const extraCount = branches.filter((branch) => !branch.is_main).length;
+  const limitReached = branchLimit !== undefined && extraCount >= branchLimit;
 
   async function run(action: (repository: BranchRepository) => Promise<void>, success: string) {
     setBusy(true);
@@ -101,9 +103,9 @@ export function BranchesCard({ initialBranches }: { initialBranches: Branch[] })
           </div>
         ))}
         <div className="flex gap-2">
-          <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Yeni şube adı (ör. Düzce Şubesi)" />
+          <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Yeni şube adı (ör. Düzce Şubesi)" disabled={limitReached} />
           <Button
-            disabled={busy || name.trim().length < 2}
+            disabled={busy || name.trim().length < 2 || limitReached}
             onClick={async () => {
               let created: Branch | null = null;
               const ok = await run(async (repository) => {
@@ -119,6 +121,12 @@ export function BranchesCard({ initialBranches }: { initialBranches: Branch[] })
             Ekle
           </Button>
         </div>
+        {branchLimit !== undefined && (
+          <p className={limitReached ? "text-xs font-medium text-amber-700 dark:text-amber-300" : "text-xs text-muted-foreground"}>
+            Ek şube: {extraCount} / {branchLimit} (Merkez hariç).
+            {limitReached && " Şube hakkınız doldu; artırmak için destek ile iletişime geçin."}
+          </p>
+        )}
       </CardContent>
     </Card>
   );

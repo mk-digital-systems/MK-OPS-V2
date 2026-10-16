@@ -31,6 +31,15 @@ export type CompanySummary = {
   plan: string | null;
   plan_ends_at: string | null;
   user_limit: number | null;
+  /** Süper adminin verdiği rol kotaları (boş = sınırsız) ve açılabilecek ek şube sayısı */
+  site_chief_limit?: number | null;
+  manager_limit?: number | null;
+  accounting_limit?: number | null;
+  branch_limit?: number;
+  site_chief_count?: number;
+  manager_count?: number;
+  accounting_count?: number;
+  extra_branch_count?: number;
   payroll_start_day: number;
   currency_code: CurrencyCode;
   /** company-logos deposundaki dosya yolu; logo yoksa null. */

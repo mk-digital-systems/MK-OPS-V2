@@ -45,7 +45,7 @@ export default async function SettingsPage() {
           </Link>
         </Button>
       </div>
-      <BranchesCard initialBranches={myBranches.branches} />
+      <BranchesCard initialBranches={myBranches.branches} branchLimit={account.company?.branch_limit} />
       <HakedisSettingsCard company={account.company} />
       <CompanyLogoCard company={account.company} />
       <CompanyVaultCard configured={vaultStatus.configured} />

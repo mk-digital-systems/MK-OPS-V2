@@ -21,6 +21,7 @@ await sys(`insert into public.platform_admins (user_id) values ($1)`, [admin]);
 await as(owner, `select public.create_company('Telekom Firma')`);
 await as(other, `select public.create_company('Diğer Firma')`);
 const company = (await one(owner, `select public.get_my_company() r`)).r.company;
+await sys(`update public.companies set branch_limit = 10 where id = $1`, [company.id]);
 for (const u of [hqChief, branchChief, acc]) await as(u, `select public.join_company('Telekom Firma', $1)`, [company.join_code]);
 await as(owner, `select public.assign_user_role($1, 'company_manager')`, [hqChief]);
 await as(owner, `select public.assign_user_role($1, 'company_manager')`, [branchChief]);

@@ -20,6 +20,7 @@ await sys(`insert into auth.users (id, email) values ($1,'a@a'),($2,'b@b'),($3,'
 await as(owner, `select public.create_company('Şubeli Firma')`);
 await as(other, `select public.create_company('Diğer Firma')`);
 const company = (await one(owner, `select public.get_my_company() r`)).r.company;
+await sys(`update public.companies set branch_limit = 10 where id = $1`, [company.id]);
 await as(branchChief, `select public.join_company('Şubeli Firma', $1)`, [company.join_code]);
 await as(owner, `select public.assign_user_role($1, 'company_manager')`, [branchChief]);
 const merkez = (await sys(`select id from public.branches where company_id = $1 and is_main`, [company.id])).rows[0].id;

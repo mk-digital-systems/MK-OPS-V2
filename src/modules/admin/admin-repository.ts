@@ -23,6 +23,10 @@ export class AdminRepository {
     plan: string | null;
     planEndsAt: string | null;
     userLimit: number | null;
+    siteChiefLimit: number | null;
+    managerLimit: number | null;
+    accountingLimit: number | null;
+    branchLimit: number;
     trialEndsAt: string;
   }): Promise<void> {
     const { error } = await this.supabase.rpc("admin_update_company", {
@@ -31,6 +35,10 @@ export class AdminRepository {
       p_plan_ends_at: payload.planEndsAt,
       p_user_limit: payload.userLimit,
       p_trial_ends_at: payload.trialEndsAt,
+      p_site_chief_limit: payload.siteChiefLimit,
+      p_manager_limit: payload.managerLimit,
+      p_accounting_limit: payload.accountingLimit,
+      p_branch_limit: payload.branchLimit,
     });
     if (error) throw error;
   }

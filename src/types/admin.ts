@@ -12,6 +12,15 @@ export type AdminCompany = {
   plan: string | null;
   plan_ends_at: string | null;
   user_limit: number | null;
+  site_chief_limit: number | null;
+  manager_limit: number | null;
+  accounting_limit: number | null;
+  /** Açılabilecek ek şube (Merkez hariç) */
+  branch_limit: number;
+  site_chief_count: number;
+  manager_count: number;
+  accounting_count: number;
+  extra_branch_count: number;
   suspended_at: string | null;
   access_status: CompanyAccessStatus;
   project_addons: ProjectAddon[];
