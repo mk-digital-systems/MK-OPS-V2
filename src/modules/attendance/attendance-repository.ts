@@ -50,6 +50,9 @@ export class AttendanceRepository {
       .select("personnel_id, employment_start_date, employment_end_date")
       .in("personnel_id", personnelIds);
     if (periodsError) throw periodsError;
+    const { data: branchRows, error: branchError } = await this.supabase.from("personnel").select("id, branch_id").in("id", personnelIds);
+    if (branchError) throw branchError;
+    const branchOf = new Map((branchRows ?? []).map((row) => [row.id as string, row.branch_id as string]));
 
     result.personnel = result.personnel.map((personnel) => {
       const employmentPeriods = (periods ?? [])
@@ -98,6 +101,7 @@ export class AttendanceRepository {
       );
       return {
         ...personnel,
+        branch_id: branchOf.get(personnel.id) ?? null,
         employment_periods: employmentPeriods,
         records: normalizedRecords,
         totals: normalizedRecords.reduce(

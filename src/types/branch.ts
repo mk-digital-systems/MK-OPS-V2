@@ -13,6 +13,8 @@ export type MyBranches = {
   total_count: number;
   /** Firma yöneticisi veya Merkez'e atanmış şantiye şefi: bütün şubeler ve personel/araç onayı. */
   head_office: boolean;
+  /** Firma yöneticisi veya şantiye şefi: kendi şubesinin bekleyen kayıtlarını onaylar. */
+  can_approve?: boolean;
   assignments: { user_id: string; branch_id: string }[] | null;
   /** Merkez yetkisi verilmiş şantiye şefleri (yalnızca firma yöneticisine döner). */
   head_office_users?: string[] | null;

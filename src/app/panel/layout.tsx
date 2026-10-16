@@ -50,7 +50,7 @@ export default async function AppLayout({
   const home = profile.role === "accounting" ? "/panel/attendance" : "/panel";
   if (pathname.startsWith("/panel/settings") && profile.role !== "site_chief") redirect(home);
   if (pathname.startsWith("/panel/users") && profile.role !== "site_chief" && profile.role !== "company_manager") redirect(home);
-  if (pathname.startsWith("/panel/approvals") && !myBranches.head_office) redirect(home);
+  if (pathname.startsWith("/panel/approvals") && !myBranches.can_approve) redirect(home);
 
   const isWriteOnlyRoute =
     pathname === "/panel/projects/new" ||
@@ -72,7 +72,7 @@ export default async function AppLayout({
 
   return (
     <CompanyBrandProvider brand={brand}>
-      <BranchProvider branches={myBranches.branches} totalCount={myBranches.total_count} headOffice={myBranches.head_office} selectedId={selectedBranchId}>
+      <BranchProvider branches={myBranches.branches} totalCount={myBranches.total_count} headOffice={myBranches.head_office} canApprove={Boolean(myBranches.can_approve)} selectedId={selectedBranchId}>
       <AppShell
         profile={profile}
         avatarUrl={avatarUrl}

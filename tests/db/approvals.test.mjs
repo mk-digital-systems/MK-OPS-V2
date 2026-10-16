@@ -34,8 +34,9 @@ await as(owner, `select public.assign_user_role($1, 'accounting')`, [acc]);
 // --- personel onayı ----------------------------------------------------------------
 const addPerson = (uid, name) =>
   one(uid, `insert into public.personnel (full_name, employment_start_date) values ($1, '2025-01-01') returning id, approval_status`, [name]);
-const approved = await addPerson(chief, "Ali Usta");
-check("şefin eklediği personel doğrudan onaylı", approved.approval_status === "approved");
+const approved = await addPerson(owner, "Ali Usta");
+check("firma yöneticisinin eklediği personel doğrudan onaylı", approved.approval_status === "approved");
+check("şefin eklediği personel doğrudan onaylı", (await addPerson(chief, "Şef Ustası")).approval_status === "approved");
 const pending = await addPerson(acc, "Veli Usta");
 check("muhasebenin eklediği personel onay bekler", pending.approval_status === "pending");
 
@@ -57,14 +58,14 @@ const payroll = (await one(chief, `select public.get_monthly_payroll(2025, 12) r
 check("bekleyen personel maaş dökümünde yok", !payroll.some((row) => row.full_name === "Veli Usta"));
 
 const notes = async (uid, type) => (await one(uid, `select public.get_my_notifications() n`)).n.filter((x) => x.type === type);
-check("Merkez şefi onay bekleyen personel bildirimi alır", (await notes(chief, "pending_approval")).some((x) => x.link === "/panel/approvals"));
+check("şef onay bekleyen personel bildirimi alır", (await notes(chief, "pending_approval")).some((x) => x.link === "/panel/approvals"));
 check("muhasebe onay bildirimi almaz", (await notes(acc, "pending_approval")).length === 0);
 
 e = await asErr(acc, `select public.review_pending_record('personnel', $1, true)`, [pending.id]);
 check("muhasebe onay veremez", !!e, e);
 e = await asErr(chief, `select public.review_pending_record('personnel', $1, true)`, [pending.id]);
 const after = await one(chief, `select approval_status, approved_by from public.personnel where id = $1`, [pending.id]);
-check("şef personeli onaylar", !e && after.approval_status === "approved" && after.approved_by === chief, e);
+check("şef kendi şubesinin personelini onaylar", !e && after.approval_status === "approved" && after.approved_by === chief, e);
 check("onaylanan personel puantajda görünür", names(await monthly(chief, 2025, 12)).includes("Veli Usta"));
 e = await asErr(chief, `select public.review_pending_record('personnel', $1, true)`, [pending.id]);
 check("onaylı kayıt yeniden onaylanamaz", /bulunamadı/.test(e ?? ""), e);

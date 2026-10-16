@@ -80,7 +80,7 @@ export default async function PersonnelPage({ searchParams }: Props) {
       readOnly={!canWrite}
       canCreate={canWrite || profile?.role === "accounting"}
       canReview={profile?.role === "site_chief" || profile?.role === "company_manager"}
-      canApprove={myBranches.head_office}
+      canApprove={Boolean(myBranches.can_approve)}
       currentUserId={profile?.id ?? null}
       subcontractors={subcontractors ?? []}
     />

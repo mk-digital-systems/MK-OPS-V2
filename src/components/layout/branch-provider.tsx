@@ -17,6 +17,8 @@ type BranchContextValue = {
   effectiveBranchId: string | null;
   /** Firma yöneticisi veya Merkez şantiye şefi (bütün şubeler, personel/araç onayı). */
   headOffice: boolean;
+  /** Şantiye şefi veya firma yöneticisi: kendi şubesinin bekleyen personel/araç/irsaliye kayıtlarını onaylar. */
+  canApprove: boolean;
   branchName: (id: string | null | undefined) => string | null;
   select: (id: string | null) => void;
 };
@@ -28,6 +30,7 @@ const BranchContext = createContext<BranchContextValue>({
   defaultBranchId: null,
   effectiveBranchId: null,
   headOffice: false,
+  canApprove: false,
   branchName: () => null,
   select: () => {},
 });
@@ -36,12 +39,14 @@ export function BranchProvider({
   branches,
   totalCount,
   headOffice,
+  canApprove,
   selectedId,
   children,
 }: {
   branches: Branch[];
   totalCount: number;
   headOffice: boolean;
+  canApprove: boolean;
   selectedId: string | null;
   children: React.ReactNode;
 }) {
@@ -56,13 +61,14 @@ export function BranchProvider({
       defaultBranchId,
       effectiveBranchId: branches.length > 1 ? defaultBranchId : selectedId,
       headOffice,
+      canApprove,
       branchName: (id) => (id ? byId.get(id) ?? null : null),
       select: (id) => {
         document.cookie = `${BRANCH_COOKIE}=${id ?? ""}; path=/; max-age=31536000; samesite=lax`;
         router.refresh();
       },
     };
-  }, [branches, totalCount, headOffice, selectedId, router]);
+  }, [branches, totalCount, headOffice, canApprove, selectedId, router]);
 
   return <BranchContext.Provider value={value}>{children}</BranchContext.Provider>;
 }

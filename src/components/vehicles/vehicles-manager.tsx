@@ -22,6 +22,7 @@ import { VehicleRepository } from "@/modules/vehicles/vehicle-repository";
 import { PendingApprovalsCard } from "@/components/approvals/pending-approvals-card";
 import { BranchSelectField, useBranches } from "@/components/layout/branch-provider";
 import { BranchRepository } from "@/modules/branches/branch-repository";
+import { groupByBranch } from "@/lib/branch-groups";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -378,8 +379,11 @@ export function VehiclesManager({
             </div>
           )}
 
+          {groupByBranch(filtered, (vehicle) => vehicle.branch_id, branches, multiBranch).map((section) => (
+          <div key={section.id} className="space-y-3">
+            {section.name && <h3 className="border-b pb-1 pt-2 text-sm font-semibold">{section.name} · {section.items.length} araç</h3>}
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {filtered.map((vehicle) => (
+            {section.items.map((vehicle) => (
               <div key={vehicle.id} className="rounded-2xl border p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
@@ -457,6 +461,8 @@ export function VehiclesManager({
               </div>
             ))}
           </div>
+          </div>
+          ))}
 
           {filtered.length === 0 && (
             <p className="py-10 text-center text-sm text-muted-foreground">

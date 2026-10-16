@@ -14,7 +14,7 @@ export type ProductionItem = {
   sheet_id?: string | null;
 };
 export type ProductionJob = { id: string; project_id: string | null; project_name_snapshot: string; project_code_snapshot: string | null; source: "work_plan" | "manual"; sort_order: number; items: ProductionItem[] };
-export type ProductionEntry = { id: string; work_date: string; team_leader_personnel_id: string; team_leader_name_snapshot: string; source_work_plan_id: string | null; created_at: string; updated_at: string; jobs: ProductionJob[] };
+export type ProductionEntry = { id: string; work_date: string; team_leader_personnel_id: string; team_leader_name_snapshot: string; branch_id?: string; source_work_plan_id: string | null; created_at: string; updated_at: string; jobs: ProductionJob[] };
 
 export type ProductionSaveItem = {
   kind: ProductionItemKind;
@@ -34,7 +34,7 @@ export type ProductionSaveItem = {
 export type ProductionSaveJob = { project_id: string | null; project_name: string; project_code: string; sort_order: number; items: ProductionSaveItem[] };
 
 /** İmalatta seçilebilen proje */
-export type ProductionProjectOption = { id: string; project_code: string; name: string; project_type_id: string | null };
+export type ProductionProjectOption = { id: string; project_code: string; name: string; project_type_id: string | null; branch_id?: string };
 
 /**
  * Projenin metrajlı iş kalemi. value: projedeki satırın kimliği ya da (poz projelerinde, satırı henüz olmayan)

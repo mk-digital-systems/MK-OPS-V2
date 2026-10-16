@@ -40,6 +40,8 @@ import {
   getMonthDays,
 } from "@/lib/constants/attendance";
 import { createClient } from "@/lib/supabase/client";
+import { useBranches } from "@/components/layout/branch-provider";
+import { groupByBranch } from "@/lib/branch-groups";
 import { AttendanceRepository } from "@/modules/attendance/attendance-repository";
 import { downloadAttendanceSummaryExcel } from "@/lib/attendance-excel";
 import { downloadMonthlyAttendanceWord } from "@/lib/attendance-word";
@@ -151,6 +153,7 @@ export function MonthlyAttendanceTable({
   branchDays = {},
 }: Props) {
   const brand = useReportBrand();
+  const { branches, multiBranch } = useBranches();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -393,9 +396,13 @@ export function MonthlyAttendanceTable({
   const fileScope = scopeLabel ? `-${scopeLabel.replace(/^Taşeron: /, "").toLocaleLowerCase("tr-TR").replace(/[^a-z0-9çğıöşü]+/g, "-")}` : "";
 
   // Ekranda gruplar sırayla: önce firma personeli, sonra her taşeron.
-  const displayGroups = exportGroups
-    .map((group) => ({ ...group, personnel: initialData.personnel.filter((personnel) => groupKey(personnel) === group.key) }))
-    .filter((group) => group.personnel.length > 0);
+  // Şube varsa önce Merkez, sonra diğer şubeler; her şubenin içinde bu gruplar.
+  const displayGroups = groupByBranch(initialData.personnel, (personnel) => personnel.branch_id, branches, multiBranch).flatMap((section) =>
+    exportGroups
+      .map((group) => ({ ...group, key: `${section.id}-${group.key}`, personnel: section.items.filter((personnel) => groupKey(personnel) === group.key), branchHeader: null as string | null }))
+      .filter((group) => group.personnel.length > 0)
+      .map((group, index) => ({ ...group, branchHeader: index === 0 && section.name ? `${section.name} · ${section.items.length} personel` : null }))
+  );
 
   async function exportExcel() {
     try {
@@ -871,6 +878,16 @@ export function MonthlyAttendanceTable({
             <tbody>
               {displayGroups.map((group) => (
                 <Fragment key={group.key}>
+                  {group.branchHeader && (
+                    <tr>
+                      <td
+                        colSpan={days.length + 2}
+                        className="sticky left-0 border-b bg-primary/10 px-3 py-2 text-sm font-semibold"
+                      >
+                        {group.branchHeader}
+                      </td>
+                    </tr>
+                  )}
                   {hasSubcontractors && (
                     <tr>
                       <td

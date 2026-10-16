@@ -26,6 +26,8 @@ export type MonthlyAttendancePersonnel = {
   /** Taşeron personeli ise taşeron; firma personelinde null. */
   subcontractor_id?: string | null;
   subcontractor_name?: string | null;
+  /** Personelin şubesi (puantaj şube şube gösterilir). */
+  branch_id?: string | null;
   employment_periods?: {
     employment_start_date: string | null;
     employment_end_date: string;

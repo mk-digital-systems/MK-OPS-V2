@@ -29,11 +29,11 @@ export default async function ProductionsPage({
   const productionRepository = new ProductionRepository(supabase);
   const userRepository = new UserRepository(supabase);
   const [personnel, entries, canWrite, canSeePrices, projects, types, account] = await Promise.all([
-    new PersonnelRepository(supabase).list({ activeOnly: true }),
+    new PersonnelRepository(supabase).list({ activeOnly: true, branchId }),
     productionRepository.listEntries(monthStart, monthEnd, branchId),
     userRepository.canWrite("productions"),
     userRepository.canWrite("hakedis"),
-    productionRepository.listProjectOptions(),
+    productionRepository.listProjectOptions(branchId),
     new ProjectRepository(supabase).listTypes(true),
     new CompanyRepository(supabase).getMyAccount(),
   ]);

@@ -32,7 +32,7 @@ export default async function VehiclesPage() {
       personnel={personnel.filter((person) => person.is_active)}
       readOnly={!canWrite}
       canCreate={canWrite || profile?.role === "accounting"}
-      canReview={myBranches.head_office}
+      canReview={Boolean(myBranches.can_approve)}
       currentUserId={profile?.id ?? null}
     />
   );

@@ -98,7 +98,6 @@ export function UserRoleManager({
   joinCode,
   branches = [],
   branchAssignments = [],
-  headOfficeUsers = [],
 }: {
   initialUsers: UserProfile[];
   initialPermissions: CompanyManagerPermissions[];
@@ -111,8 +110,6 @@ export function UserRoleManager({
   /** Firma yöneticisine bütün şubeler; şube ataması yalnızca birden fazla şube varsa gösterilir. */
   branches?: Branch[];
   branchAssignments?: { user_id: string; branch_id: string }[];
-  /** Merkez yetkisi verilmiş şantiye şefleri. */
-  headOfficeUsers?: string[];
 }) {
   const isManager = viewerRole === "site_chief";
   const [users, setUsers] = useState(initialUsers);
@@ -130,22 +127,7 @@ export function UserRoleManager({
   const [assignments, setAssignments] = useState(branchAssignments);
   const [savingBranches, setSavingBranches] = useState<string | null>(null);
   const showBranches = isManager && branches.length > 1;
-  const [headOffice, setHeadOffice] = useState(headOfficeUsers);
-  const mainBranchId = branches.find((branch) => branch.is_main)?.id ?? null;
 
-  async function toggleHeadOffice(userId: string) {
-    const enabled = !headOffice.includes(userId);
-    setSavingBranches(userId);
-    try {
-      await new BranchRepository(createClient()).setHeadOffice(userId, enabled);
-      setHeadOffice((items) => (enabled ? [...items, userId] : items.filter((id) => id !== userId)));
-      toast.success(enabled ? "Merkez yetkisi verildi" : "Merkez yetkisi kaldırıldı");
-    } catch (error) {
-      toast.error("Merkez yetkisi güncellenemedi", { description: branchErrorMessage(error) });
-    } finally {
-      setSavingBranches(null);
-    }
-  }
 
   async function toggleBranch(userId: string, branchId: string) {
     const current = assignments.filter((item) => item.user_id === userId).map((item) => item.branch_id);
@@ -430,23 +412,9 @@ Katılım kodu: ${joinCode}`);
                           );
                         })}
                       </div>
-                      {user.role === "company_manager" && (() => {
-                        const inMain = assignments.some((item) => item.user_id === user.id && item.branch_id === mainBranchId);
-                        return (
-                          <label className={`mt-3 flex w-fit items-center gap-2 rounded-lg border px-3 py-1.5 text-sm ${inMain || headOffice.includes(user.id) ? "border-primary bg-primary/10" : ""} ${inMain ? "opacity-70" : "cursor-pointer"}`}>
-                            <input
-                              type="checkbox"
-                              checked={inMain || headOffice.includes(user.id)}
-                              disabled={inMain || savingBranches === user.id}
-                              onChange={() => toggleHeadOffice(user.id)}
-                            />
-                            Merkez yetkisi{inMain ? " (Merkez'e atalı)" : ""}
-                          </label>
-                        );
-                      })()}
                       <p className="mt-2 text-xs text-muted-foreground">
                         {user.role === "company_manager"
-                          ? "Merkez yetkisi olan şantiye şefi (Merkez'e atanan veya yetki verilen) bütün şubeleri görür ve işler, şubelerin eklediği personel/aracı onaylar ve personel/aracı şubeler arasında taşır. Diğer şantiye şefleri yalnızca seçili şubelerde çalışır; ekledikleri personel ve araç onaya düşer, şube değiştiremezler."
+                          ? "Şantiye şefi (Merkez dahil) yalnızca seçili şubelerin proje, personel, araç ve işlemlerini görür ve işler. Ekledikleri personel ve araç firma yöneticisinin onayına düşer; şube değiştiremezler. Bütün şubeleri yalnızca firma yöneticisi görür."
                           : "Muhasebe yalnızca seçili şubelerin kayıtlarını görür ve işler."}
                       </p>
                     </div>
