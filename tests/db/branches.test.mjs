@@ -20,6 +20,7 @@ const [owner, chief, acc, acc2, hq] = ["1", "2", "3", "4", "5"].map((n) => `0000
 await sys(`insert into auth.users (id, email) values ($1,'a@a'),($2,'b@b'),($3,'c@c'),($4,'d@d'),($5,'e@e')`, [owner, chief, acc, acc2, hq]);
 await as(owner, `select public.create_company('Şubeli Firma')`);
 const company = (await one(owner, `select public.get_my_company() r`)).r.company;
+await sys(`update public.companies set branch_limit = 10 where id = $1`, [company.id]);
 for (const u of [chief, acc, acc2, hq]) await as(u, `select public.join_company('Şubeli Firma', $1)`, [company.join_code]);
 await as(owner, `select public.assign_user_role($1, 'company_manager')`, [chief]);
 await as(owner, `select public.assign_user_role($1, 'company_manager')`, [hq]);

@@ -8,7 +8,14 @@ import { Ban, Loader2, Play, Search, Settings2, Trash2, Users } from "lucide-rea
 import { toast } from "sonner";
 import type { AdminCompany, AdminCompanyUser, Catalog } from "@/types/admin";
 import { USER_ROLE_LABELS, type CompanyAccessStatus } from "@/types/auth";
-import { ACCESS_STATUS_CLASSES, ACCESS_STATUS_LABELS, PLAN_DURATION_MONTHS, PLAN_PRESETS } from "@/lib/constants/plans";
+import {
+  ACCESS_STATUS_CLASSES,
+  ACCESS_STATUS_LABELS,
+  CUSTOM_PLAN,
+  PLAN_DURATION_MONTHS,
+  PLAN_PRESETS,
+  PLAN_PRESET_LIMITS,
+} from "@/lib/constants/plans";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { AdminRepository } from "@/modules/admin/admin-repository";
@@ -196,6 +203,25 @@ function ManageCompanyDialog({
   const [plan, setPlan] = useState(company.plan ?? "");
   const [planEndsAt, setPlanEndsAt] = useState(toDateInput(company.plan_ends_at));
   const [userLimit, setUserLimit] = useState(company.user_limit?.toString() ?? "");
+  const [siteChiefLimit, setSiteChiefLimit] = useState(company.site_chief_limit?.toString() ?? "");
+  const [managerLimit, setManagerLimit] = useState(company.manager_limit?.toString() ?? "");
+  const [accountingLimit, setAccountingLimit] = useState(company.accounting_limit?.toString() ?? "");
+  const [branchLimit, setBranchLimit] = useState(String(company.branch_limit ?? 0));
+  const presetPlan = PLAN_PRESETS.find((preset) => preset === plan);
+  // Hazır planda sayılar kilitlidir; Özel (ve plan seçilmemiş / eski adlı) planda elle girilir.
+  const limitsLocked = Boolean(presetPlan);
+
+  function choosePlan(value: string) {
+    setPlan(value);
+    const preset = PLAN_PRESETS.find((item) => item === value);
+    if (!preset) return;
+    const limits = PLAN_PRESET_LIMITS[preset];
+    setUserLimit(String(limits.users));
+    setSiteChiefLimit(String(limits.siteChiefs));
+    setManagerLimit(String(limits.managers));
+    setAccountingLimit(String(limits.accountants));
+    setBranchLimit(String(limits.branches));
+  }
   const [trialEndsAt, setTrialEndsAt] = useState(toDateTimeInput(company.trial_ends_at));
   const [catalogIds, setCatalogIds] = useState<string[]>(
     catalogs.filter((catalog) => catalog.company_ids.includes(company.id)).map((catalog) => catalog.id)
@@ -218,9 +244,22 @@ function ManageCompanyDialog({
   }
 
   async function save() {
-    const limit = userLimit.trim() === "" ? null : Number(userLimit);
+    const parse = (value: string) => (value.trim() === "" ? null : Number(value));
+    const limit = parse(userLimit);
+    const roleLimits = { siteChief: parse(siteChiefLimit), manager: parse(managerLimit), accounting: parse(accountingLimit) };
+    const branches = Number(branchLimit.trim() === "" ? 0 : branchLimit);
     if (limit !== null && (!Number.isInteger(limit) || limit < 1)) {
       toast.error("Kullanıcı limiti 1 veya daha büyük bir tam sayı olmalı");
+      return;
+    }
+    for (const value of Object.values(roleLimits)) {
+      if (value !== null && (!Number.isInteger(value) || value < 0)) {
+        toast.error("Rol sayıları 0 veya daha büyük tam sayı olmalı");
+        return;
+      }
+    }
+    if (!Number.isInteger(branches) || branches < 0) {
+      toast.error("Ek şube sayısı 0 veya daha büyük bir tam sayı olmalı");
       return;
     }
     if (!trialEndsAt) {
@@ -234,6 +273,10 @@ function ManageCompanyDialog({
         plan: plan.trim() || null,
         planEndsAt: plan.trim() && planEndsAt ? new Date(`${planEndsAt}T23:59:59`).toISOString() : null,
         userLimit: limit,
+        siteChiefLimit: roleLimits.siteChief,
+        managerLimit: roleLimits.manager,
+        accountingLimit: roleLimits.accounting,
+        branchLimit: branches,
         trialEndsAt: new Date(trialEndsAt).toISOString(),
       });
       toast.success(`${company.name} güncellendi`);
@@ -313,18 +356,22 @@ function ManageCompanyDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="plan">Plan adı</Label>
-              <Input
+              <select
                 id="plan"
-                list="plan-presets"
+                className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
                 value={plan}
-                onChange={(event) => setPlan(event.target.value)}
-                placeholder="Boş bırakılırsa deneme"
-              />
-              <datalist id="plan-presets">
+                onChange={(event) => choosePlan(event.target.value)}
+              >
+                <option value="">Plan yok (deneme)</option>
                 {PLAN_PRESETS.map((preset) => (
-                  <option key={preset} value={preset} />
+                  <option key={preset} value={preset}>
+                    {preset} · {PLAN_PRESET_LIMITS[preset].users} kullanıcı
+                  </option>
                 ))}
-              </datalist>
+                <option value={CUSTOM_PLAN}>{CUSTOM_PLAN} (her şeyi ben belirlerim)</option>
+                {plan && plan !== CUSTOM_PLAN && !presetPlan && <option value={plan}>{plan} (eski ad)</option>}
+              </select>
+              {limitsLocked && <p className="text-xs text-muted-foreground">Hazır plan: sayılar plana göre dolar. Değiştirmek için Özel planı seçin.</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="plan-ends">Plan bitişi</Label>
@@ -348,15 +395,55 @@ function ManageCompanyDialog({
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="user-limit">Kullanıcı limiti</Label>
+              <Label htmlFor="user-limit">Toplam kullanıcı</Label>
               <Input
                 id="user-limit"
                 type="number"
                 min={1}
+                disabled={limitsLocked}
                 value={userLimit}
                 onChange={(event) => setUserLimit(event.target.value)}
                 placeholder="Sınırsız"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="branch-limit">Açabileceği ek şube (Merkez hariç)</Label>
+              <Input
+                id="branch-limit"
+                type="number"
+                min={0}
+                disabled={limitsLocked}
+                value={branchLimit}
+                onChange={(event) => setBranchLimit(event.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Şu an {company.extra_branch_count ?? 0} ek şube açık. 0 = yalnızca Merkez.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:col-span-2 sm:grid-cols-3">
+              {[
+                { id: "limit-site-chief", label: "Firma yöneticisi", value: siteChiefLimit, set: setSiteChiefLimit, used: company.site_chief_count, min: 1 },
+                { id: "limit-manager", label: "Şantiye şefi", value: managerLimit, set: setManagerLimit, used: company.manager_count, min: 0 },
+                { id: "limit-accounting", label: "Muhasebe", value: accountingLimit, set: setAccountingLimit, used: company.accounting_count, min: 0 },
+              ].map((role) => (
+                <div key={role.id} className="space-y-2">
+                  <Label htmlFor={role.id}>{role.label} sayısı</Label>
+                  <Input
+                    id={role.id}
+                    type="number"
+                    min={role.min}
+                    disabled={limitsLocked}
+                    value={role.value}
+                    onChange={(event) => role.set(event.target.value)}
+                    placeholder="Sınırsız"
+                  />
+                  <p className="text-xs text-muted-foreground">Şu an {role.used ?? 0} kullanıcı</p>
+                </div>
+              ))}
+              <p className="text-xs text-muted-foreground sm:col-span-3">
+                Rol sayıları toplamı: {(Number(siteChiefLimit) || 0) + (Number(managerLimit) || 0) + (Number(accountingLimit) || 0)}
+                {userLimit.trim() !== "" && ` / toplam ${userLimit}`}. Boş bırakılan rol sınırsızdır.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="trial-ends">Deneme bitişi</Label>

@@ -64,6 +64,18 @@ export function CompanyInfoCard({ company }: { company: CompanySummary }) {
         {company.user_limit !== null && (
           <Info label="Kullanıcı limiti" value={String(company.user_limit)} />
         )}
+        {[
+          { label: "Firma yöneticisi", limit: company.site_chief_limit, count: company.site_chief_count },
+          { label: "Şantiye şefi", limit: company.manager_limit, count: company.manager_count },
+          { label: "Muhasebe", limit: company.accounting_limit, count: company.accounting_count },
+        ]
+          .filter((role) => role.limit !== null && role.limit !== undefined)
+          .map((role) => (
+            <Info key={role.label} label={`${role.label} kotası`} value={`${role.count ?? 0} / ${role.limit}`} />
+          ))}
+        {company.branch_limit !== undefined && (
+          <Info label="Ek şube" value={`${company.extra_branch_count ?? 0} / ${company.branch_limit} (Merkez hariç)`} />
+        )}
       </CardContent>
     </Card>
   );
