@@ -57,9 +57,9 @@ export function SubcontractorsManager({
               </p>
               {showMoney && item.balance !== null && (
                 <p className={cn("mt-3 text-sm font-medium", Number(item.balance) < 0 ? "text-red-600" : "text-foreground")}>
-                  Bakiye: {formatMoney(Math.abs(Number(item.balance)), currency)}{" "}
-                  <span className="font-normal text-muted-foreground">
-                    {Number(item.balance) > 0 ? "(taşerona borçlu)" : Number(item.balance) < 0 ? "(fazla ödeme)" : ""}
+                  Bakiye: {formatMoney(Number(item.balance), currency)}{" "}
+                  <span className={cn("font-normal", Number(item.balance) < 0 ? "text-red-600" : "text-muted-foreground")}>
+                    {Number(item.balance) > 0 ? "(taşeron alacaklı)" : Number(item.balance) < 0 ? "(taşeron borçlu)" : ""}
                   </span>
                 </p>
               )}
