@@ -66,7 +66,18 @@ export type SubcontractorStatement = {
   carried_balance: number;
   balance: number;
   rows: SubcontractorWorkRow[];
-  salaries: { personnel_id: string; full_name: string; monthly_salary: number; payable_days: number; amount: number }[];
+  salaries: {
+    personnel_id: string;
+    full_name: string;
+    monthly_salary: number;
+    payable_days: number;
+    /** Puantaja göre hak edilen maaş (bilgi) */
+    earned: number;
+    advance_paid: number;
+    salary_paid: number;
+    /** Taşeron hesabından düşen: avans + maaş ödemesi */
+    amount: number;
+  }[];
   transactions: (SubcontractorTransaction & { category_name: string })[];
   by_category: { category_name: string; amount: number }[];
 };

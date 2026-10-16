@@ -160,7 +160,7 @@ export function SubcontractorDetail({
       })),
       footer: [
         ["Hakediş", Number(statement.share_total)],
-        ["Firmanın ödediği maaşlar (puantaja göre)", Number(statement.salary_total)],
+        ["Personele ödenen avans ve maaşlar", Number(statement.salary_total)],
         ["Önceki dönemden devreden", Number(statement.carried_balance)],
         ["Bu dönem ödenen / harcanan", Number(statement.paid_total)],
         ["Kalan bakiye", Number(statement.balance)],
@@ -279,7 +279,7 @@ export function SubcontractorDetail({
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Stat label="Taşeron hakedişi" value={money(statement.share_total)} />
-            <Stat label="Firmanın ödediği maaşlar" value={money(statement.salary_total)} hint="Puantaja göre" />
+            <Stat label="Personele ödenen avans + maaş" value={money(statement.salary_total)} hint="Firmanın taşeron adına ödediği" />
             <Stat label="Bu dönem ödenen / harcanan" value={money(statement.paid_total)} />
             <Stat
               label="Kalan bakiye"
@@ -349,10 +349,10 @@ export function SubcontractorDetail({
           {statement.salaries.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Firmanın Ödediği Maaşlar</CardTitle>
+                <CardTitle className="text-base">Personele Ödenen Avans ve Maaşlar</CardTitle>
                 <CardDescription>
-                  Maaşı girilmiş taşeron personelinin bu dönemde puantaja göre hak ettiği maaş; taşeron alacağından düşer. Maaşı 0
-                  olan personeli taşeron kendisi öder.
+                  Firmanın taşeron personeline bu dönemde fiilen ödediği avans ve maaş; taşeronun hesabından düşer. Hak edilen maaş
+                  puantaja göredir ve bilgi içindir; ödenmemiş kısım kalan olarak görünür.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-1">
@@ -361,7 +361,8 @@ export function SubcontractorDetail({
                     <span>
                       {row.full_name}{" "}
                       <span className="text-muted-foreground">
-                        · {row.payable_days} gün × {money(Number(row.monthly_salary) / 30)}
+                        · hak edilen {money(row.earned)} ({row.payable_days} gün) · avans {money(row.advance_paid)} · maaş ödemesi {money(row.salary_paid)}
+                        {Number(row.earned) > Number(row.amount) && ` · ödenecek kalan ${money(Number(row.earned) - Number(row.amount))}`}
                       </span>
                     </span>
                     <strong className="tabular-nums">{money(row.amount)}</strong>
