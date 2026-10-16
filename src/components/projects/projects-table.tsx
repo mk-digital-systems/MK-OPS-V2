@@ -35,10 +35,18 @@ type Props = {
 
 const SCOPE_LABELS: Record<ArchiveScope, string> = {
   active: "Aktif projeler",
+  completed: "Tamamlananlar",
   archived: "Arşiv",
   cancelled: "İptal edilenler",
-  all: "Tümü (iptal hariç)",
+  all: "Tümü (arşiv ve iptal dahil)",
 };
+
+/** Arama sonuçlarında arşivdeki ve iptal edilen projeler belli olsun. */
+function ScopeBadge({ project }: { project: Project }) {
+  if (project.is_cancelled) return <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700 dark:bg-rose-950 dark:text-rose-300">İptal</span>;
+  if (project.is_archived) return <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200">Arşiv</span>;
+  return null;
+}
 
 export function ProjectsTable({
   title,
@@ -222,7 +230,7 @@ export function ProjectsTable({
               onChange={(event) => setParam({ scope: event.target.value === defaultArchiveScope ? null : event.target.value })}
               aria-label="Kapsam"
             >
-              {(["active", "archived", "cancelled", "all"] as ArchiveScope[]).map((scope) => (
+              {(["active", "completed", "archived", "cancelled", "all"] as ArchiveScope[]).map((scope) => (
                 <option key={scope} value={scope}>
                   {SCOPE_LABELS[scope]}
                 </option>
@@ -291,7 +299,10 @@ export function ProjectsTable({
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{project.location}</td>
                         <td className="px-4 py-3">
-                          <ProjectStatusBadge status={project.status} />
+                          <span className="inline-flex flex-wrap items-center gap-1">
+                            <ProjectStatusBadge status={project.status} />
+                            <ScopeBadge project={project} />
+                          </span>
                         </td>
                         <td className="px-4 py-3">
                           <ProgressBar value={project.progress_percent} status={project.status} />
@@ -322,7 +333,10 @@ export function ProjectsTable({
                           {project.project_code} · {project.location}{branchSuffix(project.branch_id)}
                         </p>
                       </div>
-                      <ProjectStatusBadge status={project.status} />
+                      <span className="inline-flex flex-wrap items-center gap-1">
+                        <ProjectStatusBadge status={project.status} />
+                        <ScopeBadge project={project} />
+                      </span>
                     </div>
                     <p className="mt-2 inline-flex items-center gap-2 text-xs text-muted-foreground">
                       <TypeDot color={type?.color ?? null} />

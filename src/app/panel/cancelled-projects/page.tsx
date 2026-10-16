@@ -4,6 +4,7 @@ import { ProjectRepository } from "@/modules/projects/project-repository";
 import { parseProjectSearchParams } from "@/lib/search-params";
 import { ProjectsTable } from "@/components/projects/projects-table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CancelledSheets } from "@/components/projects/cancelled-sheets";
 
 export const metadata = {
   title: "İptal Edilen Projeler",
@@ -19,21 +20,25 @@ async function CancelledProjectsContent({ searchParams }: Props) {
 
   const supabase = await createClient();
   const repository = new ProjectRepository(supabase);
-  const [result, types, locations] = await Promise.all([
+  const [result, types, locations, cancelledSheets] = await Promise.all([
     repository.list({ ...filters, archiveScope: "cancelled" }),
     repository.listTypes(true),
     repository.getDistinctLocations(),
+    repository.listCancelledSheets(),
   ]);
 
   return (
-    <ProjectsTable
-      title="İptal Edilen Projeler"
-      result={result}
-      types={types}
-      locations={locations}
-      defaultArchiveScope="cancelled"
-      allowArchiveScopeFilter={false}
-    />
+    <div className="space-y-8">
+      <ProjectsTable
+        title="İptal Edilen Projeler"
+        result={result}
+        types={types}
+        locations={locations}
+        defaultArchiveScope="cancelled"
+        allowArchiveScopeFilter={false}
+      />
+      <CancelledSheets sheets={cancelledSheets} />
+    </div>
   );
 }
 

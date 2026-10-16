@@ -121,7 +121,27 @@ export type ProjectProgressData = {
 /** Kurumsal projede elle seçilen durum. */
 export type CorporateStatus = "not_started" | "permit_waiting" | "in_progress" | "completed";
 
-export type HpSheetStatus = "not_started" | "permit_waiting" | "in_progress" | "completed";
+export type HpSheetStatus = "not_started" | "permit_waiting" | "in_progress" | "completed" | "cancelled";
+
+/** İptal edilen pafta (iptal projeler alanında listelenir). */
+export type CancelledSheet = {
+  id: string;
+  sheet_no: string;
+  hp_count: number;
+  address: string | null;
+  project_id: string;
+  project_code: string;
+  project_name: string;
+  cancelled_at: string;
+};
+
+/** HP projesinde paftanın keşif satırı (poz + miktar). */
+export type SheetKesifRow = {
+  sheet_id: string;
+  progress_id: string;
+  stage_id: string;
+  target_quantity: number;
+};
 
 export type HpSheet = {
   id: string;
@@ -141,6 +161,8 @@ export type HpSheet = {
 };
 
 export type HpSheetInput = {
+  /** Proje oluştururken paftaya girilen isteğe bağlı keşif */
+  kesif?: { key: string; stageId: string; quantity: string }[];
   sheet_no: string;
   hp_count: number;
   address: string;
@@ -190,7 +212,7 @@ export type HpReport = {
   }>;
 };
 
-export type ArchiveScope = "active" | "archived" | "cancelled" | "all";
+export type ArchiveScope = "active" | "completed" | "archived" | "cancelled" | "all";
 
 export type ProjectFilters = {
   search?: string;

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, ClipboardList, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import type { HpSheet, ProjectProgressData } from "@/types/project";
+import type { HpSheet, ProjectProgressData, SheetKesifRow } from "@/types/project";
 import type { PozItem } from "@/types/poz";
 import { formatQuantity, stageLabel } from "@/lib/constants/project";
 import { normalizeNumberText } from "@/lib/bulk-import";
@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { SheetKesifDialog } from "@/components/projects/sheet-kesif";
 
 const toNumber = (value: string) => {
   const text = normalizeNumberText(value);
@@ -33,6 +34,7 @@ export function PozBoard({
   pozes,
   data,
   sheets,
+  sheetKesif = [],
   readOnly,
 }: {
   projectId: string;
@@ -40,6 +42,8 @@ export function PozBoard({
   pozes: PozItem[];
   data: ProjectProgressData;
   sheets: HpSheet[] | null;
+  /** HP projesinde pafta bazlı keşif */
+  sheetKesif?: SheetKesifRow[];
   readOnly: boolean;
 }) {
   // Yeni açılan projede (?kesif=1) keşif penceresi kendiliğinden açılır; girmek zorunlu değildir.
@@ -85,7 +89,57 @@ export function PozBoard({
           )}
         </CardHeader>
         <CardContent className="p-0">
-          {kesifRows.length === 0 ? (
+          {sheets && sheetKesif.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px] text-sm">
+                <thead className="bg-muted/60 text-left text-xs text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-2.5 font-medium">Pafta</th>
+                    <th className="px-4 py-2.5 font-medium">Kalem</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Keşif</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Yapılan</th>
+                    <th className="px-4 py-2.5 text-right font-medium">Kalan</th>
+                    <th className="w-36 px-4 py-2.5 font-medium">İlerleme</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {sheetKesif
+                    .filter((cell) => sheetById.get(cell.sheet_id)?.status !== "cancelled")
+                    .sort((a, b) => (sheetById.get(a.sheet_id)?.sort_order ?? 0) - (sheetById.get(b.sheet_id)?.sort_order ?? 0))
+                    .map((cell) => {
+                      const poz = pozById.get(cell.stage_id);
+                      const target = Number(cell.target_quantity);
+                      const done = data.logs
+                        .filter((log) => log.sheet_id === cell.sheet_id && log.progress_id === cell.progress_id)
+                        .reduce((sum, log) => sum + Number(log.quantity ?? 0), 0);
+                      const percent = target > 0 ? Math.min(100, (done / target) * 100) : 0;
+                      return (
+                        <tr key={`${cell.sheet_id}-${cell.progress_id}`}>
+                          <td className="px-4 py-2.5 font-medium">{sheetById.get(cell.sheet_id)?.sheet_no ?? "—"}</td>
+                          <td className="px-4 py-2.5">{poz ? stageLabel(poz) : "—"}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums">{formatQuantity(target, poz?.unit ?? null)}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums">{formatQuantity(done, poz?.unit ?? null)}</td>
+                          <td className={cn("px-4 py-2.5 text-right tabular-nums", done > target && "text-amber-700")}>
+                            {done > target ? `+${formatQuantity(done - target, poz?.unit ?? null)} fazla` : formatQuantity(target - done, poz?.unit ?? null)}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center gap-2">
+                              <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                                <div className={cn("h-full rounded-full", percent >= 100 ? "bg-emerald-500" : "bg-primary")} style={{ width: `${percent}%` }} />
+                              </div>
+                              <span className="w-10 text-right text-xs tabular-nums">%{Math.round(percent)}</span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+              <p className="px-6 py-3 text-xs text-muted-foreground">
+                Pafta seçilmeden girilen imalatlar proje ilerlemesine sayılır ama paftaların satırında görünmez.
+              </p>
+            </div>
+          ) : kesifRows.length === 0 ? (
             <p className="px-6 pb-6 text-sm text-muted-foreground">
               Keşif girilmedi. Keşif isteğe bağlıdır; girilirse imalatlarla ilerleme hesaplanır. Proje her durumda elle tamamlanır.
             </p>
@@ -190,7 +244,10 @@ export function PozBoard({
         </CardContent>
       </Card>
 
-      {editing && (
+      {editing && sheets && (
+        <SheetKesifDialog projectId={projectId} pozes={pozes} sheets={sheets} existing={sheetKesif} onClose={() => setEditing(false)} />
+      )}
+      {editing && !sheets && (
         <KesifDialog
           projectId={projectId}
           pozes={pozes}

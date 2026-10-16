@@ -17,7 +17,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { HpSheet, Project, ProjectProgressData, ProjectStatus, ProjectType } from "@/types/project";
+import type { HpSheet, Project, ProjectProgressData, ProjectStatus, ProjectType, SheetKesifRow } from "@/types/project";
 import type { Personnel } from "@/types/work-plan";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { getDisplayImageUrl } from "@/lib/project-image-url";
@@ -40,6 +40,8 @@ type Props = {
   progress: ProjectProgressData;
   /** HP odaklı projede paftalar; diğer türlerde null. */
   hpSheets: HpSheet[] | null;
+  /** HP projesinde paftalara girilen keşif */
+  sheetKesif?: SheetKesifRow[];
   /** Katalogdan kurulan türde projenin kataloğundaki pozlar; eski türlerde null. */
   pozes: PozItem[] | null;
   personnel: Personnel[];
@@ -48,7 +50,7 @@ type Props = {
 
 type Busy = "status" | "archive" | "cancel" | "reactivate" | "delete" | null;
 
-export function ProjectDetail({ project, type, progress, hpSheets, pozes, personnel, readOnly }: Props) {
+export function ProjectDetail({ project, type, progress, hpSheets, sheetKesif = [], pozes, personnel, readOnly }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<Busy>(null);
   const [readyDismissed, setReadyDismissed] = useState(false);
@@ -263,7 +265,7 @@ export function ProjectDetail({ project, type, progress, hpSheets, pozes, person
                   : isCorporate
                   ? "Kurumsal proje"
                   : hpSheets
-                  ? `${hpSheets.filter((sheet) => sheet.status === "completed").length} / ${hpSheets.length} pafta bitti`
+                  ? `${hpSheets.filter((sheet) => sheet.status === "completed").length} / ${hpSheets.filter((sheet) => sheet.status !== "cancelled").length} pafta bitti`
                   : "Proje"}
               </span>
             </div>
@@ -304,7 +306,7 @@ export function ProjectDetail({ project, type, progress, hpSheets, pozes, person
       {isCorporate && <CorporateStatusPanel project={project} personnel={personnel} readOnly={!editable} />}
       {hpSheets && <HpSheetBoard projectId={project.id} sheets={hpSheets} personnel={personnel} readOnly={!editable} />}
       {pozes ? (
-        <PozBoard projectId={project.id} pozes={pozes} data={progress} sheets={hpSheets} readOnly={!editable} />
+        <PozBoard projectId={project.id} pozes={pozes} data={progress} sheets={hpSheets} sheetKesif={sheetKesif} readOnly={!editable} />
       ) : isCorporate || hpSheets ? null : (
         <Card>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">

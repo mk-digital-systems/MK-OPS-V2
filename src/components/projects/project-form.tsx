@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BranchSelectField, useBranches } from "@/components/layout/branch-provider";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -20,6 +20,9 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { HpSheetFields, emptyHpSheet, validateHpSheets } from "@/components/projects/hp-sheet-board";
+import { filledKesif, validateKesifLines } from "@/components/projects/sheet-kesif";
+import { PozRepository } from "@/modules/poz/poz-repository";
+import type { PozItem } from "@/types/poz";
 import {
   CorporateStatusFields,
   saveCorporateStatus,
@@ -53,6 +56,8 @@ export function ProjectForm({ mode, project, types: allTypes, locations, personn
       : allTypes;
   const [sheets, setSheets] = useState<SheetDraft[]>(() => [emptyHpSheet()]);
   const [pasteOpen, setPasteOpen] = useState(false);
+  // HP projesinin kataloğundaki pozlar: paftalara isteğe bağlı keşif girmek için (yalnızca oluştururken).
+  const [pozes, setPozes] = useState<PozItem[]>([]);
   const [corporateStatus, setCorporateStatus] = useState<CorporateStatusValue>({ status: "not_started", leaderId: "", completedAt: todayISODate() });
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -78,6 +83,23 @@ export function ProjectForm({ mode, project, types: allTypes, locations, personn
   const errors = form.formState.errors;
   const selectedType = types.find((type) => type.id === form.watch("project_type_id"));
   const isHp = selectedType?.screen === "hp";
+  const hpCatalogTypeId = isHp && mode === "create" ? selectedType?.catalog_type_id ?? null : null;
+  useEffect(() => {
+    if (!hpCatalogTypeId || !selectedType) {
+      setPozes([]);
+      return;
+    }
+    let cancelled = false;
+    const supabase = createClient();
+    (async () => {
+      const catalogId = await new ProjectRepository(supabase).getTypeCatalogId(selectedType);
+      const list = catalogId ? await new PozRepository(supabase).getList() : null;
+      if (!cancelled) setPozes((list?.items ?? []).filter((item) => item.catalog_id === catalogId));
+    })().catch(() => !cancelled && setPozes([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [hpCatalogTypeId, selectedType]);
   const isCorporate = selectedType?.screen === "corporate";
   const typeLocked = mode === "edit" && (!!project?.has_activity || currentType?.screen !== "standard");
 
@@ -117,7 +139,30 @@ export function ProjectForm({ mode, project, types: allTypes, locations, personn
           toast.error(problem);
           return;
         }
+        for (const [index, sheet] of sheets.entries()) {
+          const kesifProblem = validateKesifLines(sheet.kesif ?? [], pozes, `Pafta ${sheet.sheet_no || index + 1}: `);
+          if (kesifProblem) {
+            toast.error(kesifProblem);
+            return;
+          }
+        }
         savedId = await repository.createHpProject(payload, sheets);
+        const withKesif = sheets.filter((sheet) => filledKesif(sheet.kesif ?? []).length > 0);
+        if (withKesif.length) {
+          // Paftalar yeni oluştu; no'larından eşleştirilip keşifleri kaydedilir. Başarısız olursa proje yine de açılmıştır.
+          try {
+            const created = await repository.getHpSheets(savedId);
+            const idByNo = new Map(created.map((row) => [row.sheet_no.trim().toLocaleLowerCase("tr-TR"), row.id]));
+            await repository.saveSheetKesif(
+              savedId,
+              withKesif.flatMap((sheet) =>
+                filledKesif(sheet.kesif ?? []).map((line) => ({ sheet_id: idByNo.get(sheet.sheet_no.trim().toLocaleLowerCase("tr-TR"))!, ...line }))
+              )
+            );
+          } catch (error) {
+            toast.error("Proje oluşturuldu ama keşif kaydedilemedi", { description: (error as Error).message });
+          }
+        }
       } else {
         const saved =
           mode === "create" ? await repository.create(payload, user.id) : await repository.update(project!.id, payload, user.id);
@@ -282,6 +327,7 @@ export function ProjectForm({ mode, project, types: allTypes, locations, personn
                 title={sheets.length === 1 ? "Pafta bilgileri" : `Pafta ${index + 1}`}
                 onChange={(patch) => setSheets((current) => current.map((item, i) => (i === index ? { ...item, ...patch } : item)))}
                 onRemove={sheets.length > 1 ? () => setSheets((current) => current.filter((_, i) => i !== index)) : undefined}
+                pozes={pozes}
               />
             ))}
           </CardContent>
