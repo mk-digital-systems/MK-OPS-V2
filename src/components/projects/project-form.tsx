@@ -130,7 +130,9 @@ export function ProjectForm({ mode, project, types: allTypes, locations, personn
         }
       }
       toast.success(mode === "create" ? "Proje oluşturuldu" : "Proje güncellendi");
-      router.push(`/panel/projects/${savedId}`);
+      // Poz projesinde keşif isteğe bağlıdır; proje açılınca keşif penceresi önerilir (kapatılabilir).
+      const offerKesif = mode === "create" && !isHp && !isCorporate && Boolean(selectedType?.catalog_type_id);
+      router.push(`/panel/projects/${savedId}${offerKesif ? "?kesif=1" : ""}`);
       router.refresh();
     } catch (error) {
       const message = (error as { message?: string; code?: string })?.message ?? "";

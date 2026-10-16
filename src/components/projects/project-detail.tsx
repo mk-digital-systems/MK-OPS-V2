@@ -51,6 +51,7 @@ type Busy = "status" | "archive" | "cancel" | "reactivate" | "delete" | null;
 export function ProjectDetail({ project, type, progress, hpSheets, pozes, personnel, readOnly }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<Busy>(null);
+  const [readyDismissed, setReadyDismissed] = useState(false);
   const [reasonDialog, setReasonDialog] = useState<"hold" | "cancel" | null>(null);
   const [reason, setReason] = useState("");
   const repository = () => new ProjectRepository(createClient());
@@ -224,6 +225,22 @@ export function ProjectDetail({ project, type, progress, hpSheets, pozes, person
         )}
       </div>
 
+      {statusButtons && project.completion_ready && !readyDismissed && project.status !== "completed" && project.status !== "on_hold" && !project.is_cancelled && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200">
+          <span>
+            <strong>Planlanan bütün imalatlar tamamlandı.</strong> Projeyi tamamlayalım mı?
+          </span>
+          <span className="flex gap-2">
+            <Button size="sm" onClick={() => setStatus("completed")} disabled={busy !== null}>
+              <CheckCircle2 className="h-4 w-4" />
+              Projeyi tamamla
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setReadyDismissed(true)}>
+              Şimdi değil
+            </Button>
+          </span>
+        </div>
+      )}
       {project.status === "on_hold" && project.hold_reason && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
           <strong>Beklemede:</strong> {project.hold_reason}

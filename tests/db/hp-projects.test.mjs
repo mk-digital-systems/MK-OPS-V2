@@ -143,8 +143,8 @@ check("cancelled project excluded", afterCancel.totals.projects === 2 && afterCa
 // 6. Standart projeler etkilenmez ---------------------------------------------------------------
 const stdRow = (await as(chief, `select sp.id from public.project_stage_progress sp where sp.project_id = $1`, [stdProject])).rows[0].id;
 await as(chief, `update public.project_stage_progress set status = 'done' where id = $1`, [stdRow]);
-p = await one(`select status, progress_percent from public.projects where id = $1`, [stdProject]);
-check("standard project still uses stages", p.status === "completed" && p.progress_percent === 100, JSON.stringify(p));
+p = await one(`select status, progress_percent, completion_ready from public.projects where id = $1`, [stdProject]);
+check("standard project still uses stages", p.status === "in_progress" && p.completion_ready === true && p.progress_percent === 100, JSON.stringify(p));
 
 // 7. Eklenti kapanınca yeni HP projesi açılmaz, mevcutlar kalır --------------------------------------
 await as(admin, `select public.admin_set_company_project_addons($1, '{}')`, [companyId]);

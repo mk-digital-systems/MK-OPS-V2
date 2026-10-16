@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, ClipboardList, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -26,7 +26,7 @@ const toNumber = (value: string) => {
 
 /**
  * Poz projesi: isteğe bağlı keşif (firma girer) ve imalatlardan gelen iş dökümü.
- * Keşif tamamlansa da proje tamamlanmaz; "Tamamlandı" elle seçilir.
+ * Keşif tamamlanınca proje kendiliğinden bitmez; proje sayfası "tamamlayalım mı?" diye sorar.
  */
 export function PozBoard({
   projectId,
@@ -42,7 +42,11 @@ export function PozBoard({
   sheets: HpSheet[] | null;
   readOnly: boolean;
 }) {
+  // Yeni açılan projede (?kesif=1) keşif penceresi kendiliğinden açılır; girmek zorunlu değildir.
   const [editing, setEditing] = useState(false);
+  useEffect(() => {
+    if (!readOnly && new URLSearchParams(window.location.search).get("kesif") === "1") setEditing(true);
+  }, [readOnly]);
   const pozById = useMemo(() => new Map(pozes.map((poz) => [poz.id, poz])), [pozes]);
   const sheetById = useMemo(() => new Map((sheets ?? []).map((sheet) => [sheet.id, sheet])), [sheets]);
   const rows = data.progress

@@ -36,8 +36,10 @@ await as(chief, `insert into public.project_stage_logs (progress_id, quantity, t
 const pipeRow = await one(`select status, percent, done_quantity from public.project_stage_progress where id = $1`, [pipe]);
 check("target reached -> stage done", pipeRow.status === "done" && Number(pipeRow.percent) === 100, JSON.stringify(pipeRow));
 await as(chief, `update public.project_stage_progress set status = 'done' where project_id = $1`, [p1.id]);
-p = await one(`select status, progress_percent, completed_by_name from public.projects where id = $1`, [p1.id]);
-check("all stages done -> completed", p.status === "completed" && p.progress_percent === 100 && p.completed_by_name === "Mehmet", JSON.stringify(p));
+p = await one(`select status, progress_percent, completed_by_name, completion_ready from public.projects where id = $1`, [p1.id]);
+check("all stages done -> ready to complete, not auto-completed", p.status === "in_progress" && p.completion_ready === true && p.progress_percent === 100 && p.completed_by_name === "Mehmet", JSON.stringify(p));
+await as(chief, `update public.projects set status = 'completed' where id = $1`, [p1.id]);
+check("confirmed completion -> completed", (await one(`select status, completed_at from public.projects where id = $1`, [p1.id])).status === "completed");
 await as(chief, `update public.project_stage_progress set status = 'in_progress' where id = $1`, [rows[2].id]);
 p = await one(`select status from public.projects where id = $1`, [p1.id]);
 check("reopened stage -> in progress", p.status === "in_progress", p.status);
