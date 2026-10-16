@@ -88,6 +88,7 @@ export class VehicleRepository {
         notes: emptyToNull(payload.notes),
         inspection_date: emptyToNull(payload.inspection_date),
         insurance_date: emptyToNull(payload.insurance_date),
+        monthly_rent: payload.monthly_rent ?? 0,
         ...(payload.branch_id ? { branch_id: payload.branch_id } : {}),
         created_by: payload.created_by ?? null,
         updated_by: payload.updated_by ?? null,
@@ -140,6 +141,7 @@ export class VehicleRepository {
       updatePayload.inspection_date = emptyToNull(payload.inspection_date);
     if (payload.insurance_date !== undefined)
       updatePayload.insurance_date = emptyToNull(payload.insurance_date);
+    if (payload.monthly_rent !== undefined) updatePayload.monthly_rent = payload.monthly_rent;
     if (payload.branch_id) updatePayload.branch_id = payload.branch_id;
 
     const { data, error } = await this.supabase
@@ -177,6 +179,8 @@ export class VehicleRepository {
     fuel_date: string;
     odometer_km: number;
     liters: number;
+    /** Litre fiyatı (isteğe bağlı); araç taşerondaysa tutar taşeronun hesabına yazılır. */
+    unit_price?: number | null;
     notes?: string;
     /** Boşsa aracın o tarihteki şubesi. */
     branch_id?: string | null;
@@ -188,6 +192,7 @@ export class VehicleRepository {
       p_liters: payload.liters,
       p_notes: payload.notes || null,
       p_branch_id: payload.branch_id || null,
+      p_unit_price: payload.unit_price ?? null,
     });
     if (error) throw error;
     return data as VehicleFuelLog;

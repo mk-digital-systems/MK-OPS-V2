@@ -15,6 +15,11 @@ export class SubcontractorRepository {
 
   // --- Taşeronlar ---------------------------------------------------------------------------
 
+  /** Biten ayların araç kiralarını taşeronun hesabına yazar (idempotent; yetkisi yoksa sessizce geçer). */
+  async chargeVehicleRent(): Promise<void> {
+    await this.supabase.rpc("charge_vehicle_rent");
+  }
+
   async list(): Promise<SubcontractorListItem[]> {
     const { data, error } = await this.supabase.rpc("list_subcontractors");
     if (error) throw error;
