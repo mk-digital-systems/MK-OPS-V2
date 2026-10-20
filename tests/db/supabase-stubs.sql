@@ -53,11 +53,11 @@ create function storage.foldername(name text) returns text[] language sql immuta
 grant usage on schema storage to anon, authenticated, service_role;
 grant all on storage.objects, storage.buckets to anon, authenticated, service_role;
 
--- Supabase grants these on the public schema by default.
+-- Public şema için yalnızca USAGE verilir. Tablo / fonksiyon / sequence yetkileri BİLEREK
+-- otomatik verilmez: Supabase 30 Ekim 2026'dan sonra public şemasındaki yeni nesnelere
+-- Data API yetkisi vermiyor; eski "alter default privileges ... grant all" taklidi eksik
+-- GRANT hatalarını testlerden gizliyordu. Her tablo kendi migration'ında yetkisini yazmalıdır.
 grant usage on schema public to anon, authenticated, service_role;
-alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
-alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
-alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
 
 -- Supabase sessions resolve extension objects through the extensions schema.
 set search_path = "$user", public, extensions;
