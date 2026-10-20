@@ -19,6 +19,11 @@ const asErr = (uid, sql, params) => as(uid, sql, params).then(() => null, (error
 const one = async (sql, params, uid = chief) => (await as(uid, sql, params)).rows[0];
 const check = (name, ok, extra = "") => console.log(`${ok ? "ok  " : "FAIL"} ${name}${extra ? ` — ${extra}` : ""}`);
 
+// Bu test, katalog migration'ından önceki canlı veritabanını taklit eder; o veritabanları Supabase'in
+// eski otomatik tablo yetkileriyle kurulmuştu (stubs artık bunu vermiyor).
+await pg.exec(`alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+  alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+  alter default privileges in schema public grant all on functions to anon, authenticated, service_role;`);
 await applyDir(pg, undefined, (file) => file < "20261103000001");
 await sys(`insert into auth.users (id, email) values ($1, 'a@a'), ($2, 'b@b'), ($3, 'admin@x')`, [chief, other, admin]);
 await sys(`insert into public.platform_admins (user_id) values ($1)`, [admin]);

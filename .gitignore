@@ -43,3 +43,6 @@ next-env.d.ts
 
 # referans: eski panel (sadece incelemek için, repoya girmez)
 /mavi kadraj dashboard/
+
+# Supabase CLI geçici dosyaları (proje bağlantı bilgisi içerir)
+supabase/.temp/
