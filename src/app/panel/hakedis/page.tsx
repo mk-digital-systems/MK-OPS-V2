@@ -1,12 +1,10 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { BranchRepository } from "@/modules/branches/branch-repository";
 import { getSelectedBranchId } from "@/lib/branch-selection";
-import { UserRepository } from "@/modules/users/user-repository";
-import { CompanyRepository } from "@/modules/company/company-repository";
 import { HakedisRepository } from "@/modules/hakedis/hakedis-repository";
 import { listPeriods } from "@/lib/hakedis";
 import { HakedisReportView } from "@/components/hakedis/hakedis-report-view";
+import { canWrite, getCurrentUser, getMyAccount, getMyBranches } from "@/lib/supabase/request-cache";
 
 export const metadata = {
   title: "Hakediş",
@@ -20,19 +18,19 @@ export default async function HakedisPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const supabase = await createClient();
-  const userRepository = new UserRepository(supabase);
-  const [canView, account, params, profile] = await Promise.all([
-    userRepository.canWrite("hakedis"),
-    new CompanyRepository(supabase).getMyAccount(),
+  const [canView, account, params, profile, myBranches] = await Promise.all([
+    canWrite("hakedis"),
+    getMyAccount(),
     searchParams,
-    userRepository.getCurrent(),
+    getCurrentUser(),
+    getMyBranches(),
   ]);
   if (!canView || !account.company) notFound();
 
   const periods = listPeriods(account.company.payroll_start_day, 12);
   const start = isDate(params.start) ? params.start : periods[0].start;
   const end = isDate(params.end) && params.end >= start ? params.end : periods[0].end;
-  const branchId = await getSelectedBranchId((await new BranchRepository(supabase).getMine()).branches);
+  const branchId = await getSelectedBranchId(myBranches.branches);
   const report = await new HakedisRepository(supabase).getReport(start, end, branchId);
   const stageIds = report.by_stage.map((row) => row.stage_id).filter((id): id is string => !!id);
   const { data: pozRows } = stageIds.length

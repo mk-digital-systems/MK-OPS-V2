@@ -29,9 +29,16 @@ export class ProjectRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
   // ---------------------------------------------------------------- projeler
-  async list(filters: ProjectFilters = {}): Promise<PaginatedResult<Project>> {
+  async refreshOverdueStatuses(): Promise<void> {
     const { error: refreshError } = await this.supabase.rpc("refresh_overdue_project_statuses");
     if (refreshError && refreshError.code !== "PGRST202") throw refreshError;
+  }
+
+  async list(
+    filters: ProjectFilters = {},
+    options: { refreshStatuses?: boolean } = {}
+  ): Promise<PaginatedResult<Project>> {
+    if (options.refreshStatuses !== false) await this.refreshOverdueStatuses();
 
     const page = Math.max(1, filters.page ?? 1);
     const pageSize = filters.pageSize ?? DEFAULT_PAGE_SIZE;

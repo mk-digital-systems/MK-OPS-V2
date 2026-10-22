@@ -2,8 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { History } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { UserRepository } from "@/modules/users/user-repository";
-import { CompanyRepository } from "@/modules/company/company-repository";
 import { CompanyInfoCard } from "@/components/settings/company-info-card";
 import { CompanyLogoCard } from "@/components/settings/company-logo-card";
 import { CompanyVaultCard } from "@/components/settings/company-vault-card";
@@ -11,8 +9,8 @@ import { KvkkCard } from "@/components/settings/kvkk-card";
 import { CompanyVaultRepository } from "@/modules/notes/company-vault-repository";
 import { HakedisSettingsCard } from "@/components/settings/hakedis-settings-card";
 import { BranchesCard } from "@/components/settings/branches-card";
-import { BranchRepository } from "@/modules/branches/branch-repository";
 import { Button } from "@/components/ui/button";
+import { getCurrentUser, getMyAccount, getMyBranches } from "@/lib/supabase/request-cache";
 
 export const metadata = {
   title: "Ayarlar",
@@ -21,14 +19,14 @@ export const metadata = {
 export default async function SettingsPage() {
   const supabase = await createClient();
   const [profile, account] = await Promise.all([
-    new UserRepository(supabase).getCurrent(),
-    new CompanyRepository(supabase).getMyAccount(),
+    getCurrentUser(),
+    getMyAccount(),
   ]);
   if (profile?.role !== "site_chief" || !account.company) notFound();
 
   const [vaultStatus, myBranches] = await Promise.all([
     new CompanyVaultRepository(supabase).status(),
-    new BranchRepository(supabase).getMine(),
+    getMyBranches(),
   ]);
 
   return (

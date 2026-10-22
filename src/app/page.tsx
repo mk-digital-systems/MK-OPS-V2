@@ -20,7 +20,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/supabase/request-cache";
 import {
   APP_LOGO_SRC,
   APP_NAME,
@@ -242,10 +242,7 @@ function PrimaryCta({ signedIn, label = "48 Saat Ücretsiz Dene" }: { signedIn: 
 }
 
 export default async function LandingPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   const signedIn = !!user;
 
   return (

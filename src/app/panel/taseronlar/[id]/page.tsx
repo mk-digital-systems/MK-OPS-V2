@@ -1,11 +1,10 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { UserRepository } from "@/modules/users/user-repository";
-import { CompanyRepository } from "@/modules/company/company-repository";
 import { PersonnelRepository } from "@/modules/work-plans/personnel-repository";
 import { SubcontractorRepository } from "@/modules/subcontractors/subcontractor-repository";
 import { listPeriods } from "@/lib/hakedis";
 import { SubcontractorDetail } from "@/components/subcontractors/subcontractor-detail";
+import { canWrite, getCurrentUser, getMyAccount } from "@/lib/supabase/request-cache";
 
 export const metadata = {
   title: "Taşeron",
@@ -26,14 +25,13 @@ export default async function SubcontractorDetailPage({
   if (!UUID.test(id)) notFound();
 
   const supabase = await createClient();
-  const userRepository = new UserRepository(supabase);
   const repository = new SubcontractorRepository(supabase);
   // Biten ayların araç kirası taşeronun hesabına yazılır (bir kez; tekrar çağrılması zararsız).
   await repository.chargeVehicleRent();
   const [profile, canSeePrices, account, subcontractor, personnel] = await Promise.all([
-    userRepository.getCurrent(),
-    userRepository.canWrite("hakedis"),
-    new CompanyRepository(supabase).getMyAccount(),
+    getCurrentUser(),
+    canWrite("hakedis"),
+    getMyAccount(),
     repository.getById(id),
     new PersonnelRepository(supabase).list(),
   ]);

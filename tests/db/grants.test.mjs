@@ -321,7 +321,9 @@ for (const [label, db] of [["sıfırdan", pg], ["yükseltme", legacy]]) {
 }
 
 // 001'in doğrulama bloğu: bütün tablo ve sequence'larda, PUBLIC ve görünümlerde bozulmayı yakalamalı.
-const sql001 = fs.readFileSync(path.join(MIGRATIONS_DIR, "20261119000001_data_api_grants.sql"), "utf8");
+const sql001 = fs
+  .readFileSync(path.join(MIGRATIONS_DIR, "20261119000001_data_api_grants.sql"), "utf8")
+  .replace(/\r\n/g, "\n");
 const verifyStart = sql001.indexOf("do $$\ndeclare\n  v_rel record;");
 const verifyBlock = sql001.slice(verifyStart, sql001.lastIndexOf("commit;"));
 const guardBlock = sql001.slice(sql001.indexOf("do $$\ndeclare\n  v_other text;"), sql001.indexOf("-- 1. Önce hepsini kapat"));

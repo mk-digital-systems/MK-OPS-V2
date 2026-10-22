@@ -4,7 +4,7 @@ import { PersonnelRepository } from "@/modules/work-plans/personnel-repository";
 import { AttendanceRepository } from "@/modules/attendance/attendance-repository";
 import { PersonnelDetail } from "@/components/work-plans/personnel-detail";
 import type { PayrollRow, PersonnelAdvance } from "@/types/attendance";
-import { UserRepository } from "@/modules/users/user-repository";
+import { canWrite } from "@/lib/supabase/request-cache";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -70,7 +70,7 @@ export default async function PersonnelDetailPage({
       .select("plate")
       .eq("assigned_personnel_id", id)
       .maybeSingle(),
-    new UserRepository(supabase).canWrite("attendance"),
+    canWrite("attendance"),
   ]);
 
   if (!personnel || !summary) notFound();

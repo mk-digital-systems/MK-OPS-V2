@@ -1,23 +1,17 @@
 import { redirect } from "next/navigation";
 import { OnboardingForm } from "@/components/auth/onboarding-form";
-import { createClient } from "@/lib/supabase/server";
-import { UserRepository } from "@/modules/users/user-repository";
-import { CompanyRepository } from "@/modules/company/company-repository";
 import { resolveAccountHome } from "@/lib/account-routing";
+import { getAuthUser, getCurrentUser, getMyAccount } from "@/lib/supabase/request-cache";
 
 export const metadata = {
   title: "Şirket Seçimi",
 };
 
 export default async function OnboardingPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) redirect("/login");
 
-  const profile = await new UserRepository(supabase).getCurrent();
-  const account = await new CompanyRepository(supabase).getMyAccount();
+  const [profile, account] = await Promise.all([getCurrentUser(), getMyAccount()]);
   const home = resolveAccountHome(profile, account);
   if (home !== "/onboarding") redirect(home);
 

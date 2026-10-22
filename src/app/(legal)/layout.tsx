@@ -1,12 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { SiteFooter } from "@/components/marketing/site-footer";
+import { getAuthUser } from "@/lib/supabase/request-cache";
 
 export default async function LegalLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   return (
     <div className="flex min-h-screen flex-col bg-background">

@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { WorkPlanRepository } from "@/modules/work-plans/work-plan-repository";
 import { WorkPlanDetailView } from "@/components/work-plans/work-plan-detail-view";
-import { UserRepository } from "@/modules/users/user-repository";
 import { todayISODate } from "@/lib/constants/project";
+import { canWrite as canWriteCached } from "@/lib/supabase/request-cache";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -25,7 +25,7 @@ export default async function WorkPlanDetailPage({ params, searchParams }: Props
   const supabase = await createClient();
   const [plan, canWrite] = await Promise.all([
     new WorkPlanRepository(supabase).getById(id),
-    new UserRepository(supabase).canWrite("work_plans"),
+    canWriteCached("work_plans"),
   ]);
   if (!plan) notFound();
   return (

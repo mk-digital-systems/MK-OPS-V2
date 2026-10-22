@@ -2,9 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { UserRepository } from "@/modules/users/user-repository";
 import { ProjectRepository } from "@/modules/projects/project-repository";
 import { ProjectTypesManager } from "@/components/settings/project-types-manager";
+import { getCurrentUser } from "@/lib/supabase/request-cache";
 
 export const metadata = {
   title: "Proje Türleri",
@@ -14,7 +14,7 @@ export const metadata = {
 export default async function ProjectTypesPage() {
   const supabase = await createClient();
   const [profile, types] = await Promise.all([
-    new UserRepository(supabase).getCurrent(),
+    getCurrentUser(),
     new ProjectRepository(supabase).listTypes(true),
   ]);
   if (profile?.role !== "site_chief") notFound();

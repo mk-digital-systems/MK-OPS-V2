@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { InventoryRepository } from "@/modules/inventory/inventory-repository";
 import { VehicleRepository } from "@/modules/vehicles/vehicle-repository";
-import { UserRepository } from "@/modules/users/user-repository";
 import { CustodyManager } from "@/components/inventory/custody-manager";
+import { canWrite as canWriteCached } from "@/lib/supabase/request-cache";
 
 export const metadata = {
   title: "Araç Ekipmanları",
@@ -22,7 +22,7 @@ export default async function CustodyPage() {
     inventoryRepository.listCustodyBalances(),
     inventoryRepository.listCustodyMovements(),
     new VehicleRepository(supabase).list(),
-    new UserRepository(supabase).canWrite("custody"),
+    canWriteCached("custody"),
   ]);
 
   return (

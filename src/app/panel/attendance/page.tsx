@@ -1,12 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
-import { BranchRepository } from "@/modules/branches/branch-repository";
 import { getSelectedBranchId } from "@/lib/branch-selection";
 import { AttendanceRepository } from "@/modules/attendance/attendance-repository";
 import { MonthlyAttendanceTable } from "@/components/attendance/monthly-attendance-table";
 import { AttendanceMonthApprovalBar } from "@/components/attendance/attendance-month-approval";
 import type { PersonnelActivityFilter } from "@/types/attendance";
 import type { AttendanceStatus } from "@/types/attendance";
-import { UserRepository } from "@/modules/users/user-repository";
+import { canWrite as canWriteCached, getCurrentUser, getMyBranches } from "@/lib/supabase/request-cache";
 
 export const metadata = {
   title: "Puantaj",
@@ -57,7 +56,7 @@ export default async function AttendancePage({ searchParams }: Props) {
       : "all";
 
   const supabase = await createClient();
-  const branchId = await getSelectedBranchId((await new BranchRepository(supabase).getMine()).branches);
+  const branchId = await getSelectedBranchId((await getMyBranches()).branches);
   const attendanceRepository = new AttendanceRepository(supabase);
   try {
     await attendanceRepository.ensureSundays(year, month);
@@ -82,9 +81,9 @@ export default async function AttendancePage({ searchParams }: Props) {
       branchId,
     }),
     attendanceRepository.getMonthNotes(year, month),
-    new UserRepository(supabase).canWrite("attendance"),
+    canWriteCached("attendance"),
     attendanceRepository.getMonthApprovals(year, month),
-    new UserRepository(supabase).getCurrent(),
+    getCurrentUser(),
     attendanceRepository.getBranchDayLabels(year, month),
   ]);
   const canApprove = profile?.role === "site_chief" || profile?.role === "company_manager";

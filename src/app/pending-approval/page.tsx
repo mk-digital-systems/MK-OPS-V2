@@ -1,19 +1,16 @@
 import { redirect } from "next/navigation";
 import { PendingApproval } from "@/components/auth/pending-approval";
-import { createClient } from "@/lib/supabase/server";
-import { UserRepository } from "@/modules/users/user-repository";
-import { CompanyRepository } from "@/modules/company/company-repository";
 import { resolveAccountHome } from "@/lib/account-routing";
+import { getCurrentUser, getMyAccount } from "@/lib/supabase/request-cache";
 
 export const metadata = {
   title: "Yetki Onayı Bekleniyor",
 };
 
 export default async function PendingApprovalPage() {
-  const supabase = await createClient();
-  const profile = await new UserRepository(supabase).getCurrent();
+  const profile = await getCurrentUser();
   if (!profile) redirect("/login");
-  const account = await new CompanyRepository(supabase).getMyAccount();
+  const account = await getMyAccount();
   const home = resolveAccountHome(profile, account);
   if (home !== "/pending-approval") redirect(home);
   return (

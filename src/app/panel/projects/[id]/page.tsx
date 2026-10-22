@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProjectRepository } from "@/modules/projects/project-repository";
-import { UserRepository } from "@/modules/users/user-repository";
 import { PersonnelRepository } from "@/modules/work-plans/personnel-repository";
 import { ProjectDetail } from "@/components/projects/project-detail";
 import { PozRepository } from "@/modules/poz/poz-repository";
+import { canWrite as canWriteCached } from "@/lib/supabase/request-cache";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -22,12 +22,11 @@ export default async function ProjectDetailPage({ params }: Props) {
   const supabase = await createClient();
   const repository = new ProjectRepository(supabase);
 
-  const userRepository = new UserRepository(supabase);
   const [project, types, progress, canWrite, personnel] = await Promise.all([
     repository.getById(id),
     repository.listTypes(true),
     repository.getProgress(id),
-    userRepository.canWrite("projects"),
+    canWriteCached("projects"),
     new PersonnelRepository(supabase).list({ activeOnly: true }),
   ]);
   if (!project) notFound();

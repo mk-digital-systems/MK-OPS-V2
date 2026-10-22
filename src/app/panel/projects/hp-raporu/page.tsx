@@ -1,9 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import { BranchRepository } from "@/modules/branches/branch-repository";
 import { getSelectedBranchId } from "@/lib/branch-selection";
 import { ProjectRepository } from "@/modules/projects/project-repository";
 import { todayISODate } from "@/lib/constants/project";
 import { HpReportView } from "@/components/projects/hp-report-view";
+import { getMyBranches } from "@/lib/supabase/request-cache";
 
 export const metadata = {
   title: "HP Raporu",
@@ -25,7 +25,7 @@ export default async function HpReportPage({ searchParams }: Props) {
   if (from > to) [from, to] = [to, from];
 
   const supabase = await createClient();
-  const branchId = await getSelectedBranchId((await new BranchRepository(supabase).getMine()).branches);
+  const branchId = await getSelectedBranchId((await getMyBranches()).branches);
   const report = await new ProjectRepository(supabase).getHpReport(from, to, branchId);
 
   return <HpReportView report={report} from={from} to={to} />;

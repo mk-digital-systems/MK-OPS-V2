@@ -1,12 +1,11 @@
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { BranchRepository } from "@/modules/branches/branch-repository";
 import { getSelectedBranchId } from "@/lib/branch-selection";
 import { ProjectRepository } from "@/modules/projects/project-repository";
 import { parseProjectSearchParams } from "@/lib/search-params";
 import { ProjectsTable } from "@/components/projects/projects-table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { UserRepository } from "@/modules/users/user-repository";
+import { canWrite, getCurrentUser, getMyBranches } from "@/lib/supabase/request-cache";
 
 export const metadata = {
   title: "Projeler",
@@ -17,21 +16,21 @@ type Props = {
 };
 
 async function ProjectsContent({ searchParams }: Props) {
-  const params = await searchParams;
+  const [params, myBranches] = await Promise.all([searchParams, getMyBranches()]);
   const filters = parseProjectSearchParams(params, { archiveScope: "active" });
   if (filters.search?.trim() && !params.scope) filters.archiveScope = "all";
 
   const supabase = await createClient();
-  filters.branchId = await getSelectedBranchId((await new BranchRepository(supabase).getMine()).branches);
+  filters.branchId = await getSelectedBranchId(myBranches.branches);
   const repository = new ProjectRepository(supabase);
-  const userRepository = new UserRepository(supabase);
-  const [result, exportResult, types, locations, canWrite, profile] = await Promise.all([
-    repository.list(filters),
-    repository.list({ ...filters, page: 1, pageSize: 5000 }),
+  await repository.refreshOverdueStatuses();
+  const [result, exportResult, types, locations, canEdit, profile] = await Promise.all([
+    repository.list(filters, { refreshStatuses: false }),
+    repository.list({ ...filters, page: 1, pageSize: 5000 }, { refreshStatuses: false }),
     repository.listTypes(true),
     repository.getDistinctLocations(),
-    userRepository.canWrite("projects"),
-    userRepository.getCurrent(),
+    canWrite("projects"),
+    getCurrentUser(),
   ]);
 
   return (
@@ -40,7 +39,7 @@ async function ProjectsContent({ searchParams }: Props) {
       result={result}
       types={types}
       locations={locations}
-      showCreate={canWrite}
+      showCreate={canEdit}
       canManageTypes={profile?.role === "site_chief"}
       exportProjects={exportResult.data}
       showHpReport={types.some((type) => type.screen === "hp")}

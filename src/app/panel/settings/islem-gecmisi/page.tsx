@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { UserRepository } from "@/modules/users/user-repository";
 import { AuditRepository } from "@/modules/audit/audit-repository";
 import { AUDIT_MODULES } from "@/lib/constants/audit";
 import { AuditLogView } from "@/components/audit/audit-log-view";
 import type { AuditFilters, AuditModule } from "@/types/audit";
+import { getCurrentUser } from "@/lib/supabase/request-cache";
 
 export const metadata = {
   title: "İşlem Geçmişi",
@@ -23,7 +23,7 @@ export default async function AuditLogPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const supabase = await createClient();
-  const [profile, params] = await Promise.all([new UserRepository(supabase).getCurrent(), searchParams]);
+  const [profile, params] = await Promise.all([getCurrentUser(), searchParams]);
   if (profile?.role !== "site_chief") notFound();
 
   const from = isDate(params.from) ? params.from : istanbulToday(-6);

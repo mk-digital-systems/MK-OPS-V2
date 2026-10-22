@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { BranchRepository } from "@/modules/branches/branch-repository";
 import { getSelectedBranchId } from "@/lib/branch-selection";
 import { AttendanceRepository } from "@/modules/attendance/attendance-repository";
 import { MonthlyAttendanceTable } from "@/components/attendance/monthly-attendance-table";
@@ -8,7 +7,7 @@ import type {
   AttendanceStatus,
   PersonnelActivityFilter,
 } from "@/types/attendance";
-import { UserRepository } from "@/modules/users/user-repository";
+import { canWrite as canWriteCached, getCurrentUser, getMyBranches } from "@/lib/supabase/request-cache";
 
 export const metadata = {
   title: "Geçmiş Puantaj",
@@ -59,7 +58,7 @@ export default async function AttendanceHistoryPage({ searchParams }: Props) {
       : "all";
 
   const supabase = await createClient();
-  const branchId = await getSelectedBranchId((await new BranchRepository(supabase).getMine()).branches);
+  const branchId = await getSelectedBranchId((await getMyBranches()).branches);
   const repository = new AttendanceRepository(supabase);
   const [data, exportData, monthNotes, archives, canWrite, approvals, profile] = await Promise.all([
     repository.getMonth({
@@ -80,9 +79,9 @@ export default async function AttendanceHistoryPage({ searchParams }: Props) {
     }),
     repository.getMonthNotes(year, month),
     repository.getMonthArchives(),
-    new UserRepository(supabase).canWrite("attendance"),
+    canWriteCached("attendance"),
     repository.getMonthApprovals(year, month),
-    new UserRepository(supabase).getCurrent(),
+    getCurrentUser(),
   ]);
   const canApprove = profile?.role === "site_chief" || profile?.role === "company_manager";
 

@@ -4,13 +4,17 @@ import { AppShell } from "@/components/layout/app-shell";
 import { createClient } from "@/lib/supabase/server";
 import { UserRepository } from "@/modules/users/user-repository";
 import { NotesRepository } from "@/modules/notes/notes-repository";
-import { CompanyRepository } from "@/modules/company/company-repository";
 import { hasAppAccess, resolveAccountHome } from "@/lib/account-routing";
 import { CompanyBrandProvider } from "@/components/layout/company-brand-provider";
 import { BranchProvider } from "@/components/layout/branch-provider";
-import { BranchRepository } from "@/modules/branches/branch-repository";
 import { getSelectedBranchId } from "@/lib/branch-selection";
 import { companyLogoUrl, DEFAULT_REPORT_BRAND } from "@/lib/report-brand";
+import {
+  getCurrentUser,
+  getMyAccount,
+  getMyBranches,
+  getWritableModules,
+} from "@/lib/supabase/request-cache";
 
 export default async function AppLayout({
   children,
@@ -18,15 +22,15 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
-  const profile = await new UserRepository(supabase).getCurrent();
+  const profile = await getCurrentUser();
   if (!profile) redirect("/login");
-  const account = await new CompanyRepository(supabase).getMyAccount();
+  const account = await getMyAccount();
   if (!hasAppAccess(profile, account)) redirect(resolveAccountHome(profile, account));
   const [avatarUrl, notes, writableModules, myBranches] = await Promise.all([
     new UserRepository(supabase).createAvatarUrl(profile.avatar_path),
     new NotesRepository(supabase).list(),
-    new UserRepository(supabase).getWritableModules(),
-    new BranchRepository(supabase).getMine(),
+    getWritableModules(),
+    getMyBranches(),
   ]);
   const selectedBranchId = await getSelectedBranchId(myBranches.branches);
   const pathname = (await headers()).get("x-app-pathname") || "/panel";

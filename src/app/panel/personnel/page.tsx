@@ -1,11 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import { BranchRepository } from "@/modules/branches/branch-repository";
 import { getSelectedBranchId } from "@/lib/branch-selection";
 import { PersonnelRepository } from "@/modules/work-plans/personnel-repository";
 import { AttendanceRepository } from "@/modules/attendance/attendance-repository";
 import { PersonnelManager } from "@/components/work-plans/personnel-manager";
-import { UserRepository } from "@/modules/users/user-repository";
 import { VehicleRepository } from "@/modules/vehicles/vehicle-repository";
+import { canWrite, getCurrentUser, getMyBranches } from "@/lib/supabase/request-cache";
 
 export const metadata = {
   title: "Personel",
@@ -24,7 +23,7 @@ function readParam(
 }
 
 export default async function PersonnelPage({ searchParams }: Props) {
-  const params = await searchParams;
+  const [params, myBranches] = await Promise.all([searchParams, getMyBranches()]);
   const personnelId = readParam(params, "personnel");
   const today = new Date();
   const requestedYear = Number(readParam(params, "year"));
@@ -48,11 +47,9 @@ export default async function PersonnelPage({ searchParams }: Props) {
       : null;
 
   const supabase = await createClient();
-  const myBranches = await new BranchRepository(supabase).getMine();
   const branchId = await getSelectedBranchId(myBranches.branches);
   const attendanceRepository = new AttendanceRepository(supabase);
-  const userRepository = new UserRepository(supabase);
-  const [personnel, attendanceSummary, personnelSummaries, assignedVehicles, canWrite, profile] = await Promise.all([
+  const [personnel, attendanceSummary, personnelSummaries, assignedVehicles, canEdit, profile, subcontractorResult] = await Promise.all([
     new PersonnelRepository(supabase).list({ includePending: true, branchId }),
     validPersonnelId
       ? attendanceRepository.getPersonnelSummary(
@@ -63,11 +60,12 @@ export default async function PersonnelPage({ searchParams }: Props) {
       : Promise.resolve(null),
     attendanceRepository.getPersonnelListSummaries(year, month),
     new VehicleRepository(supabase).list(),
-    userRepository.canWrite("personnel"),
-    userRepository.getCurrent(),
+    canWrite("personnel"),
+    getCurrentUser(),
+    supabase.from("subcontractors").select("id, name, is_active, personnel_id, share_percent, iban, tax_number").order("name"),
   ]);
 
-  const { data: subcontractors } = await supabase.from("subcontractors").select("id, name, is_active, personnel_id, share_percent, iban, tax_number").order("name");
+  const subcontractors = subcontractorResult.data;
 
   return (
     <PersonnelManager
@@ -77,8 +75,8 @@ export default async function PersonnelPage({ searchParams }: Props) {
       assignedVehicles={assignedVehicles.filter((vehicle) => vehicle.assigned_personnel_id)}
       summaryYear={year}
       summaryMonth={month}
-      readOnly={!canWrite}
-      canCreate={canWrite || profile?.role === "accounting"}
+      readOnly={!canEdit}
+      canCreate={canEdit || profile?.role === "accounting"}
       canReview={profile?.role === "site_chief" || profile?.role === "company_manager"}
       canApprove={Boolean(myBranches.can_approve)}
       currentUserId={profile?.id ?? null}
