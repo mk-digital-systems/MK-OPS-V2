@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { APP_NAME, COMPANY_LEGAL_NAME, SUPPORT_EMAIL } from "@/lib/constants/brand";
 import { ContactBlock, LegalDocument, ProcessorsTable } from "@/components/marketing/legal-document";
-import { LEGAL_UPDATED_AT } from "@/lib/constants/legal";
+import { MEASUREMENT_LEGAL_UPDATED_AT } from "@/lib/constants/legal";
 
 export const metadata = {
   title: "Gizlilik Politikası ve KVKK Aydınlatma Metni",
@@ -10,7 +10,7 @@ export const metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <LegalDocument title="Gizlilik Politikası ve KVKK Aydınlatma Metni" updatedAt={LEGAL_UPDATED_AT}>
+    <LegalDocument title="Gizlilik Politikası ve KVKK Aydınlatma Metni" updatedAt={MEASUREMENT_LEGAL_UPDATED_AT}>
       <p>
         {APP_NAME}, şirketlerin saha ve operasyon süreçlerini yönetmesi için sunulan bir yazılım hizmetidir (SaaS).
         Bu metin, 6698 sayılı Kişisel Verilerin Korunması Kanunu (&quot;KVKK&quot;) kapsamında, {APP_NAME} kullanılırken
@@ -50,6 +50,10 @@ export default function PrivacyPolicyPage() {
         <li>
           <strong>İşlem güvenliği:</strong> oturum bilgileri, IP adresi, tarayıcı ve cihaz bilgisi, işlem zamanları.
         </li>
+        <li>
+          <strong>Analitik ve reklam ölçümü:</strong> yalnızca izin verilmesi halinde ziyaret edilen sayfalar, oturum ve
+          cihaz bilgileri ile reklam tıklaması ve dönüşüm ilişkilendirme tanımlayıcıları.
+        </li>
       </ul>
 
       <h2>3. İşleme amaçları</h2>
@@ -59,9 +63,13 @@ export default function PrivacyPolicyPage() {
         <li>Deneme süresi, plan ve abonelik süreçlerinin yönetilmesi</li>
         <li>Destek taleplerinin yanıtlanması ve kullanıcılarla iletişim</li>
         <li>Bilgi güvenliğinin sağlanması, kötüye kullanımın önlenmesi</li>
+        <li>Açık rıza verilmesi halinde site kullanımının ve Google Ads kampanyalarının dönüşüm performansının ölçülmesi</li>
         <li>Yasal yükümlülüklerin yerine getirilmesi</li>
       </ul>
-      <p>{APP_NAME} kişisel verileri satmaz, kiralamaz ve reklam amacıyla kullanmaz.</p>
+      <p>
+        {APP_NAME} kişisel verileri satmaz veya kiralamaz. Ölçüm verileri kişiselleştirilmiş reklam ya da remarketing
+        amacıyla kullanılmaz; kayıt formlarındaki ad, e-posta, telefon veya şirket adı Google ölçüm olaylarına eklenmez.
+      </p>
 
       <h2>4. Hukuki sebepler</h2>
       <p>Kişisel veriler KVKK md. 5/2 kapsamında aşağıdaki hukuki sebeplere dayanılarak işlenir:</p>
@@ -102,8 +110,9 @@ export default function PrivacyPolicyPage() {
 
       <h2>8. Çerezler</h2>
       <p>
-        {APP_NAME} yalnızca oturumun sürdürülmesi ve tema gibi tercihlerin hatırlanması için zorunlu çerezler ve
-        tarayıcı depolaması kullanır. Reklam veya izleme amaçlı çerez kullanılmaz. Ayrıntılar:{" "}
+        {APP_NAME}, oturumun sürdürülmesi ve tema gibi tercihlerin hatırlanması için zorunlu çerezler ve tarayıcı
+        depolaması kullanır. Google Analytics ve Google Ads ölçüm teknolojileri yalnızca açık izninizden sonra yüklenir;
+        ret halinde bu hizmetlere ölçüm verisi gönderilmez. İzninizi daha sonra geri çekebilirsiniz. Ayrıntılar:{" "}
         <Link href="/kvkk/cerez-politikasi">Çerez Politikası</Link>.
       </p>
 

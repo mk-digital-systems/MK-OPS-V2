@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SignupMode } from "@/types/auth";
 import { CompanyRepository } from "@/modules/company/company-repository";
+import { trackSignupConversion } from "@/lib/analytics";
 
 export type OnboardingInput = {
   signup_mode: SignupMode;
@@ -16,6 +17,7 @@ export async function completeOnboarding(
   const repository = new CompanyRepository(supabase);
   if (input.signup_mode === "create") {
     const account = await repository.createCompany(input.company_name);
+    if (account.company?.id) trackSignupConversion(account.company.id);
     return {
       path: "/panel",
       message: `${account.company?.name ?? input.company_name} kuruldu. 48 saatlik deneme başladı.`,

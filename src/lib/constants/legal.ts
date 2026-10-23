@@ -19,6 +19,9 @@ export const LEGAL_ENTITY = {
 /** Belgelerin son güncelleme tarihi */
 export const LEGAL_UPDATED_AT = "6 Ekim 2026";
 
+/** Analitik ve reklam ölçümüyle ilgili metinlerin son güncelleme tarihi */
+export const MEASUREMENT_LEGAL_UPDATED_AT = "23 Ekim 2026";
+
 /**
  * Hizmeti sunmak için kullanılan alt veri işleyenler (altyapı sağlayıcıları).
  * E-posta sağlayıcısı seçilince adı ve ülkesi buraya yazılmalı (bkz. docs/EPOSTA-AYARLARI.md).
@@ -33,6 +36,11 @@ export const DATA_PROCESSORS = [
     name: "Vercel Inc.",
     purpose: "Web uygulamasının barındırılması ve sayfaların sunulması",
     location: "ABD ve küresel sunucu ağı",
+  },
+  {
+    name: "Google Ireland Limited / Google LLC",
+    purpose: "Kullanıcı iznine bağlı site analitiği ve Google Ads dönüşüm ölçümü",
+    location: "Avrupa Birliği, ABD ve Google'ın küresel altyapısı",
   },
   {
     name: "E-posta servis sağlayıcısı",

@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
+import { MeasurementProvider } from "@/components/measurement/measurement-provider";
 import "./globals.css";
 import { APP_NAME, APP_TAGLINE, SITE_URL } from "@/lib/constants/brand";
 
@@ -47,6 +48,7 @@ export default function RootLayout({
           <QueryProvider>
             {children}
             <Toaster richColors position="top-right" closeButton />
+            <MeasurementProvider />
           </QueryProvider>
         </ThemeProvider>
       </body>
