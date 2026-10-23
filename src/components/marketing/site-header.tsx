@@ -14,8 +14,8 @@ const LINKS = [
 export function SiteHeader({ signedIn }: { signedIn: boolean }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
-        <Link href="/" className="flex items-center gap-2">
+      <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 sm:gap-4">
+        <Link href="/" className="flex shrink-0 items-center gap-2">
           <BrandLogo size={36} priority />
           <span className="text-lg font-semibold tracking-tight">{APP_NAME}</span>
         </Link>
@@ -30,17 +30,17 @@ export function SiteHeader({ signedIn }: { signedIn: boolean }) {
             </Link>
           ))}
         </nav>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
           {signedIn ? (
             <Button asChild>
               <Link href="/panel">Panele Git</Link>
             </Button>
           ) : (
             <>
-              <Button asChild variant="ghost" className="hidden sm:inline-flex">
+              <Button asChild variant="ghost" className="px-2 text-xs sm:px-4 sm:text-sm">
                 <Link href="/login">Giriş Yap</Link>
               </Button>
-              <Button asChild>
+              <Button asChild className="px-2 text-xs sm:px-4 sm:text-sm">
                 <Link href="/register">Ücretsiz Dene</Link>
               </Button>
             </>
