@@ -8,8 +8,18 @@ export type OzelGun = {
   id: string;
   /** Önizleme ve erişilebilirlik için ad. */
   ad: string;
-  /** Ekranın görüneceği aralık (her yıl, iki uç dahil, aynı takvim yılı içinde). */
-  aralik: { baslangicAy: number; baslangicGun: number; bitisAy: number; bitisGun: number };
+  /**
+   * Ekranın görüneceği aralık (her yıl, aynı takvim yılı içinde). Başlangıç günün verilen saatinde
+   * (varsayılan 00:00), bitiş bitiş gününün sonunda (23:59:59) olur.
+   */
+  aralik: {
+    baslangicAy: number;
+    baslangicGun: number;
+    baslangicSaat?: number;
+    baslangicDakika?: number;
+    bitisAy: number;
+    bitisGun: number;
+  };
   /** Aralıkta siteye ilk girişte kaç ms gösterilir (kapatılabilir). */
   ilkGirisMs: number;
   /** İsteğe bağlı: bu saatte, hangi sayfada olursa olsun herkese süre boyunca gösterilir (kapatılamaz). */
@@ -36,10 +46,12 @@ function turkeyTime(year: number, month: number, day: number, hour = 0, minute =
 }
 
 export function aralikta(gun: OzelGun, now: number): boolean {
-  const { month, day } = turkeyParts(now);
-  const bugun = month * 100 + day;
-  const { baslangicAy, baslangicGun, bitisAy, bitisGun } = gun.aralik;
-  return bugun >= baslangicAy * 100 + baslangicGun && bugun <= bitisAy * 100 + bitisGun;
+  const { month, day, hour, minute } = turkeyParts(now);
+  const simdi = (month * 100 + day) * 10000 + hour * 100 + minute;
+  const { baslangicAy, baslangicGun, baslangicSaat = 0, baslangicDakika = 0, bitisAy, bitisGun } = gun.aralik;
+  const baslangic = (baslangicAy * 100 + baslangicGun) * 10000 + baslangicSaat * 100 + baslangicDakika;
+  const bitis = (bitisAy * 100 + bitisGun) * 10000 + 2359;
+  return simdi >= baslangic && simdi <= bitis;
 }
 
 /** Saatli gösterim şu an sürüyorsa bitiş anını (ms), yoksa null döndürür. */
