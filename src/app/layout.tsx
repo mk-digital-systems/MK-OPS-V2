@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { MeasurementProvider } from "@/components/measurement/measurement-provider";
+import { OzelGunEkrani } from "@/components/ozel-gunler/ozel-gun-ekrani";
 import "./globals.css";
 import { APP_NAME, APP_TAGLINE, SITE_URL } from "@/lib/constants/brand";
 
@@ -49,6 +50,7 @@ export default function RootLayout({
             {children}
             <Toaster richColors position="top-right" closeButton />
             <MeasurementProvider />
+            <OzelGunEkrani />
           </QueryProvider>
         </ThemeProvider>
       </body>
