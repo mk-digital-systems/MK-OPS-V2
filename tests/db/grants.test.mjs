@@ -16,7 +16,7 @@ const list = (r) => r.map((x) => x.t).join(", ");
 const rpcOnly = new Set([
   "attendance_month_approvals", "company_join_attempts", "company_vault_attempts", "company_vault_notes",
   "company_vault_sessions", "company_vaults", "head_office_grants", "notification_reads", "platform_admins", "platform_events",
-  "user_branches", "vehicle_assignment_history",
+  "company_payments", "email_templates", "plan_prices", "user_onboarding", "user_branches", "vehicle_assignment_history",
 ]);
 
 const tables = await rows(`select c.relname t, c.relrowsecurity rls from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and c.relkind in ('r', 'p')`);
@@ -144,7 +144,9 @@ for (const [label, db] of [["sıfırdan", pg], ["yükseltme", legacy]]) {
   // anon hiçbir public fonksiyonu çalıştıramamalı (PUBLIC üzerinden de).
   const anonFns = (await db.query(`select p.oid::regprocedure::text t from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')`)).rows;
-  check(`[${label}] anon hiçbir public fonksiyonu çalıştıramıyor`, !anonFns.length, list(anonFns));
+  // Tek bilinçli istisna: landing sayfasının fiyat listesi (yalnızca yayındaki paketleri döndürür).
+  const anonUnexpected = anonFns.filter((f) => f.t !== "public_plan_prices()");
+  check(`[${label}] anon yalnızca public_plan_prices() fonksiyonunu çalıştırabiliyor (tek istisna)`, !anonUnexpected.length && anonFns.length === 1, list(anonUnexpected));
 
   // Uygulamanın çağırdığı her RPC: veritabanında var ve authenticated çalıştırabiliyor.
   const fns = (await db.query(`select p.proname n, bool_and(has_function_privilege('authenticated', p.oid, 'execute')) ok
@@ -177,7 +179,7 @@ for (const [label, db] of [["sıfırdan", pg], ["yükseltme", legacy]]) {
   check(`[${label}] service_role profiles tablosunu okuyabiliyor`, svc === true, String(svc));
 }
 // Beklenen authenticated yetkileri (S=SELECT, I=INSERT, U=UPDATE, D=DELETE); "" = istemciye kapalı (yalnızca RPC).
-// 80 tablonun tamamı burada olmalı; yeni tablo eklenince bu liste de bilinçli olarak güncellenir.
+// 84 tablonun tamamı burada olmalı; yeni tablo eklenince bu liste de bilinçli olarak güncellenir.
 const expectedAuth = {
   app_settings: "SIU",
   attendance_audit_logs: "S",
@@ -223,6 +225,8 @@ const expectedAuth = {
   inventory_requests: "S",
   inventory_shipment_items: "S",
   inventory_shipments: "S",
+  company_payments: "",
+  email_templates: "",
   notification_reads: "",
   official_holidays: "S",
   personnel: "SIUD",
@@ -230,6 +234,7 @@ const expectedAuth = {
   personnel_branch_history: "S",
   personnel_employment_periods: "SI",
   platform_admins: "",
+  plan_prices: "",
   platform_events: "",
   poz_prices: "S",
   private_notes: "SIUD",
@@ -255,6 +260,7 @@ const expectedAuth = {
   support_requests: "S",
   teams: "SIUD",
   user_branches: "",
+  user_onboarding: "",
   vehicle_assignment_history: "",
   vehicle_branch_history: "S",
   vehicle_fuel_logs: "S",
@@ -262,7 +268,7 @@ const expectedAuth = {
 };
 
 // ---------------------------------------------------------------------------------------------
-// Beklenen yetki matrisi (80 tablo + 5 sequence), işlevsel rol denemeleri ve 001'in doğrulama bloğu.
+// Beklenen yetki matrisi (84 tablo + 5 sequence), işlevsel rol denemeleri ve 001'in doğrulama bloğu.
 // ---------------------------------------------------------------------------------------------
 const privByLetter = { S: "SELECT", I: "INSERT", U: "UPDATE", D: "DELETE" };
 const writeOps = ["SELECT", "INSERT", "UPDATE", "DELETE"];
@@ -285,7 +291,7 @@ for (const [label, db] of [["sıfırdan", pg], ["yükseltme", legacy]]) {
       if (anonHas) wrong.push(`${table}: anon ${priv} var`);
     }
   }
-  check(`[${label}] 80 tablonun anon / authenticated / service_role yetkisi beklenen matrisle birebir`, !wrong.length, wrong.slice(0, 5).join("; "));
+  check(`[${label}] 84 tablonun anon / authenticated / service_role yetkisi beklenen matrisle birebir`, !wrong.length, wrong.slice(0, 5).join("; "));
 
   const seqs = (await db.query(`select c.oid, c.relname n from pg_class c where c.relnamespace = 'public'::regnamespace and c.relkind = 'S' order by 1`)).rows;
   const seqWrong = [];
@@ -320,7 +326,7 @@ for (const [label, db] of [["sıfırdan", pg], ["yükseltme", legacy]]) {
   }
   check(`[${label}] anon hiçbir tabloyu sorgulayamıyor (boş sonuç değil, yetki hatası)`, !anonOk.length, anonOk.join(", "));
   check(`[${label}] authenticated: açık tablolar sorgulanıyor, RPC-only tablolar kapalı`, !authBad.length, authBad.slice(0, 3).join("; "));
-  check(`[${label}] service_role 80 tablonun hepsini sorgulayabiliyor`, !svcBad.length, svcBad.join(", "));
+  check(`[${label}] service_role 84 tablonun hepsini sorgulayabiliyor`, !svcBad.length, svcBad.join(", "));
 }
 
 // 001'in doğrulama bloğu: bütün tablo ve sequence'larda, PUBLIC ve görünümlerde bozulmayı yakalamalı.
@@ -357,7 +363,7 @@ for (const rel of allRels) {
     await pg.exec(`revoke all on sequence public.${rel.relname} from authenticated`);
   }
 }
-check(`doğrulama bloğu ${allRels.length} tablo/sequence için anon, PUBLIC ve fazla yetkiyi yakalıyor`, !missed.length && allRels.length === 85, missed.slice(0, 5).join("; ") || `${allRels.length} nesne`);
+check(`doğrulama bloğu ${allRels.length} tablo/sequence için anon, PUBLIC ve fazla yetkiyi yakalıyor`, !missed.length && allRels.length === 89, missed.slice(0, 5).join("; ") || `${allRels.length} nesne`);
 check("doğrulama bloğu, denemelerden sonra eski haline dönen veritabanında yine geçiyor", (await blockError(verifyBlock)) === null);
 
 await pg.exec(`create view public.__probe_view as select 1 as x`);

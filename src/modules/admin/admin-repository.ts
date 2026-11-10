@@ -1,5 +1,24 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AdminCompany, AdminCompanyHealth, AdminCompanyUser, OfficialHoliday, PlatformEvent, AdminSupportRequest, Catalog, CatalogItem, CatalogType, SupportStatus } from "@/types/admin";
+import type {
+  AdminCompany,
+  AdminCompanyHealth,
+  AdminCompanyUser,
+  AdminInbox,
+  AdminSupportRequest,
+  Catalog,
+  CatalogItem,
+  CatalogType,
+  CompanyPayment,
+  EmailTemplate,
+  NewUser,
+  NewUserStatusFilter,
+  OfficialHoliday,
+  PaymentMethod,
+  PlanPrice,
+  PlatformEvent,
+  PublicPlanPrice,
+  SupportStatus,
+} from "@/types/admin";
 
 export class AdminRepository {
   constructor(private readonly supabase: SupabaseClient) {}
@@ -74,6 +93,91 @@ export class AdminRepository {
       p_branch_limit: payload.branchLimit,
     });
     if (error) throw error;
+  }
+
+  // ---------------------------------------------------------------- fiyat listesi
+  /** Herkese açık (oturumsuz da çalışır): yalnızca yayındaki paketler. Hata olursa boş liste. */
+  async publicPlanPrices(): Promise<PublicPlanPrice[]> {
+    const { data, error } = await this.supabase.rpc("public_plan_prices");
+    if (error) return [];
+    return (data ?? []) as PublicPlanPrice[];
+  }
+
+  async listPlanPrices(): Promise<PlanPrice[]> {
+    const { data, error } = await this.supabase.rpc("admin_list_plan_prices");
+    if (error) throw error;
+    return (data ?? []) as PlanPrice[];
+  }
+
+  async savePlanPrices(plans: PlanPrice[]): Promise<void> {
+    const { error } = await this.supabase.rpc("admin_save_plan_prices", { p_plans: plans });
+    if (error) throw error;
+  }
+
+  // ---------------------------------------------------------------- plan atama ve ödemeler
+  async assignPlan(payload: {
+    companyId: string;
+    plan: string;
+    months: number;
+    amount: number;
+    paidOn: string;
+    method: PaymentMethod;
+    note: string | null;
+  }): Promise<{ plan_ends_at: string; period_start: string; period_end: string }> {
+    const { data, error } = await this.supabase.rpc("admin_assign_plan", {
+      p_company_id: payload.companyId,
+      p_plan: payload.plan,
+      p_months: payload.months,
+      p_amount: payload.amount,
+      p_paid_on: payload.paidOn,
+      p_method: payload.method,
+      p_note: payload.note,
+    });
+    if (error) throw error;
+    return data as { plan_ends_at: string; period_start: string; period_end: string };
+  }
+
+  async listPayments(year: number | null = null): Promise<CompanyPayment[]> {
+    const { data, error } = await this.supabase.rpc("admin_list_payments", { p_year: year });
+    if (error) throw error;
+    return (data ?? []) as CompanyPayment[];
+  }
+
+  async voidPayment(id: string, reason: string): Promise<void> {
+    const { error } = await this.supabase.rpc("admin_void_payment", { p_id: id, p_reason: reason });
+    if (error) throw error;
+  }
+
+  // ---------------------------------------------------------------- yeni kayıtlar, e-posta şablonu, gelen kutusu
+  async listNewUsers(status: NewUserStatusFilter, offset = 0, limit = 50): Promise<{ total: number; items: NewUser[] }> {
+    const { data, error } = await this.supabase.rpc("admin_list_new_users", { p_status: status, p_offset: offset, p_limit: limit });
+    if (error) throw error;
+    const result = (data ?? { total: 0, items: [] }) as { total: number; items: NewUser[] };
+    return { total: Number(result.total ?? 0), items: result.items ?? [] };
+  }
+
+  async setUserOnboarding(userId: string, status: "sent" | "skipped" | null): Promise<void> {
+    const { error } = await this.supabase.rpc("admin_set_user_onboarding", { p_user_id: userId, p_status: status });
+    if (error) throw error;
+  }
+
+  async emailTemplates(): Promise<EmailTemplate[]> {
+    const { data, error } = await this.supabase.rpc("admin_get_email_templates");
+    if (error) throw error;
+    return (data ?? []) as EmailTemplate[];
+  }
+
+  async saveEmailTemplate(kind: EmailTemplate["kind"], subject: string, body: string): Promise<number> {
+    const { data, error } = await this.supabase.rpc("admin_save_email_template", { p_kind: kind, p_subject: subject, p_body: body });
+    if (error) throw error;
+    return Number(data ?? 0);
+  }
+
+  /** Bildirim özeti. Migration henüz uygulanmadıysa panel bozulmasın diye hata yerine boş döner. */
+  async inbox(): Promise<AdminInbox> {
+    const { data, error } = await this.supabase.rpc("admin_inbox");
+    if (error || !data) return { new_users: 0, open_support: 0, items: [] };
+    return data as AdminInbox;
   }
 
   // ---------------------------------------------------------------- kataloglar

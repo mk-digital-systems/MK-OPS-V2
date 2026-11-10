@@ -150,8 +150,8 @@ check("super admin flagged", (await one(superAdmin, `select public.is_super_admi
 check("chief is not super admin", (await one(chiefA, `select public.is_super_admin() s`)).s === false);
 check("platform_admins hidden from users", !!(await asErr(chiefA, `select * from public.platform_admins`)));
 check("anon cannot execute RPCs", !!(await asErr(null, `select public.get_shared_notes()`)));
-const anonFns = (await sys(`select count(*)::int n from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')`)).rows[0].n;
-check("anon has execute on no public function", anonFns === 0, String(anonFns));
+const anonFns = (await sys(`select count(*)::int n from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute') and p.proname <> 'public_plan_prices'`)).rows[0].n;
+check("anon has execute on no public function (except public_plan_prices)", anonFns === 0, String(anonFns));
 
 // --- system (cron) context -----------------------------------------------------
 const persB = (await one(chiefB, `insert into public.personnel (full_name, employment_start_date) values ('Veli Usta', date '2026-01-01') returning id`)).id;

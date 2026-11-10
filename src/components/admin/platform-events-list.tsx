@@ -9,7 +9,8 @@ import {
   type PlatformEvent,
   type PlatformEventAction,
 } from "@/types/admin";
-import { cn, formatDateTime } from "@/lib/utils";
+import { cn, formatDate, formatDateTime } from "@/lib/utils";
+import { formatTl } from "@/lib/pricing";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,9 +20,24 @@ const ACTION_CLASSES: Record<PlatformEventAction, string> = {
   suspend_company: "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200",
   unsuspend_company: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200",
   delete_company: "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-200",
+  assign_plan: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200",
+  void_payment: "bg-red-100 text-red-800 dark:bg-red-950/50 dark:text-red-200",
+  update_prices: "bg-violet-100 text-violet-800 dark:bg-violet-950/50 dark:text-violet-200",
 };
 
 const DATE_FIELDS = new Set(["plan_ends_at", "trial_ends_at"]);
+
+const PRICE_FIELD_LABELS: Record<string, string> = {
+  is_published: "Sitede göster",
+  user_limit: "Kullanıcı",
+  site_chief_limit: "Firma yöneticisi",
+  manager_limit: "Şantiye şefi",
+  accounting_limit: "Muhasebe",
+  branch_limit: "Ek şube",
+  price_1m: "1 ay",
+  price_3m: "3 ay",
+  price_6m: "6 ay",
+};
 
 function formatValue(field: string, value: unknown): string {
   if (value === null || value === undefined || value === "") return field.endsWith("_limit") ? "Sınırsız" : "—";
@@ -38,6 +54,37 @@ function Details({ event }: { event: PlatformEvent }) {
           <li key={field}>
             <span className="font-medium text-foreground">{PLATFORM_FIELD_LABELS[field] ?? field}:</span>{" "}
             {formatValue(field, change.old)} → {formatValue(field, change.new)}
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  if (event.action === "assign_plan") {
+    const d = event.details as { plan?: string; months?: number; amount_tl?: number | string; period_end?: string };
+    return (
+      <p className="mt-2 text-xs text-muted-foreground">
+        {d.plan} · {d.months} ay · {formatTl(d.amount_tl)} · bitiş {d.period_end ? formatDate(d.period_end) : "—"}
+      </p>
+    );
+  }
+  if (event.action === "void_payment") {
+    const d = event.details as { plan?: string; amount_tl?: number | string; reason?: string };
+    return (
+      <p className="mt-2 text-xs text-muted-foreground">
+        {d.plan} · {formatTl(d.amount_tl)} · neden: {d.reason ?? "—"}
+      </p>
+    );
+  }
+  if (event.action === "update_prices") {
+    const plans = Object.entries(event.details) as [string, Record<string, { old: unknown; new: unknown }>][];
+    return (
+      <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+        {plans.map(([plan, fields]) => (
+          <li key={plan}>
+            <span className="font-medium text-foreground">{plan}:</span>{" "}
+            {Object.entries(fields)
+              .map(([field, change]) => `${PRICE_FIELD_LABELS[field] ?? field} ${String(change.old ?? "—")} → ${String(change.new ?? "—")}`)
+              .join(" · ")}
           </li>
         ))}
       </ul>

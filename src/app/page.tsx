@@ -11,7 +11,6 @@ import {
   Hammer,
   KeyRound,
   LockKeyhole,
-  Mail,
   MessageCircle,
   PackageSearch,
   PhoneCall,
@@ -21,6 +20,9 @@ import {
   Wallet,
 } from "lucide-react";
 import { getAuthUser } from "@/lib/supabase/request-cache";
+import { createClient } from "@/lib/supabase/server";
+import { AdminRepository } from "@/modules/admin/admin-repository";
+import { PricingSection } from "@/components/marketing/pricing-section";
 import {
   APP_LOGO_SRC,
   APP_NAME,
@@ -167,7 +169,7 @@ const STEPS = [
   },
   {
     title: "Planınızı seçin",
-    text: "Panelden plan talebinizi iletin; size özel teklifi gönderelim. Ödeme EFT/havale ile, verileriniz olduğu gibi kalır.",
+    text: "Fiyat listesinden paketinizi seçin, panelden plan talebinizi iletin. Ödeme EFT/havale ile; planınız tanımlanır ve verileriniz olduğu gibi kalır.",
   },
 ];
 
@@ -216,7 +218,7 @@ const FAQ = [
   {
     question: "Fiyatlar nasıl belirleniyor?",
     answer:
-      "Kullanıcı sayınıza ve ihtiyaç duyduğunuz kapsama göre firmanıza özel teklif hazırlıyoruz. 1, 3 veya 6 aylık ödeme seçebilirsiniz.",
+      "Paketler kullanıcı ve şube sayısına göre fiyatlandırılır; güncel fiyatlar yukarıdaki listede KDV dahil gösterilir. 1, 3 veya 6 aylık ödeme seçebilirsiniz; uzun süreli ödemede aylık maliyet düşer. 25 kullanıcıdan büyük firmalar için özel teklif hazırlıyoruz.",
   },
   {
     question: "Başka firmalar verilerimi görebilir mi?",
@@ -244,6 +246,8 @@ function PrimaryCta({ signedIn, label = "48 Saat Ücretsiz Dene" }: { signedIn: 
 export default async function LandingPage() {
   const user = await getAuthUser();
   const signedIn = !!user;
+  // Fiyat listesi süper adminin düzenlediği tablodan gelir; okunamazsa boş liste → eski "teklif al" görünümü.
+  const plans = await new AdminRepository(await createClient()).publicPlanPrices();
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -454,58 +458,8 @@ export default async function LandingPage() {
           </div>
         </section>
 
-        {/* Pricing */}
-        <section id="fiyatlandirma" className="scroll-mt-20 py-16 md:py-20">
-          <div className="mx-auto max-w-4xl px-4">
-            <div className="text-center">
-              <h2 className="text-3xl font-semibold tracking-tight">Firmanıza özel fiyat</h2>
-              <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-                Kullanıcı sayınıza ve ihtiyacınıza göre teklif hazırlıyoruz. Önce 48 saat ücretsiz deneyin, sonra karar
-                verin.
-              </p>
-            </div>
-            <div className="mt-10 grid overflow-hidden rounded-2xl border bg-card shadow-sm md:grid-cols-[1.3fr_1fr]">
-              <div className="p-8">
-                <p className="text-sm font-semibold uppercase tracking-wide text-primary">Her planda</p>
-                <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {[
-                    "Bütün modüller",
-                    "Excel, Word, PDF çıktılar",
-                    "Rol ve yetki yönetimi",
-                    "Mobil uyumlu kullanım",
-                    "Destek talebi ile yardım",
-                    "Veriler firmanıza özel",
-                  ].map((item) => (
-                    <li key={item} className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="flex flex-col justify-center gap-3 border-t bg-muted/40 p-8 md:border-l md:border-t-0">
-                <p className="text-sm text-muted-foreground">Ödeme EFT/havale ile. 1, 3 veya 6 aylık. Otomatik yenileme yok.</p>
-                <Button asChild size="lg">
-                  <a href={whatsappUrl("MK OPS için fiyat teklifi almak istiyorum.")} target="_blank" rel="noopener noreferrer">
-                    <MessageCircle className="h-4 w-4" />
-                    Teklif Al
-                  </a>
-                </Button>
-                <Button asChild variant="outline">
-                  <a href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("MK OPS fiyat teklifi")}`}>
-                    <Mail className="h-4 w-4" />
-                    E-posta ile sor
-                  </a>
-                </Button>
-                {!signedIn && (
-                  <Link href="/register" className="text-center text-sm font-medium text-primary hover:underline">
-                    veya 48 saat ücretsiz deneyin
-                  </Link>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* Pricing: süper admin → Fiyat Listesi'nden beslenir */}
+        <PricingSection plans={plans} signedIn={signedIn} />
 
         {/* FAQ */}
         <section id="sss" className="scroll-mt-20 border-t border-border/60 bg-muted/30 py-16 md:py-20">

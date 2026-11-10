@@ -110,7 +110,7 @@ check("ended plan blocks access", (await one(chief, `select public.get_my_compan
 
 // --- privileges ------------------------------------------------------------------------
 check("join attempts hidden from users", !!(await asErr(chief, `select * from public.company_join_attempts`)));
-const anonFns = (await sys(`select count(*)::int n from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')`)).rows[0].n;
-check("anon has execute on no public function", anonFns === 0, String(anonFns));
+const anonFns = (await sys(`select count(*)::int n from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute') and p.proname <> 'public_plan_prices'`)).rows[0].n;
+check("anon has execute on no public function (except public_plan_prices)", anonFns === 0, String(anonFns));
 
 process.exit(failures ? 1 : 0);
