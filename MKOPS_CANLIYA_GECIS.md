@@ -17,7 +17,20 @@
 | `20261120000002_branch_helpers_company_guard.sql` | `personnel_branch_on` / `vehicle_branch_on` başka firmanın kaydı için `NULL` döner | Hayır (aynı imza ve yetki) |
 | `20261120000003_save_work_plan_rpc.sql` | `save_work_plan` RPC (SECURITY INVOKER) | Hayır (yeni fonksiyon) |
 
+| `20261121000001_official_holidays.sql` | Resmi tatiller (RT) + pazar/tatilde İzinli: yeni `official_holidays` tablosu, `is_rest_day` yardımcıları, süper admin RPC'leri ve 7 mevcut puantaj/bordro fonksiyonunun güncellenmesi | **Evet, dikkat:** bordro/ekstre fonksiyonlarını değiştirir. Tatil kuralı yalnızca **11 Kasım 2026'dan itibaren** geçerli; önceki dönemlerin hesabı değişmez. Uygulama kodu bu migration'dan önce de çalışır (tatil listesi boş döner), ama **önce migration** önerilir |
+
 (`20261120000001_admin_overview.sql` süper admin paneli için zaten uygulandı.)
+
+**Resmi tatil sonrası kontrol (migration 20261121000001):**
+```sql
+-- 7 fonksiyonda artık sabit 'pazar mı?' kontrolü kalmamalı (boş dönmeli)
+select proname from pg_proc where pronamespace = 'public'::regnamespace
+  and proname in ('ensure_current_sunday_attendance','ensure_sunday_attendance_for_month','get_attendance_month_archives',
+    'get_monthly_payroll','get_personnel_attendance_detail','subcontractor_salary_rows','validate_attendance_date_and_weekly_rest')
+  and pg_get_functiondef(oid) ~* 'isodow[^)]*\)\s*(=|<>)\s*7';
+-- anon probe: /rest/v1/official_holidays -> 42501
+```
+Sonra süper admin → **Resmi Tatiller** sayfasından 2027 Ramazan ve Kurban Bayramı tarihlerini ekleyin (Diyanet takvimine göre).
 
 Her biri için sonrasında:
 ```sql

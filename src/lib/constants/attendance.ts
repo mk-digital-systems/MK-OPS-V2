@@ -79,7 +79,21 @@ export function getAttendanceMeta(status: AttendanceStatus) {
   return ATTENDANCE_STATUSES.find((item) => item.value === status)!;
 }
 
-export function getMonthDays(year: number, month: number) {
+export type AttendanceDayInfo = { isSunday: boolean; isHoliday: boolean };
+
+/** Resmi tatil günündeki (pazar olmayan) hafta tatili kaydı "RT - Resmi Tatil" olarak görünür. */
+export function getDayAttendanceMeta(status: AttendanceStatus, day: AttendanceDayInfo) {
+  const meta = getAttendanceMeta(status);
+  if (status === "weekly_rest" && day.isHoliday && !day.isSunday) {
+    return { ...meta, label: "Resmi Tatil", symbol: "RT" };
+  }
+  return meta;
+}
+
+/** Pazar ve resmi tatilde seçilebilen durumlar: Çalıştı, Çalışmadı, İzinli (ücretsiz) ve HT/RT. */
+export const REST_DAY_STATUS_VALUES: AttendanceStatus[] = ["worked", "absent", "leave", "weekly_rest"];
+
+export function getMonthDays(year: number, month: number, holidays: Record<string, string> = {}) {
   const dayCount = new Date(year, month, 0).getDate();
   return Array.from({ length: dayCount }, (_, index) => {
     const day = index + 1;
@@ -87,11 +101,17 @@ export function getMonthDays(year: number, month: number) {
     const isoDate = `${year}-${String(month).padStart(2, "0")}-${String(
       day
     ).padStart(2, "0")}`;
+    const isSunday = date.getDay() === 0;
+    const holidayName = holidays[isoDate] ?? null;
     return {
       day,
       isoDate,
       dayName: SHORT_DAY_NAMES[date.getDay()],
-      isSunday: date.getDay() === 0,
+      isSunday,
+      isHoliday: holidayName !== null,
+      holidayName,
+      /** Pazar veya resmi tatil: ücret ve durum kuralları aynıdır. */
+      isRestDay: isSunday || holidayName !== null,
     };
   });
 }

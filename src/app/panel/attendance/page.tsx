@@ -63,7 +63,7 @@ export default async function AttendancePage({ searchParams }: Props) {
   } catch {
     // Yetkisiz kullanıcılar puantajı salt okunur görüntülemeye devam edebilir.
   }
-  const [data, exportData, monthNotes, canWrite, approvals, profile, branchDays] = await Promise.all([
+  const [data, exportData, monthNotes, canWrite, approvals, profile, branchDays, holidays] = await Promise.all([
     attendanceRepository.getMonth({
       year,
       month,
@@ -85,6 +85,7 @@ export default async function AttendancePage({ searchParams }: Props) {
     attendanceRepository.getMonthApprovals(year, month),
     getCurrentUser(),
     attendanceRepository.getBranchDayLabels(year, month),
+    attendanceRepository.getHolidays(year),
   ]);
   const canApprove = profile?.role === "site_chief" || profile?.role === "company_manager";
 
@@ -105,6 +106,7 @@ export default async function AttendancePage({ searchParams }: Props) {
         initialActivityFilter={activeFilter}
         initialStatusFilter={statusFilter}
         branchDays={branchDays}
+        holidays={holidays}
         readOnly={!canWrite || (branchId ? approvals.some((item) => item.branch_id === branchId && item.approved_at) : approvals.length > 0 && approvals.every((item) => item.approved_at))}
       />
     </div>

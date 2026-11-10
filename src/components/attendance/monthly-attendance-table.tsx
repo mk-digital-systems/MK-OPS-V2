@@ -36,8 +36,9 @@ import type {
 import {
   ATTENDANCE_STATUSES,
   MONTH_NAMES,
-  getAttendanceMeta,
+  getDayAttendanceMeta,
   getMonthDays,
+  REST_DAY_STATUS_VALUES,
 } from "@/lib/constants/attendance";
 import { createClient } from "@/lib/supabase/client";
 import { useBranches } from "@/components/layout/branch-provider";
@@ -76,6 +77,8 @@ type Props = {
   readOnly?: boolean;
   /** Ay içinde birden fazla şubede çalışan personel: kimlik → "Merkez 12 gün · Bolu 5 gün". */
   branchDays?: Record<string, string>;
+  /** Resmi tatiller (tarih → ad). Pazar gibi işler: RT ödenir, çalışılırsa +1 mesai, izinli ücretsiz. */
+  holidays?: Record<string, string>;
 };
 
 const EMPTY_TOTALS: AttendanceTotals = {
@@ -87,14 +90,17 @@ const EMPTY_TOTALS: AttendanceTotals = {
   weekly_rest: 0,
 };
 
+const NO_HOLIDAYS: Record<string, string> = {};
+
 const PAYABLE_DAYS_LABEL = "Toplam Hak Edilen Gün";
 
 const MANUAL_ATTENDANCE_STATUSES = ATTENDANCE_STATUSES.filter(
   (status) => status.value !== "weekly_rest"
 );
 
-const SUNDAY_ATTENDANCE_STATUSES = ATTENDANCE_STATUSES.filter((status) =>
-  ["worked", "absent", "weekly_rest"].includes(status.value)
+/** Pazar ve resmi tatil: Çalıştı, Çalışmadı, İzinli (ücretsiz) ve HT/RT. */
+const REST_DAY_ATTENDANCE_STATUSES = ATTENDANCE_STATUSES.filter((status) =>
+  REST_DAY_STATUS_VALUES.includes(status.value)
 );
 
 function getIstanbulNow() {
@@ -151,6 +157,7 @@ export function MonthlyAttendanceTable({
   archives = [],
   readOnly = false,
   branchDays = {},
+  holidays = NO_HOLIDAYS,
 }: Props) {
   const brand = useReportBrand();
   const { branches, multiBranch } = useBranches();
@@ -181,8 +188,8 @@ export function MonthlyAttendanceTable({
   const hasUnsavedChanges = dirty.size > 0 || notesDirty;
 
   const days = useMemo(
-    () => getMonthDays(initialData.year, initialData.month),
-    [initialData.month, initialData.year]
+    () => getMonthDays(initialData.year, initialData.month, holidays),
+    [initialData.month, initialData.year, holidays]
   );
 
   const originalRecords = useMemo(() => {
@@ -289,10 +296,10 @@ export function MonthlyAttendanceTable({
       return;
     }
     if (
-      days[selectedDay - 1]?.isSunday &&
-      !SUNDAY_ATTENDANCE_STATUSES.some((item) => item.value === status)
+      days[selectedDay - 1]?.isRestDay &&
+      !REST_DAY_ATTENDANCE_STATUSES.some((item) => item.value === status)
     ) {
-      toast.error("Pazar günü yalnızca Çalıştı, Çalışmadı veya HT olabilir");
+      toast.error("Pazar ve resmi tatil günlerinde yalnızca Çalıştı, Çalışmadı, İzinli veya HT/RT seçilebilir");
       return;
     }
     Array.from(personnelIds).forEach((personnelId) => {
@@ -368,7 +375,7 @@ export function MonthlyAttendanceTable({
           if (current) totals[current] += 1;
         }
         const status = getDisplayStatus(personnel.id, day.isoDate);
-        if (day.isSunday && status === "worked") sundayWorked += 1;
+        if (day.isRestDay && status === "worked") sundayWorked += 1;
       });
       return {
         ...totals,
@@ -419,6 +426,7 @@ export function MonthlyAttendanceTable({
           initialData.month
         ).padStart(2, "0")}.xlsx`,
         notes: monthNotes,
+        holidays,
       });
     } catch (error) {
       console.error(error);
@@ -439,6 +447,7 @@ export function MonthlyAttendanceTable({
         year: initialData.year,
         month: initialData.month,
         notes: monthNotes,
+        holidays,
       });
     } catch (error) {
       console.error(error);
@@ -765,8 +774,12 @@ export function MonthlyAttendanceTable({
                 </SelectContent>
               </Select>
 
-              {(days[selectedDay - 1]?.isSunday
-                ? SUNDAY_ATTENDANCE_STATUSES
+              {(days[selectedDay - 1]?.isRestDay
+                ? REST_DAY_ATTENDANCE_STATUSES.map((status) =>
+                    status.value === "weekly_rest" && days[selectedDay - 1]?.isHoliday && !days[selectedDay - 1]?.isSunday
+                      ? { ...status, label: "Resmi Tatil", symbol: "RT" }
+                      : status
+                  )
                 : MANUAL_ATTENDANCE_STATUSES
               ).map((status) => (
                 <Button
@@ -856,10 +869,13 @@ export function MonthlyAttendanceTable({
                   <th
                     key={day.isoDate}
                     className={`min-w-[54px] border-b border-r px-1 py-2 text-center text-[11px] font-semibold ${
-                      day.isSunday
-                        ? "bg-cyan-50 text-cyan-800 dark:bg-cyan-950/50 dark:text-cyan-300"
-                        : "bg-background"
+                      day.isHoliday
+                        ? "bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                        : day.isSunday
+                          ? "bg-cyan-50 text-cyan-800 dark:bg-cyan-950/50 dark:text-cyan-300"
+                          : "bg-background"
                     }`}
+                    title={day.holidayName ?? undefined}
                   >
                     <span className="block">
                       {String(day.day).padStart(2, "0")}
@@ -968,7 +984,7 @@ const AttendanceRow = memo(function AttendanceRow({
       const status = dirty.has(key)
         ? dirty.get(key) ?? null
         : originalRecords.get(key) ?? null;
-      return day.isSunday && status === "worked";
+      return day.isRestDay && status === "worked";
     }).length;
     return { totals: next, sundayWorked: sundayWorkCount };
   }, [days, dirty, originalRecords, personnel]);
@@ -1016,7 +1032,7 @@ const AttendanceRow = memo(function AttendanceRow({
           <td
             key={day.isoDate}
             className={`min-w-[54px] border-b border-r p-1 ${
-              day.isSunday ? "bg-cyan-50/60 dark:bg-cyan-950/25" : ""
+              day.isHoliday ? "bg-amber-50/70 dark:bg-amber-950/25" : day.isSunday ? "bg-cyan-50/60 dark:bg-cyan-950/25" : ""
             }`}
           >
               <AttendanceCell
@@ -1027,7 +1043,7 @@ const AttendanceRow = memo(function AttendanceRow({
                 canEditAttendanceDate(day.isoDate) &&
                 isPersonnelWorkingDate(personnel, day.isoDate)
               }
-              isSunday={day.isSunday}
+              day={day}
               onChange={(nextStatus) =>
                 onChange(personnel.id, day.isoDate, nextStatus)
               }
@@ -1048,15 +1064,15 @@ const AttendanceCell = memo(function AttendanceCell({
   dirty,
   onChange,
   editable,
-  isSunday,
+  day,
 }: {
   status: AttendanceStatus | null;
   dirty: boolean;
   onChange: (status: AttendanceStatus | null) => void;
   editable: boolean;
-  isSunday: boolean;
+  day: { isSunday: boolean; isHoliday: boolean; isRestDay: boolean; holidayName: string | null };
 }) {
-  const meta = status ? getAttendanceMeta(status) : null;
+  const meta = status ? getDayAttendanceMeta(status, day) : null;
   if (!editable) {
     return (
       <span
@@ -1090,8 +1106,8 @@ const AttendanceCell = memo(function AttendanceCell({
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center">
-        {(isSunday
-          ? SUNDAY_ATTENDANCE_STATUSES
+        {(day.isRestDay
+          ? REST_DAY_ATTENDANCE_STATUSES.map((item) => getDayAttendanceMeta(item.value, day))
           : MANUAL_ATTENDANCE_STATUSES
         ).map((item) => (
           <DropdownMenuItem

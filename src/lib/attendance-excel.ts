@@ -63,14 +63,16 @@ export function countAttendanceRecords(records: AttendanceRecord[]) {
   return totals;
 }
 
-export function countPayableDays(records: AttendanceRecord[]) {
+/** Pazar veya resmi tatilde çalışılan her gün +1 mesai günü olarak eklenir (veritabanı kuralıyla aynı). */
+export function countPayableDays(records: AttendanceRecord[], holidays: Record<string, string> = {}) {
   const totals = countAttendanceRecords(records);
-  const sundayWorked = records.filter((record) => {
+  const restDayWorked = records.filter((record) => {
     if (record.status !== "worked") return false;
+    if (holidays[record.date]) return true;
     const [year, month, day] = record.date.split("-").map(Number);
     return new Date(Date.UTC(year, month - 1, day)).getUTCDay() === 0;
   }).length;
-  return totals.worked + totals.weekly_rest + sundayWorked;
+  return totals.worked + totals.weekly_rest + restDayWorked;
 }
 
 export async function downloadAttendanceSummaryExcel(options: {
@@ -81,11 +83,13 @@ export async function downloadAttendanceSummaryExcel(options: {
   notes?: string;
   /** Sayfa adı (ör. kapsam: "Firma", taşeron adı). */
   sheetName?: string;
+  /** Resmi tatiller (tarih → ad); tatilde çalışma +1 mesai sayılır. */
+  holidays?: Record<string, string>;
 }) {
   const { Workbook } = await import("exceljs");
   const workbook = new Workbook();
   const worksheet = workbook.addWorksheet((options.sheetName ?? "Puantaj Dökümü").replace(/[*?:\\/[\]]/g, " ").slice(0, 31));
-  const days = getMonthDays(options.year, options.month);
+  const days = getMonthDays(options.year, options.month, options.holidays);
 
   worksheet.columns = [
     { header: "Sıra", key: "sequence", width: 7 },
@@ -107,7 +111,7 @@ export async function downloadAttendanceSummaryExcel(options: {
       sequence: index + 1,
       fullName: person.fullName,
       tcIdentityNumber: person.tcIdentityNumber ?? "",
-      payableDays: countPayableDays(person.records),
+      payableDays: countPayableDays(person.records, options.holidays),
     };
 
     days.forEach((day) => {

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AdminCompany, AdminCompanyHealth, AdminCompanyUser, PlatformEvent, AdminSupportRequest, Catalog, CatalogItem, CatalogType, SupportStatus } from "@/types/admin";
+import type { AdminCompany, AdminCompanyHealth, AdminCompanyUser, OfficialHoliday, PlatformEvent, AdminSupportRequest, Catalog, CatalogItem, CatalogType, SupportStatus } from "@/types/admin";
 
 export class AdminRepository {
   constructor(private readonly supabase: SupabaseClient) {}
@@ -20,6 +20,27 @@ export class AdminRepository {
     const { data, error } = await this.supabase.rpc("admin_platform_events", { p_company_id: companyId, p_limit: limit });
     if (error) throw error;
     return (data ?? []) as PlatformEvent[];
+  }
+
+  async listOfficialHolidays(year: number): Promise<OfficialHoliday[]> {
+    const { data, error } = await this.supabase.rpc("list_official_holidays", { p_year: year });
+    if (error) throw error;
+    return (data ?? []) as OfficialHoliday[];
+  }
+
+  async saveOfficialHoliday(name: string, startDate: string, days: number): Promise<number> {
+    const { data, error } = await this.supabase.rpc("admin_save_official_holiday", {
+      p_name: name,
+      p_start: startDate,
+      p_days: days,
+    });
+    if (error) throw error;
+    return Number(data ?? 0);
+  }
+
+  async deleteOfficialHoliday(date: string): Promise<void> {
+    const { error } = await this.supabase.rpc("admin_delete_official_holiday", { p_date: date });
+    if (error) throw error;
   }
 
   async listCompanyUsers(companyId: string): Promise<AdminCompanyUser[]> {

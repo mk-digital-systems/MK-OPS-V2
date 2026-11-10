@@ -14,6 +14,14 @@ import type {
 export class AttendanceRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
+  /** Yılın resmi tatilleri (sabit + bayramlar): tarih → ad. Tatil kuralı yürürlük tarihinden itibaren geçerlidir. */
+  async getHolidays(year: number): Promise<Record<string, string>> {
+    const { data, error } = await this.supabase.rpc("list_official_holidays", { p_year: year });
+    // Fonksiyon henüz yoksa (migration uygulanmadıysa) puantaj tatilsiz çalışmaya devam eder.
+    if (error) return {};
+    return Object.fromEntries(((data ?? []) as { date: string; name: string }[]).map((item) => [item.date, item.name]));
+  }
+
   async ensureSundays(year: number, month: number): Promise<void> {
     const { error } = await this.supabase.rpc(
       "ensure_sunday_attendance_for_month",
