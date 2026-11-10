@@ -60,7 +60,8 @@ export default async function AppLayout({
     pathname === "/panel/projects/new" ||
     /^\/panel\/projects\/[^/]+\/edit$/.test(pathname) ||
     pathname === "/panel/work-plans/new" ||
-    /^\/panel\/work-plans\/[^/]+\/edit$/.test(pathname);
+    /^\/panel\/work-plans\/[^/]+\/edit$/.test(pathname) ||
+    /^\/panel\/work-plans\/drafts\/[^/]+\/edit$/.test(pathname);
   if (isWriteOnlyRoute) {
     const requiredModule = pathname.startsWith("/panel/work-plans")
       ? "work_plans"

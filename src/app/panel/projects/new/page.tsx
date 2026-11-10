@@ -1,3 +1,4 @@
+import { requireModuleWrite } from "@/lib/supabase/request-cache";
 import { createClient } from "@/lib/supabase/server";
 import { ProjectRepository } from "@/modules/projects/project-repository";
 import { PersonnelRepository } from "@/modules/work-plans/personnel-repository";
@@ -8,6 +9,7 @@ export const metadata = {
 };
 
 export default async function NewProjectPage() {
+  await requireModuleWrite("projects", "/panel/projects");
   const supabase = await createClient();
   const repository = new ProjectRepository(supabase);
   const [types, locations, personnel] = await Promise.all([

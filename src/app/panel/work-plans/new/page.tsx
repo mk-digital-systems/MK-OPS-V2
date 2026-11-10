@@ -5,13 +5,14 @@ import { VehicleRepository } from "@/modules/vehicles/vehicle-repository";
 import { ProjectRepository } from "@/modules/projects/project-repository";
 import { WorkPlanEditor } from "@/components/work-plans/work-plan-editor";
 import { tomorrowISODate } from "@/lib/constants/project";
-import { getMyBranches } from "@/lib/supabase/request-cache";
+import { getMyBranches, requireModuleWrite } from "@/lib/supabase/request-cache";
 
 export const metadata = {
   title: "Yeni İş Planı",
 };
 
 export default async function NewWorkPlanPage() {
+  await requireModuleWrite("work_plans", "/panel/work-plans");
   const supabase = await createClient();
   const branchId = await getEffectiveBranchId((await getMyBranches()).branches);
   const [personnel, vehicles, projects] = await Promise.all([

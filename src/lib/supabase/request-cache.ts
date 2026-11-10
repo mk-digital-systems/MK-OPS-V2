@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cache } from "react";
+import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import type { AccountInfo, PermissionModule, UserProfile } from "@/types/auth";
@@ -78,3 +79,16 @@ export const getWritableModules = cache(async (): Promise<PermissionModule[]> =>
   );
   return results.filter((item) => item.allowed).map((item) => item.module);
 });
+
+/**
+ * Sayfa düzeyinde yazma yetkisi kontrolü. panel/layout.tsx istemci içi geçişlerde yeniden çalışmadığı için
+ * yazma ekranları (yeni/düzenle/taslak) kendi kontrolünü de yapar. Asıl veri koruması yine RLS'tedir.
+ */
+export async function requireModuleWrite(module: PermissionModule, fallback: string): Promise<void> {
+  if (!(await canWrite(module))) redirect(fallback);
+}
+
+/** Onay merkezi gibi yalnızca onay yetkisi olanların göreceği sayfalar için. */
+export async function requireCanApprove(fallback = "/panel"): Promise<void> {
+  if (!(await getMyBranches()).can_approve) redirect(fallback);
+}

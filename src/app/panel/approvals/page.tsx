@@ -5,14 +5,15 @@ import { AttendanceRepository } from "@/modules/attendance/attendance-repository
 import { InventoryRepository } from "@/modules/inventory/inventory-repository";
 import { HakedisRepository } from "@/modules/hakedis/hakedis-repository";
 import { ApprovalsCenter } from "@/components/approvals/approvals-center";
-import { canWrite as canWriteCached, getCurrentUser, getMyAccount } from "@/lib/supabase/request-cache";
+import { canWrite as canWriteCached, getCurrentUser, getMyAccount, requireCanApprove } from "@/lib/supabase/request-cache";
 
 export const metadata = {
   title: "Onaylar",
 };
 
-/** Firma yöneticisi ve Merkez şantiye şefi: bütün şubelerin onay bekleyen kayıtları (erişim layout'ta). */
+/** Firma yöneticisi ve Merkez şantiye şefi: bütün şubelerin onay bekleyen kayıtları (erişim layout ve sayfada). */
 export default async function ApprovalsPage() {
+  await requireCanApprove();
   const supabase = await createClient();
   const today = new Date();
   const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);

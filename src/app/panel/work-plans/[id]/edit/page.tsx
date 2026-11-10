@@ -1,3 +1,4 @@
+import { requireModuleWrite } from "@/lib/supabase/request-cache";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { WorkPlanRepository } from "@/modules/work-plans/work-plan-repository";
@@ -16,6 +17,7 @@ export const metadata = {
 };
 
 export default async function EditWorkPlanPage({ params }: Props) {
+  await requireModuleWrite("work_plans", "/panel/work-plans");
   const { id } = await params;
   const supabase = await createClient();
   const plan = await new WorkPlanRepository(supabase).getById(id);
