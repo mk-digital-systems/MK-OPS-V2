@@ -16,10 +16,26 @@
 |---|---|---|
 | `20261120000002_branch_helpers_company_guard.sql` | `personnel_branch_on` / `vehicle_branch_on` başka firmanın kaydı için `NULL` döner | Hayır (aynı imza ve yetki) |
 | `20261120000003_save_work_plan_rpc.sql` | `save_work_plan` RPC (SECURITY INVOKER) | Hayır (yeni fonksiyon) |
-
 | `20261121000001_official_holidays.sql` | Resmi tatiller (RT) + pazar/tatilde İzinli: yeni `official_holidays` tablosu, `is_rest_day` yardımcıları, süper admin RPC'leri ve 7 mevcut puantaj/bordro fonksiyonunun güncellenmesi | **Evet, dikkat:** bordro/ekstre fonksiyonlarını değiştirir. Tatil kuralı yalnızca **11 Kasım 2026'dan itibaren** geçerli; önceki dönemlerin hesabı değişmez. Uygulama kodu bu migration'dan önce de çalışır (tatil listesi boş döner), ama **önce migration** önerilir |
+| `20261122000001_pricing_payments_inbox.sql` | Fiyat listesi (`plan_prices`), ödeme/gelir takibi (`company_payments`), karşılama durumu (`user_onboarding`), e-posta şablonu (`email_templates`), süper admin gelen kutusu ve plan atama fonksiyonları. **Anon'a açık tek fonksiyon:** `public_plan_prices()` | Hayır (yalnızca yeni nesneler). `platform_events` kontrol kısıtı genişler. Uygulama kodu bu migration'dan **önce de** çalışır: fiyat listesi okunamazsa tanıtım sayfası eski "Teklif Al" görünümünde kalır, yeni admin sayfaları boş/hata gösterir. **Önce migration, sonra kod** önerilir. Mevcut tüm kullanıcılar "önceden kayıtlı" sayılır; yalnızca bundan sonraki kayıtlar "Yeni Kayıtlar"da bekler |
 
 (`20261120000001_admin_overview.sql` süper admin paneli için zaten uygulandı.)
+
+**Fiyat / ödeme / yeni kayıt migration'ı sonrası kontrol (20261122000001):**
+
+```sql
+-- anon probe (tarayıcıdan veya curl ile): tablolar kapalı olmalı -> 42501
+--   /rest/v1/plan_prices, /rest/v1/company_payments, /rest/v1/user_onboarding, /rest/v1/email_templates
+-- anon, yalnızca bu fonksiyonu çalıştırabilmeli (4 paket dönmeli):
+--   POST /rest/v1/rpc/public_plan_prices
+select p.oid::regprocedure from pg_proc p where p.pronamespace = 'public'::regnamespace
+  and has_function_privilege('anon', p.oid, 'execute');   -- tek satır: public_plan_prices()
+select name, user_limit, price_1m, price_3m, price_6m, is_published from public.plan_prices order by sort_order;
+```
+
+Sonra süper admin → **Fiyat Listesi**'nde rakamları ve rol dağılımlarını kontrol edin (Profesyonel/Kurumsal rol dağılımı varsayılan
+olarak atanmıştır: 2/6/2 ve 3/20/2, ek şube 2 ve 5; kendi kararınıza göre değiştirin). Sitede `/#fiyatlandirma` bölümünü açın.
+**Eski firmalar kendi kayıtlı limitlerini korur;** yeni limitler yalnızca sonraki plan atamalarında uygulanır.
 
 **Resmi tatil sonrası kontrol (migration 20261121000001):**
 ```sql

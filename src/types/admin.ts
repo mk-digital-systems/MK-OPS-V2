@@ -118,7 +118,14 @@ export type AdminCompanyHealth = {
   vehicle_count: number;
 };
 
-export type PlatformEventAction = "update_company" | "suspend_company" | "unsuspend_company" | "delete_company";
+export type PlatformEventAction =
+  | "update_company"
+  | "suspend_company"
+  | "unsuspend_company"
+  | "delete_company"
+  | "assign_plan"
+  | "void_payment"
+  | "update_prices";
 
 export type PlatformEvent = {
   id: number;
@@ -135,6 +142,9 @@ export const PLATFORM_EVENT_LABELS: Record<PlatformEventAction, string> = {
   suspend_company: "Askıya aldı",
   unsuspend_company: "Askıdan çıkardı",
   delete_company: "Firmayı sildi",
+  assign_plan: "Plan atadı (ödeme)",
+  void_payment: "Ödemeyi iptal etti",
+  update_prices: "Fiyat listesini güncelledi",
 };
 
 export const PLATFORM_FIELD_LABELS: Record<string, string> = {
@@ -152,4 +162,101 @@ export type OfficialHoliday = {
   date: string;
   name: string;
   kind: "fixed" | "movable";
+};
+
+// ---------------------------------------------------------------- fiyat listesi, ödemeler, yeni kayıtlar
+/** Süper admin görünümü (fiyatlar KDV DAHİL, TL). */
+export type PlanPrice = {
+  id: string;
+  name: string;
+  sort_order: number;
+  is_custom: boolean;
+  is_published: boolean;
+  user_limit: number | null;
+  site_chief_limit: number | null;
+  manager_limit: number | null;
+  accounting_limit: number | null;
+  branch_limit: number;
+  price_1m: number | null;
+  price_3m: number | null;
+  price_6m: number | null;
+  updated_at: string;
+};
+
+/** Herkese açık görünüm (landing): yalnızca yayındaki paketler. */
+export type PublicPlanPrice = Pick<
+  PlanPrice,
+  "name" | "is_custom" | "user_limit" | "branch_limit" | "price_1m" | "price_3m" | "price_6m"
+>;
+
+export type PaymentMethod = "eft" | "nakit" | "diger";
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  eft: "EFT / havale",
+  nakit: "Nakit",
+  diger: "Diğer",
+};
+
+export type CompanyPayment = {
+  id: string;
+  created_at: string;
+  company_id: string | null;
+  company_name: string;
+  plan: string;
+  months: 1 | 3 | 6;
+  amount_tl: number | string;
+  list_price_tl: number | string | null;
+  paid_on: string;
+  method: PaymentMethod;
+  period_start: string;
+  period_end: string;
+  note: string | null;
+  recorded_by_email: string | null;
+  voided_at: string | null;
+  void_reason: string | null;
+};
+
+export type NewUserStatusFilter = "pending" | "sent" | "all";
+
+export type NewUser = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  created_at: string;
+  email_confirmed_at: string | null;
+  last_sign_in_at: string | null;
+  company_id: string | null;
+  company_name: string | null;
+  company_status: CompanyAccessStatus | null;
+  trial_ends_at: string | null;
+  role: UserRole;
+  is_approved: boolean;
+  is_owner: boolean;
+  onboarding_status: "sent" | "skipped" | null;
+  handled_at: string | null;
+  handled_by_email: string | null;
+};
+
+export type EmailTemplate = {
+  kind: "welcome";
+  subject: string;
+  body: string;
+  version: number;
+  updated_at: string;
+  updated_by_email: string | null;
+};
+
+export type AdminInboxItem = {
+  type: "new_user" | "support";
+  key: string;
+  title: string;
+  body: string;
+  link: string;
+  at: string;
+};
+
+export type AdminInbox = {
+  new_users: number;
+  open_support: number;
+  items: AdminInboxItem[];
 };

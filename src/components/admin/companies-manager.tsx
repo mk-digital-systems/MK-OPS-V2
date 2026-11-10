@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { addMonths } from "date-fns";
 import { Ban, History, Loader2, Play, Search, Settings2, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
-import type { AdminCompany, AdminCompanyHealth, AdminCompanyUser, Catalog } from "@/types/admin";
+import { PAYMENT_METHOD_LABELS, type AdminCompany, type AdminCompanyHealth, type AdminCompanyUser, type Catalog, type PaymentMethod, type PlanPrice } from "@/types/admin";
 import { USER_ROLE_LABELS, type CompanyAccessStatus } from "@/types/auth";
 import {
   ACCESS_STATUS_CLASSES,
@@ -15,7 +15,9 @@ import {
   PLAN_DURATION_MONTHS,
   PLAN_PRESETS,
   PLAN_PRESET_LIMITS,
+  type PlanLimits,
 } from "@/lib/constants/plans";
+import { MONTH_LABELS, PLAN_MONTHS, formatTl, priceForMonths, type PlanMonths } from "@/lib/pricing";
 import { cn, formatDate, formatDateTime } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { AdminRepository } from "@/modules/admin/admin-repository";
@@ -58,10 +60,12 @@ export function CompaniesManager({
   initialCompanies,
   catalogs,
   health = [],
+  planPrices = [],
 }: {
   initialCompanies: AdminCompany[];
   catalogs: Catalog[];
   health?: AdminCompanyHealth[];
+  planPrices?: PlanPrice[];
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -204,6 +208,7 @@ export function CompaniesManager({
           company={selected}
           health={healthById.get(selected.id)}
           catalogs={catalogs}
+          planPrices={planPrices}
           onClose={() => setSelected(null)}
           onChanged={() => {
             setSelected(null);
@@ -229,12 +234,14 @@ function ManageCompanyDialog({
   company,
   health,
   catalogs,
+  planPrices,
   onClose,
   onChanged,
 }: {
   company: AdminCompany;
   health?: AdminCompanyHealth;
   catalogs: Catalog[];
+  planPrices: PlanPrice[];
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -246,15 +253,37 @@ function ManageCompanyDialog({
   const [managerLimit, setManagerLimit] = useState(company.manager_limit?.toString() ?? "");
   const [accountingLimit, setAccountingLimit] = useState(company.accounting_limit?.toString() ?? "");
   const [branchLimit, setBranchLimit] = useState(String(company.branch_limit ?? 0));
-  const presetPlan = PLAN_PRESETS.find((preset) => preset === plan);
+  // Hazır planlar fiyat listesinden gelir (süper admin Fiyat Listesi sayfasında düzenler); liste yoksa sabit değerler.
+  const presetLimits = useMemo<Record<string, PlanLimits>>(
+    () =>
+      planPrices.length
+        ? Object.fromEntries(
+            planPrices
+              .filter((item) => !item.is_custom && item.user_limit !== null)
+              .map((item) => [
+                item.name,
+                {
+                  users: item.user_limit as number,
+                  siteChiefs: item.site_chief_limit ?? 1,
+                  managers: item.manager_limit ?? 0,
+                  accountants: item.accounting_limit ?? 0,
+                  branches: item.branch_limit,
+                },
+              ])
+          )
+        : { ...PLAN_PRESET_LIMITS },
+    [planPrices]
+  );
+  const presetNames = Object.keys(presetLimits);
+  const presetPlan = presetNames.find((preset) => preset === plan);
   // Hazır planda sayılar kilitlidir; Özel (ve plan seçilmemiş / eski adlı) planda elle girilir.
   const limitsLocked = Boolean(presetPlan);
 
   function choosePlan(value: string) {
     setPlan(value);
-    const preset = PLAN_PRESETS.find((item) => item === value);
+    const preset = presetNames.find((item) => item === value);
     if (!preset) return;
-    const limits = PLAN_PRESET_LIMITS[preset];
+    const limits = presetLimits[preset];
     setUserLimit(String(limits.users));
     setSiteChiefLimit(String(limits.siteChiefs));
     setManagerLimit(String(limits.managers));
@@ -274,7 +303,7 @@ function ManageCompanyDialog({
     // date-fns ay sonunu taşırmaz: 31 Ağustos + 6 ay = 28/29 Şubat (setMonth 3 Mart verir).
     const base = new Date(laterOf(planEndsAt ? `${planEndsAt}T23:59:59` : company.plan_ends_at));
     setPlanEndsAt(toDateInput(addMonths(base, months).toISOString()));
-    if (!plan) setPlan(PLAN_PRESETS[0]);
+    if (!plan) setPlan(presetNames[0] ?? PLAN_PRESETS[0]);
   }
 
   function extendTrial(hours: number) {
@@ -431,8 +460,18 @@ function ManageCompanyDialog({
           </section>
         )}
 
+        {planPrices.length > 0 && (
+          <>
+            <AssignPlanSection company={company} planPrices={planPrices} onChanged={onChanged} />
+            <Separator />
+          </>
+        )}
+
         <section className="space-y-4">
-          <h3 className="text-sm font-semibold">Plan ve limit</h3>
+          <div>
+            <h3 className="text-sm font-semibold">Elle düzenle: plan ve limit</h3>
+            <p className="text-xs text-muted-foreground">Bu bölüm ödeme kaydı oluşturmaz; düzeltme ve özel durumlar içindir.</p>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="plan">Plan adı</Label>
@@ -443,9 +482,9 @@ function ManageCompanyDialog({
                 onChange={(event) => choosePlan(event.target.value)}
               >
                 <option value="">Plan yok (deneme)</option>
-                {PLAN_PRESETS.map((preset) => (
+                {presetNames.map((preset) => (
                   <option key={preset} value={preset}>
-                    {preset} · {PLAN_PRESET_LIMITS[preset].users} kullanıcı
+                    {preset} · {presetLimits[preset].users} kullanıcı
                   </option>
                 ))}
                 <option value={CUSTOM_PLAN}>{CUSTOM_PLAN} (her şeyi ben belirlerim)</option>
@@ -679,5 +718,170 @@ function ManageCompanyDialog({
         </section>
       </DialogContent>
     </Dialog>
+  );
+}
+
+const todayInput = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+};
+
+/** Ödeme alındı: planı ata + ödemeyi gelir listesine yaz (tek işlem). */
+function AssignPlanSection({
+  company,
+  planPrices,
+  onChanged,
+}: {
+  company: AdminCompany;
+  planPrices: PlanPrice[];
+  onChanged: () => void;
+}) {
+  const confirm = useConfirm();
+  const initialPlan = planPrices.find((item) => item.name === company.plan) ?? planPrices[0];
+  const [planName, setPlanName] = useState(initialPlan?.name ?? "");
+  const [months, setMonths] = useState<PlanMonths>(3);
+  const plan = planPrices.find((item) => item.name === planName);
+  const listPrice = plan ? priceForMonths(plan, months) : null;
+  const [amount, setAmount] = useState(listPrice === null ? "" : String(listPrice));
+  const [touched, setTouched] = useState(false);
+  const [paidOn, setPaidOn] = useState(todayInput());
+  const [method, setMethod] = useState<PaymentMethod>("eft");
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  function pick(nextPlan: string, nextMonths: PlanMonths) {
+    setPlanName(nextPlan);
+    setMonths(nextMonths);
+    const target = planPrices.find((item) => item.name === nextPlan);
+    const price = target ? priceForMonths(target, nextMonths) : null;
+    if (!touched) setAmount(price === null ? "" : String(price));
+  }
+
+  // Önizleme: aynı plansa mevcut bitişten uzar, farklı plansa bugünden başlar (sunucu aynı kuralı uygular).
+  const sameRenewal = Boolean(plan && company.plan === plan.name && company.plan_ends_at);
+  const startMs = sameRenewal ? Math.max(Date.now(), new Date(company.plan_ends_at as string).getTime()) : Date.now();
+  const newEnd = addMonths(new Date(startMs), months);
+  const amountNumber = amount.trim() === "" ? NaN : Number(amount);
+
+  async function submit() {
+    if (!plan) return;
+    if (!Number.isFinite(amountNumber) || amountNumber < 0) {
+      toast.error("Alınan ödeme tutarını girin");
+      return;
+    }
+    const ok = await confirm(
+      `${company.name}: ${plan.name} planı, ${MONTH_LABELS[months]}, ${formatTl(amountNumber)} ödeme kaydedilsin ve plan atansın mı? Yeni bitiş yaklaşık ${formatDate(newEnd.toISOString())}.`
+    );
+    if (!ok) return;
+    setBusy(true);
+    try {
+      const result = await new AdminRepository(createClient()).assignPlan({
+        companyId: company.id,
+        plan: plan.name,
+        months,
+        amount: amountNumber,
+        paidOn,
+        method,
+        note: note.trim() || null,
+      });
+      toast.success(`Plan atandı, ödeme kaydedildi. Bitiş: ${formatDate(result.period_end)}`);
+      onChanged();
+    } catch (error) {
+      toast.error("Plan atanamadı", { description: userErrorMessage(error) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="space-y-4 rounded-lg border border-primary/30 bg-primary/5 p-4">
+      <div>
+        <h3 className="text-sm font-semibold">Ödeme alındı, planı ata</h3>
+        <p className="text-xs text-muted-foreground">
+          EFT/havale ulaşınca burayı kullanın: plan, süre ve limitler fiyat listesinden atanır, alınan tutar Gelir ve Ödemeler
+          listesine yazılır. Aynı plan yenilenirse süre mevcut bitişe eklenir; farklı plana geçilirse bugünden başlar.
+        </p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="assign-plan">Paket</Label>
+          <select
+            id="assign-plan"
+            className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
+            value={planName}
+            onChange={(event) => pick(event.target.value, months)}
+          >
+            {planPrices.map((item) => (
+              <option key={item.id} value={item.name}>
+                {item.name}
+                {item.is_custom ? " (özel teklif; limitler korunur)" : ` · ${item.user_limit} kullanıcı`}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label>Süre</Label>
+          <div className="flex gap-1">
+            {PLAN_MONTHS.map((value) => (
+              <Button
+                key={value}
+                type="button"
+                size="sm"
+                variant={months === value ? "default" : "outline"}
+                onClick={() => pick(planName, value)}
+              >
+                {MONTH_LABELS[value]}
+              </Button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="assign-amount">Alınan tutar (₺, KDV dahil)</Label>
+          <Input
+            id="assign-amount"
+            type="number"
+            min={0}
+            step="0.01"
+            value={amount}
+            onChange={(event) => {
+              setTouched(true);
+              setAmount(event.target.value);
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            {listPrice !== null ? `Liste fiyatı: ${formatTl(listPrice)}. İndirim yaptıysanız tutarı değiştirin.` : "Özel teklif: tutarı elle girin."}
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="assign-paid">Ödeme tarihi</Label>
+          <Input id="assign-paid" type="date" max={todayInput()} value={paidOn} onChange={(event) => setPaidOn(event.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="assign-method">Yöntem</Label>
+          <select
+            id="assign-method"
+            className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm"
+            value={method}
+            onChange={(event) => setMethod(event.target.value as PaymentMethod)}
+          >
+            {(Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).map((key) => (
+              <option key={key} value={key}>{PAYMENT_METHOD_LABELS[key]}</option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="assign-note">Not (isteğe bağlı)</Label>
+          <Input id="assign-note" value={note} maxLength={500} onChange={(event) => setNote(event.target.value)} placeholder="Örn. dekont no" />
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Yeni bitiş (yaklaşık): <strong>{formatDate(newEnd.toISOString())}</strong>
+        {company.plan_ends_at && company.plan && ` · şu an: ${company.plan}, ${formatDate(company.plan_ends_at)}`}
+      </p>
+      <Button onClick={submit} disabled={busy || !plan || paidOn === ""}>
+        {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+        Planı ata ve ödemeyi kaydet
+      </Button>
+    </section>
   );
 }

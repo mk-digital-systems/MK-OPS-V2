@@ -23,7 +23,7 @@ geçerli kalıcı teknik referanstır. Veritabanına dokunan her çalışmadan �
 
 | Rol | Kim | Kural |
 |---|---|---|
-| `anon` | Oturumsuz ziyaretçi (anon key) | **Hiçbir tabloda, sequence'ta, fonksiyonda yetkisi yoktur.** Uygulama oturumsuz tablo sorgusu yapmaz. |
+| `anon` | Oturumsuz ziyaretçi (anon key) | **Hiçbir tabloda ve sequence'ta yetkisi yoktur.** Fonksiyonda tek bilinçli istisna: `public_plan_prices()` (bölüm 7a). Uygulama oturumsuz tablo sorgusu yapmaz. |
 | `authenticated` | Giriş yapmış kullanıcı | Yalnızca **gerekli** SELECT/INSERT/UPDATE/DELETE. Satır erişimini RLS belirler. |
 | `service_role` | Sunucu/edge function (RLS'i aşar) | Kullanım ihtiyacına göre açık yetki. Anahtarı **asla** istemciye/`NEXT_PUBLIC_*` değişkenine konmaz. Şu an yalnızca `delete-user` edge function'ı kullanır. |
 | `postgres` | Migration'ları çalıştıran rol | Nesnelerin sahibi. Varsayılan yetkileri 002 ile kapatıldı. |
@@ -45,12 +45,12 @@ geçerli kalıcı teknik referanstır. Veritabanına dokunan her çalışmadan �
 6. **Yalnızca RPC ile erişilen tablolar istemciye açılmaz** (bölüm 6).
 7. Uygulanmış migration dosyaları düzenlenmez; yeni migration yazılır, `begin; … commit;` içine alınır.
 
-## 4. Mevcut yetki modeli (80 tablo, 5 sequence)
+## 4. Mevcut yetki modeli (84 tablo, 5 sequence)
 
 Gerçek kaynak: `supabase/migrations/20261119000001_data_api_grants.sql` ve testteki `expectedAuth` listesi
 (`tests/db/grants.test.mjs`). Özet:
 
-- **Kapalı (yalnızca RPC), 11 tablo:** `attendance_month_approvals`, `company_join_attempts`, `company_vault_attempts`,
+- **Kapalı (yalnızca RPC), 16 tablo** (aşağıdaki 11 + `platform_events`, `company_payments`, `plan_prices`, `user_onboarding`, `email_templates`; son beşi 20261120/20261122 migration'larıyla eklendi): `attendance_month_approvals`, `company_join_attempts`, `company_vault_attempts`,
   `company_vault_notes`, `company_vault_sessions`, `company_vaults`, `head_office_grants`, `notification_reads`,
   `platform_admins`, `user_branches`, `vehicle_assignment_history`.
 - **Yalnızca SELECT, 39 tablo:** yazma RPC ile yapılır (örn. `companies`, `profiles`, `catalogs`, `poz_prices`,
@@ -119,6 +119,17 @@ grant execute on function public.ornek_islem(uuid) to authenticated;
 - `SECURITY DEFINER` fonksiyonu içinde dinamik SQL varsa `format('%I', …)` / `quote_*` kullanılır.
 - Fonksiyon imzası değişirse (`create or replace` ile parametre eklemek eski imzayı silmez) eski imza `drop function` ile
   kaldırılır ve yetkileri yeni imzada tekrar yazılır.
+
+## 7a. Anon'a açık tek fonksiyon: `public_plan_prices()` (bilinçli istisna)
+
+Tanıtım sayfasındaki fiyat listesi oturumsuz ziyaretçiye gösterilir ve süper adminin düzenlediği `plan_prices` tablosundan
+gelir. Tablo istemciye (anon dahil) **kapalıdır**; okuma yalnızca bu `SECURITY DEFINER` fonksiyonuyla olur:
+
+- Yalnızca **yayındaki** (`is_published`) paketlerin ad, kullanıcı/şube limiti ve 1/3/6 aylık fiyatını döndürür. Başka hiçbir
+  veri, id veya iç alan çıkmaz (testte doğrulanır).
+- `anon` ve `authenticated` için `EXECUTE` açıktır; `PUBLIC` için değildir.
+- Yeni bir anon fonksiyonu **eklenmez**; eklenecekse bu bölüm ve `grants.test.mjs` içindeki istisna listesi bilinçli olarak
+  güncellenir. Test: "anon yalnızca public_plan_prices() fonksiyonunu çalıştırabiliyor".
 
 ## 8. Sequence ve identity sütunları
 
@@ -207,12 +218,12 @@ sıfırdan kurar. `tests/db/grants.test.mjs` şunları doğrular:
 
 - Her tabloda RLS açık; anon hiçbir tablo/sequence/fonksiyonda yetkili değil; ACL'de PUBLIC kaydı yok.
 - TRUNCATE/TRIGGER/REFERENCES/MAINTAIN istemci rollerinde yok.
-- 80 tablo × anon/authenticated/service_role beklenen yetki matrisi (`expectedAuth`); 5 sequence beklentisi.
+- 84 tablo × anon/authenticated/service_role beklenen yetki matrisi (`expectedAuth`); 5 sequence beklentisi.
 - Gerçek rollerle her tabloya sorgu: anon yetki hatası alır, RPC-only tablolar authenticated'a kapalı.
 - Uygulamadaki her `.rpc("ad")` veritabanında var ve `authenticated` çalıştırabiliyor; her `.from("tablo")` var ve gereken
   yetki (SELECT + kodda görülen yazma) verilmiş.
 - Yeni oluşturulan tablo/sequence otomatik yetki almıyor; varsayılan yetki kayıtları yalnızca fonksiyon satırı.
-- 001'in doğrulama bloğu 85 nesnede bozulmayı yakalıyor; eski varsayılanlı veritabanından yükseltme = sıfırdan kurulum.
+- 001'in doğrulama bloğu 89 nesnede bozulmayı yakalıyor; eski varsayılanlı veritabanından yükseltme = sıfırdan kurulum.
 
 **Sınırlar:** PGlite gerçek Supabase (PostgREST, `supabase_admin`) değildir; ilişkili sorgularla (embedded select) gelen
 tablo ihtiyaçları ve `src/` dışındaki kod (edge function) otomatik taranmaz — bunlar elle kontrol edilir.

@@ -17,13 +17,13 @@ export type PlanLimits = {
 };
 
 /**
- * Hazır planların sayıları. Dağılımı buradan değiştirin; yeni seçimlerde bu değerler kullanılır
- * (mevcut firmalar kendi kayıtlı değerlerini korur).
+ * Hazır planların YEDEK sayıları. Asıl kaynak veritabanındaki fiyat listesidir (süper admin → Fiyat Listesi);
+ * liste okunamazsa bu değerler kullanılır. Mevcut firmalar kendi kayıtlı değerlerini korur.
  */
 export const PLAN_PRESET_LIMITS: Record<(typeof PLAN_PRESETS)[number], PlanLimits> = {
   Başlangıç: { users: 3, siteChiefs: 1, managers: 1, accountants: 1, branches: 0 },
-  Profesyonel: { users: 5, siteChiefs: 1, managers: 3, accountants: 1, branches: 2 },
-  Kurumsal: { users: 7, siteChiefs: 2, managers: 4, accountants: 1, branches: 5 },
+  Profesyonel: { users: 10, siteChiefs: 2, managers: 6, accountants: 2, branches: 2 },
+  Kurumsal: { users: 25, siteChiefs: 3, managers: 20, accountants: 2, branches: 5 },
 };
 
 /** Sunulan abonelik süreleri (ay). 12 aylık abonelik yok. */

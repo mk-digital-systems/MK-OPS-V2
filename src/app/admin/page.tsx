@@ -9,11 +9,13 @@ export const metadata = {
 export default async function AdminCompaniesPage() {
   const supabase = await createClient();
   const repository = new AdminRepository(supabase);
-  const [companies, catalogs, health] = await Promise.all([
+  const [companies, catalogs, health, planPrices] = await Promise.all([
     repository.listCompanies(),
     repository.listCatalogs().catch(() => []),
     // Sağlık verisi yoksa (migration henüz uygulanmadıysa) liste yine açılır.
     repository.companyHealth().catch(() => []),
+    // Fiyat listesi yoksa (migration henüz uygulanmadıysa) plan atama bölümü gizlenir, sayfa yine açılır.
+    repository.listPlanPrices().catch(() => []),
   ]);
-  return <CompaniesManager initialCompanies={companies} catalogs={catalogs} health={health} />;
+  return <CompaniesManager initialCompanies={companies} catalogs={catalogs} health={health} planPrices={planPrices} />;
 }
