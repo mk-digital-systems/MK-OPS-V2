@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { userErrorMessage } from "@/lib/user-error";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_FILE_SIZE = 3 * 1024 * 1024;
@@ -111,7 +112,7 @@ export function ProfileForm({
       }
       console.error(error);
       toast.error("Profil güncellenemedi", {
-        description: (error as Error)?.message,
+        description: userErrorMessage(error),
       });
     } finally {
       setLoading(false);

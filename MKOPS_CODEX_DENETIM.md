@@ -32,6 +32,10 @@ node tests/db/work-plan-drafts.test.mjs     # V-03 (DB tarafı)
 - `src/components/ui/confirm-dialog.tsx` (+ `dialog.tsx`'e `DialogDescription`), `src/app/layout.tsx` (`ConfirmProvider`), 14 bileşende `window.confirm` → `await confirm(...)` (otomatik dönüşüm; `tsc` + `eslint` denetledi). İnceleme önerisi: dönüştürülen işleyicilerin `async` olması davranışı değiştirmemeli; hook'lar bileşen düzeyinde.
 - `src/app/manifest.ts`, `src/hooks/use-unsaved-changes.ts`, `work-plan-editor.tsx` (dirty uyarısı).
 
+## Son eklemeler
+- `src/lib/user-error.ts` (+ 75 `toast` çağrısı), `src/lib/setup-guide.ts` + `components/dashboard/setup-guide.tsx`, `src/lib/plan-expiry.ts` + `trial-banner.tsx`, kalan `window.confirm` dönüşümleri, `docs/dahili/yedekleme-ve-geri-donus.md`.
+- Resmi tatiller: `supabase/migrations/20261121000001_official_holidays.sql`, `tests/db/official-holidays.test.mjs`, puantaj bileşenleri, `/admin/tatiller`. **Bordro/ekstre SQL'ini değiştirir**; denetçiden özellikle `get_monthly_payroll` ve `subcontractor_salary_rows` farklarına bakması istenir (tek fark: `extract(isodow …)=7` → `is_rest_day(…)`).
+
 ## Değişen dosyalar (özet)
 - Bağımlılık: `package.json`, `package-lock.json`
 - Yönlendirme/oturum: `src/lib/safe-redirect.ts`, `src/components/auth/login-form.tsx`, `src/app/auth/callback/route.ts`, `src/middleware.ts`
@@ -51,7 +55,8 @@ node tests/db/work-plan-drafts.test.mjs     # V-03 (DB tarafı)
 | CSP zorunluluğu | Önce canlıda Report-Only izlenmeli |
 | Süper admin MFA/AAL2 | Kurtarma prosedürü ve onay gerekli |
 | Ön yüz/E2E testleri | Altyapı yok |
-| Aşama 4 kalanı (rehber, hata mesajı eşlemesi, tatiller, abonelik, paket/yasal, büyük bileşenler, kalan 13 `window.confirm`, çevrimdışı) | Ticari/ek tasarım kararları ve tarayıcı testi gerekir |
+| Aşama 4 kalanı: abonelik e-postası, paket/yasal (U-08/U-09), büyük bileşenler (U-10), çevrimdışı | E-posta altyapısı doğrulaması, ticari karar ve tarayıcı testi gerekir |
+| `delete-user` Edge Function mesajları metinde düzeltildi, **deploy edilmedi** | Deploy onayı |
 | `delete-user` Edge Function adlandırma/oran sınırı | Deploy gerekir |
 | Supabase/Vercel panel ayarları | Erişim yok: doğrulanamadı |
 

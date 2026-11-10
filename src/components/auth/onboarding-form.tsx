@@ -19,6 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { userErrorMessage } from "@/lib/user-error";
 
 export function OnboardingForm({ initialValues }: { initialValues: OnboardingFormValues }) {
   const router = useRouter();
@@ -38,7 +39,7 @@ export function OnboardingForm({ initialValues }: { initialValues: OnboardingFor
       router.refresh();
     } catch (error) {
       toast.error(values.signup_mode === "create" ? "Şirket kurulamadı" : "Şirkete katılınamadı", {
-        description: (error as Error)?.message,
+        description: userErrorMessage(error),
       });
     } finally {
       setLoading(false);

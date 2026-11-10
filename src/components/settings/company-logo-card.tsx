@@ -11,6 +11,7 @@ import { CompanyRepository } from "@/modules/company/company-repository";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { userErrorMessage } from "@/lib/user-error";
 
 export function CompanyLogoCard({ company }: { company: CompanySummary }) {
   const confirm = useConfirm();
@@ -34,7 +35,7 @@ export function CompanyLogoCard({ company }: { company: CompanySummary }) {
       toast.success("Logo kaydedildi");
       router.refresh();
     } catch (error) {
-      toast.error("Logo yüklenemedi", { description: (error as Error)?.message });
+      toast.error("Logo yüklenemedi", { description: userErrorMessage(error) });
     } finally {
       setBusy(null);
       if (inputRef.current) inputRef.current.value = "";
@@ -49,7 +50,7 @@ export function CompanyLogoCard({ company }: { company: CompanySummary }) {
       toast.success("Logo kaldırıldı");
       router.refresh();
     } catch (error) {
-      toast.error("Logo kaldırılamadı", { description: (error as Error)?.message });
+      toast.error("Logo kaldırılamadı", { description: userErrorMessage(error) });
     } finally {
       setBusy(null);
     }

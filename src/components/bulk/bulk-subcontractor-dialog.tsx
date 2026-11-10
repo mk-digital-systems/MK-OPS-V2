@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { userErrorMessage } from "@/lib/user-error";
 
 const COMPANY = "__company__";
 
@@ -48,7 +49,7 @@ export function BulkSubcontractorDialog({
       onDone(subcontractorId, eligible);
       router.refresh();
     } catch (error) {
-      toast.error("Kaydedilemedi", { description: (error as Error)?.message });
+      toast.error("Kaydedilemedi", { description: userErrorMessage(error) });
     } finally {
       setSaving(false);
     }

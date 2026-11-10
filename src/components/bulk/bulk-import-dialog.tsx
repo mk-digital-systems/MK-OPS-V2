@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { userErrorMessage } from "@/lib/user-error";
 
 export type BulkRow<T> = { cells: string[]; value?: T; error?: string };
 
@@ -50,7 +51,7 @@ export function BulkImportDialog<T>({
       await onImport(rows.map((row) => row.value as T));
       onClose();
     } catch (error) {
-      toast.error("Eklenemedi", { description: (error as Error)?.message });
+      toast.error("Eklenemedi", { description: userErrorMessage(error) });
     } finally {
       setSaving(false);
     }

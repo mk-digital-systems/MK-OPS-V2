@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { userErrorMessage } from "@/lib/user-error";
 
 export type KesifLine = { key: string; stageId: string; quantity: string };
 
@@ -134,7 +135,7 @@ export function SheetKesifDialog({
       onClose();
       router.refresh();
     } catch (error) {
-      toast.error("Kaydedilemedi", { description: (error as Error)?.message });
+      toast.error("Kaydedilemedi", { description: userErrorMessage(error) });
     } finally {
       setSaving(false);
     }

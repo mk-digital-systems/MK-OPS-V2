@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { userErrorMessage } from "@/lib/user-error";
 
 const TABS = [
   { id: "ozet", label: "Özet ve Hakediş", money: true },
@@ -102,7 +103,7 @@ export function SubcontractorDetail({
       toast.success("Dönem kapatıldı");
       router.refresh();
     } catch (error) {
-      toast.error("Dönem kapatılamadı", { description: (error as Error).message });
+      toast.error("Dönem kapatılamadı", { description: userErrorMessage(error) });
     } finally {
       setBusy(false);
     }
@@ -116,7 +117,7 @@ export function SubcontractorDetail({
       toast.success("Dönem yeniden açıldı");
       router.refresh();
     } catch (error) {
-      toast.error("Dönem açılamadı", { description: (error as Error).message });
+      toast.error("Dönem açılamadı", { description: userErrorMessage(error) });
     } finally {
       setBusy(false);
     }

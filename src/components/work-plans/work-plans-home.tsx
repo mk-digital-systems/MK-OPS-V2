@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { userErrorMessage } from "@/lib/user-error";
 
 type Props = {
   todayPlan: DailyWorkPlanWithTeams | null;
@@ -65,7 +66,7 @@ export function WorkPlansHome({ todayPlan, pastPlans, drafts, readOnly = false }
       toast.success(`${label} ayına ait iş planları silindi`);
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Aylık iş planları silinemedi");
+      toast.error("Aylık iş planları silinemedi", { description: userErrorMessage(error) });
     } finally {
       setDeletingMonth(null);
     }

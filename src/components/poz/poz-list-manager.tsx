@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { userErrorMessage } from "@/lib/user-error";
 
 type Props = {
   data: PozList;
@@ -93,7 +94,7 @@ export function PozListManager({ data, currency, companyId }: Props) {
       toast.success(item.is_active ? "Poz pasife alındı; yeni imalatta listelenmez" : "Poz yeniden aktif");
       router.refresh();
     } catch (error) {
-      toast.error("İşlem yapılamadı", { description: (error as Error)?.message });
+      toast.error("İşlem yapılamadı", { description: userErrorMessage(error) });
     }
   }
 
@@ -104,7 +105,7 @@ export function PozListManager({ data, currency, companyId }: Props) {
       toast.success("Poz silindi");
       router.refresh();
     } catch (error) {
-      toast.error("Silinemedi", { description: (error as Error)?.message });
+      toast.error("Silinemedi", { description: userErrorMessage(error) });
     }
   }
 
@@ -295,7 +296,7 @@ function useSave(onSaved: () => void) {
       toast.success(message);
       onSaved();
     } catch (error) {
-      toast.error("Kaydedilemedi", { description: (error as Error)?.message });
+      toast.error("Kaydedilemedi", { description: userErrorMessage(error) });
     } finally {
       setSaving(false);
     }
@@ -488,6 +489,7 @@ function ItemDialog({
 }
 
 function PriceDialog({ item, prices, currency, repository, onClose, onSaved }: { item: PozItem; prices: PozPrice[]; currency: CurrencyCode; repository: RepoFactory; onClose: () => void; onSaved: () => void }) {
+  const confirm = useConfirm();
   const [price, setPrice] = useState("");
   const [mode, setMode] = useState<PriceMode>(prices.length ? "date" : "start");
   const [validFrom, setValidFrom] = useState(todayISODate());
@@ -507,12 +509,12 @@ function PriceDialog({ item, prices, currency, repository, onClose, onSaved }: {
     }
   }
 
-  function save() {
+  async function save() {
     const value = toNumber(price);
     if (value === null || Number.isNaN(value) || value < 0) return toast.error("Geçerli bir birim fiyat girin");
     const date = allowStart && mode === "start" ? FROM_START : validFrom;
     if (!date) return toast.error("Geçerlilik tarihini girin");
-    if (!editing && history.some((entry) => entry.valid_from === date) && !window.confirm(`${sinceLabel(date)} geçerli fiyat zaten var; yenisiyle değiştirilsin mi?`)) return;
+    if (!editing && history.some((entry) => entry.valid_from === date) && !(await confirm(`${sinceLabel(date)} geçerli fiyat zaten var; yenisiyle değiştirilsin mi?`))) return;
     void run(async () => {
       // Tarihi değişen kayıt: eski tarihteki fiyat kaldırılır, yeni tarihe yazılır.
       if (editing && editing.valid_from !== date) await repository().setPrice(item.id, null, editing.valid_from);
@@ -577,10 +579,11 @@ function PriceDialog({ item, prices, currency, repository, onClose, onSaved }: {
                       aria-label="Bu fiyat kaydını sil"
                       title="Sil"
                       disabled={saving}
-                      onClick={() =>
-                        window.confirm(`${sinceLabel(entry.valid_from)} geçerli fiyat silinsin mi?`) &&
-                        void run(() => repository().setPrice(item.id, null, entry.valid_from), "Fiyat kaydı silindi")
-                      }
+                      onClick={async () => {
+                        if (await confirm(`${sinceLabel(entry.valid_from)} geçerli fiyat silinsin mi?`)) {
+                          void run(() => repository().setPrice(item.id, null, entry.valid_from), "Fiyat kaydı silindi");
+                        }
+                      }}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

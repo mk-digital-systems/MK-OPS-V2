@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { userErrorMessage } from "@/lib/user-error";
 
 type TransferSource = { type: CustodyLocationType; balance: InventoryCustodyBalance | null };
 
@@ -78,7 +79,7 @@ export function CustodyManager({ initialMaterials, initialBalances, initialMovem
       await reload(repository); setCreateOpen(false);
       setNewItem({ name: "", quantity: "1", location: "warehouse", vehicleId: "", notes: "" });
       toast.success("Yeni araç ekipmanı kaydedildi");
-    } catch (error) { console.error(error); toast.error("Ekipman kaydedilemedi", { description: (error as Error).message }); }
+    } catch (error) { console.error(error); toast.error("Ekipman kaydedilemedi", { description: userErrorMessage(error) }); }
     finally { setLoading(false); }
   }
 
@@ -96,7 +97,7 @@ export function CustodyManager({ initialMaterials, initialBalances, initialMovem
         from_type: source.type, from_id: source.balance?.holder_id ?? null,
         to_type: targetType, to_id: targetType === "vehicle" ? targetId : null, notes });
       await reload(repository); setSource(null); toast.success("Ekipman konumu güncellendi");
-    } catch (error) { console.error(error); toast.error("Aktarım kaydedilemedi", { description: (error as Error).message }); }
+    } catch (error) { console.error(error); toast.error("Aktarım kaydedilemedi", { description: userErrorMessage(error) }); }
     finally { setLoading(false); }
   }
 

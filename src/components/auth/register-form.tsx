@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { userErrorMessage } from "@/lib/user-error";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -63,7 +64,7 @@ export function RegisterForm() {
 
     if (error) {
       setLoading(false);
-      toast.error("Kayıt oluşturulamadı", { description: error.message });
+      toast.error("Kayıt oluşturulamadı", { description: userErrorMessage(error) });
       return;
     }
     if (!data.session) {
@@ -82,7 +83,7 @@ export function RegisterForm() {
       router.replace(result.path);
     } catch (onboardingError) {
       toast.error("Hesap oluşturuldu ancak şirket adımı tamamlanamadı", {
-        description: (onboardingError as Error)?.message,
+        description: userErrorMessage(onboardingError),
       });
       router.replace("/onboarding");
     } finally {

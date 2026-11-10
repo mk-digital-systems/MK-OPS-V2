@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { PozItem } from "@/types/poz";
 import { KesifLinesEditor } from "@/components/projects/sheet-kesif";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { userErrorMessage } from "@/lib/user-error";
 
 const repository = () => new ProjectRepository(createClient());
 const statusOrder = (status: HpSheetStatus) => HP_SHEET_STATUSES.findIndex((item) => item.value === status);
@@ -190,7 +191,7 @@ function SheetRow({ sheet, personnel, readOnly }: { sheet: HpSheet; personnel: P
       toast.success("Pafta silindi");
       router.refresh();
     } catch (error) {
-      toast.error("Silinemedi", { description: (error as Error)?.message });
+      toast.error("Silinemedi", { description: userErrorMessage(error) });
       setBusy(null);
     }
   }

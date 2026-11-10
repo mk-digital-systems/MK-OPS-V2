@@ -35,6 +35,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { userErrorMessage } from "@/lib/user-error";
 
 export function VehiclesManager({
   initialVehicles,
@@ -154,7 +155,7 @@ export function VehiclesManager({
       );
       setVehicles((current) => current.map((vehicle) => vehicle.id === updated.id ? updated : vehicle));
       setAssignmentVehicle(null); toast.success("Araç personel ataması güncellendi");
-    } catch (error) { console.error(error); toast.error("Araç atanamadı", { description: (error as Error).message }); }
+    } catch (error) { console.error(error); toast.error("Araç atanamadı", { description: userErrorMessage(error) }); }
     finally { setLoading(false); }
   }
 
@@ -172,7 +173,7 @@ export function VehiclesManager({
       setFuelLogs((current) => [created, ...current]);
       setVehicles((current) => current.map((vehicle) => vehicle.id === fuelVehicle.id ? { ...vehicle, current_km: Math.max(vehicle.current_km, km) } : vehicle));
       setFuelVehicle(null); toast.success("Yakıt ve kilometre kaydı eklendi");
-    } catch (error) { console.error(error); toast.error("Yakıt kaydı eklenemedi", { description: (error as Error).message }); }
+    } catch (error) { console.error(error); toast.error("Yakıt kaydı eklenemedi", { description: userErrorMessage(error) }); }
     finally { setLoading(false); }
   }
 
@@ -248,7 +249,7 @@ export function VehiclesManager({
       toast.success(approve ? "Araç onaylandı" : "Araç kaydı reddedildi");
     } catch (error) {
       console.error(error);
-      toast.error("İşlem yapılamadı", { description: (error as Error)?.message });
+      toast.error("İşlem yapılamadı", { description: userErrorMessage(error) });
     }
   }
 

@@ -20,6 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { userErrorMessage } from "@/lib/user-error";
 
 const STATUS_CLASSES: Record<SupportStatus, string> = {
   open: "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200",
@@ -64,7 +65,7 @@ export function SupportCenter({
       setMessage("");
       toast.success("Talebiniz iletildi", { description: "Yanıtımızı bu sayfadan takip edebilirsiniz." });
     } catch (error) {
-      toast.error("Talep gönderilemedi", { description: (error as Error)?.message });
+      toast.error("Talep gönderilemedi", { description: userErrorMessage(error) });
     } finally {
       setSending(false);
     }

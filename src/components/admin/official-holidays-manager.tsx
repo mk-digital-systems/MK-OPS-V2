@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useConfirm } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { userErrorMessage } from "@/lib/user-error";
 
 const DAY_NAMES = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
 const dayName = (iso: string) => DAY_NAMES[new Date(`${iso}T12:00:00`).getDay()];
@@ -41,7 +42,7 @@ export function OfficialHolidaysManager({ year, holidays }: { year: number; holi
       router.push(`/admin/tatiller?yil=${start.slice(0, 4)}`);
       router.refresh();
     } catch (error) {
-      toast.error("Eklenemedi", { description: (error as Error)?.message });
+      toast.error("Eklenemedi", { description: userErrorMessage(error) });
     } finally {
       setBusy(false);
     }
@@ -54,7 +55,7 @@ export function OfficialHolidaysManager({ year, holidays }: { year: number; holi
       toast.success("Silindi");
       router.refresh();
     } catch (error) {
-      toast.error("Silinemedi", { description: (error as Error)?.message });
+      toast.error("Silinemedi", { description: userErrorMessage(error) });
     }
   }
 

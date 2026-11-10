@@ -13,6 +13,7 @@ import { WhatsAppPreview } from "@/components/work-plans/whatsapp-preview";
 import { WorkPlanTeamTable } from "@/components/work-plans/work-plan-team-table";
 import { WorkPlanAbsences } from "@/components/work-plans/work-plan-absences";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 type Props = {
   plan: DailyWorkPlanWithTeams;
@@ -22,13 +23,14 @@ type Props = {
 };
 
 export function WorkPlanDetailView({ plan, readOnly = false, initialPreviewOpen = false, sourceDraftId }: Props) {
+  const confirm = useConfirm();
   const router = useRouter();
   const [previewOpen, setPreviewOpen] = useState(initialPreviewOpen);
   const [currentPlan, setCurrentPlan] = useState(plan);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function deletePlan() {
-    const confirmed = window.confirm(
+    const confirmed = await confirm(
       `${formatDate(currentPlan.plan_date)} tarihli iş planı ve tüm ekipleri kalıcı olarak silinsin mi?`
     );
     if (!confirmed) return;
@@ -53,7 +55,7 @@ export function WorkPlanDetailView({ plan, readOnly = false, initialPreviewOpen 
       return;
     }
 
-    const confirmed = window.confirm(
+    const confirmed = await confirm(
       `Ekip ${teamIndex + 1} bu iş planından kalıcı olarak silinsin mi?`
     );
     if (!confirmed) return;

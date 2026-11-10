@@ -57,7 +57,7 @@ Anon probe: `POST /rest/v1/rpc/save_work_plan` anon anahtarıyla → `42501` bek
 - [ ] Auth → Providers → Email: e-posta doğrulaması (confirm email) açık mı; parola uzunluğu/karmaşıklık.
 - [ ] Oturum: JWT süresi, refresh token rotasyonu, "single session" ihtiyacı.
 - [ ] Database → Backups: plan, günlük yedek, PITR var mı; **bir geri yükleme denemesi** (ayrı proje) yapıldı mı.
-- [ ] Edge Function `delete-user`: `verify_jwt = true` (config.toml'da var); mesajlardaki "şantiye şefi" → "firma yöneticisi" ve yeniden deploy (ayrı onay).
+- [ ] Edge Function `delete-user`: `verify_jwt = true` (config.toml'da var). Mesajlar kodda "firma yöneticisi" olarak düzeltildi; **yeniden deploy edilmeli** (`supabase functions deploy delete-user`, ayrı onay).
 - [ ] Süper admin hesabı için MFA (TOTP) kaydı; ikinci süper admin ve kurtarma adımı belgesi → sonra AAL2 zorunluluğu (ayrı onay).
 
 ## 4. Vercel

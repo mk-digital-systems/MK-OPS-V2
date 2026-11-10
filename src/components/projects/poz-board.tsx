@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { SheetKesifDialog } from "@/components/projects/sheet-kesif";
+import { userErrorMessage } from "@/lib/user-error";
 
 const toNumber = (value: string) => {
   const text = normalizeNumberText(value);
@@ -306,7 +307,7 @@ function KesifDialog({
       onClose();
       router.refresh();
     } catch (error) {
-      toast.error("Kaydedilemedi", { description: (error as Error)?.message });
+      toast.error("Kaydedilemedi", { description: userErrorMessage(error) });
     } finally {
       setSaving(false);
     }

@@ -85,21 +85,23 @@ Canlı veritabanı, Vercel ve harici servislerde **hiçbir değişiklik yapılma
 
 **R-05 notları:** Süper admin işlemleri artık `platform_events` (silinse de kalan, değiştirilemez) kaydına yazılıyor (önceki işte yapıldı, canlıda). MFA/AAL2 zorunluluğu **etkinleştirilmedi** (talimat: yönetici onayı ve kurtarma prosedürü olmadan açılmaz). Öneri: önce süper admin hesabı için Supabase panelinden MFA kaydı, sonra `assert_super_admin()` içinde `auth.jwt()->>'aal' = 'aal2'` kontrolü; kilitlenmeye karşı ikinci bir süper admin hesabı ve kurtarma adımı belgelenmeli. Şirket silme zaten adı yazarak onay istiyor.
 
-## 4. Aşama 4 — Kullanıcı deneyimi (KISMEN; güvenlik işleri bittikten sonra başlandı)
+## 4. Aşama 4 — Kullanıcı deneyimi
 
 | Kod | Durum | Ayrıntı |
 |---|---|---|
-| U-04 İşlem onayları | **Kısmen** | `ConfirmProvider` + `useConfirm()` (`src/components/ui/confirm-dialog.tsx`): erişilebilir (Radix), varsayılan odak "Vazgeç", geri alınamaz işlemlerde kırmızı düğme. 30 kullanımdan **17'si** taşındı (not silme, proje silme, şube silme, logo kaldırma, dönem kapatma, kullanıcı reddi, aylık plan silme, poz silme, toplu fiyat vb.). **Kalan 13 yer** `window.confirm` kullanıyor: çok satırlı/JSX içi `&&` biçimleri (katalog, aylık puantaj, poz fiyat geçmişi, proje detayı, iş planı detayı, kullanıcı rolü, envanter) |
-| U-01 PWA | **Kısmen** | `src/app/manifest.ts` (ana ekrana eklenebilir, `/panel` açılış, mevcut 192/512 ikon). **Hizmet çalışanı ve çevrimdışı önbellek yok** (hassas veri: ayrı tasarım + onay) |
-| U-02 Kaydedilmemiş değişiklik | **Kısmen** | İş planı editöründe sekme kapatma/yenileme uyarısı (`useUnsavedChangesWarning`). Uygulama içi bağlantı geçişlerini kapsamaz; imalat/proje/keşif formları yapılmadı |
-| U-03 Kurulum rehberi | Yapılmadı | |
-| U-05 Hata mesajları | Yapılmadı | Kod yolları `toast.error(error.message)` ile ham metin gösteriyor (30+ yer); merkezi Türkçe eşleme tablosu gerekiyor |
-| U-06 Resmi tatiller | Yapılmadı | Yeni tablo/migration gerekir → onay |
-| U-07 Abonelik uyarıları | Yapılmadı | E-posta altyapısı doğrulanmadan gönderim yok |
-| U-08 Paket/deneme, U-09 Yasal | Dokunulmadı | Ticari karar ve gerçek bilgi gerektirir; hiçbir değer değiştirilmedi/uydurulmadı |
-| U-10 Büyük bileşenler | Yapılmadı | Ölçüm ve tarayıcı testi olmadan bölme riskli |
+| U-01 PWA | **Kısmen (bilerek)** | `src/app/manifest.ts` (ana ekrana eklenebilir, `/panel` açılış). **Hizmet çalışanı ve çevrimdışı önbellek yok**: personel/maaş/hakediş verisinin cihazda kalıcı saklanması ayrı tasarım + onay ister |
+| U-02 Kaydedilmemiş değişiklik | **Kısmen** | İş planı editörü (`useUnsavedChangesWarning`) ve puantaj (zaten vardı). İmalat/proje/keşif formları yapılmadı |
+| U-03 Kurulum rehberi | **Tamamlandı** | `SetupGuide` (genel bakışta): personel, araç, proje, iş planı, puantaj. Yalnızca yazma yetkisi olunan modüller gösterilir (muhasebe: personel/araç/puantaj), veri girildikçe tamamlanır, hepsi bitince kaybolur. Pazar otomatik puantajı "ilk puantaj" sayılmaz. 9 birim kontrol |
+| U-04 İşlem onayları | **Tamamlandı (2 bilinçli istisna)** | `useConfirm`/`ConfirmProvider`; 30 kullanımdan 28'i taşındı. Kalan 2'si puantaj tablosundaki **sayfa-terk koruması** (tıklamayı eşzamanlı durdurmak gerektiği için `window.confirm` kalmalı) |
+| U-05 Hata mesajları | **Tamamlandı** | `userErrorMessage` (`src/lib/user-error.ts`): bizim Türkçe iş kuralı mesajları aynen, teknik hatalar (yetki/RLS, tekrar kayıt, ilişkili kayıt, kısıt, ağ, oturum, zaman aşımı, sürüm uyumsuzluğu) "ne oldu / kaydedildi mi / ne yapmalı" biçiminde Türkçe; bilinmeyen İngilizce hata ham gösterilmez, teknik kod eklenir. 75 `toast` çağrısı taşındı. 22 birim kontrol |
+| U-06 Resmi tatiller | **Tamamlandı** (canlıda) | `20261121000001_official_holidays.sql`, `/admin/tatiller`, puantaj tablosu, Excel/Word, kişi detayı. 33 DB kontrolü. Kural 11 Kasım 2026'dan itibaren; otomatik RT üretimi 1 Ocak 2027'de ilk kez çalışacak |
+| U-07 Abonelik | **Kısmen** | Ücretli planı bitmek üzere olan firmaya **uygulama içi uyarı** (7 gün, son 2 gün kırmızı; `planExpiryWarning`, 10 birim kontrol). **E-posta uyarısı yapılmadı** (SMTP/ gönderim altyapısı doğrulanmadan ve onaysız müşteriye e-posta gönderilmez). Süper admin tarafında "süresi dolmak üzere" paneli zaten var |
+| U-08 Paket/deneme, U-09 Yasal | **Dokunulmadı** | Ticari karar ve gerçek bilgi gerektirir; hiçbir değer değiştirilmedi/uydurulmadı |
+| U-10 Büyük bileşenler | **Yapılmadı** | Ölçüm ve tarayıcı testi olmadan bölmek riskli |
 
-**Tarayıcıda denenmeli (yapamadım):** Onay penceresinin başka bir pencere (ör. Şirket "Yönet") içinden açıldığında doğru odaklanıp tıklanabildiği (iç içe Radix pencereleri); işlem sırasında Enter/Esc davranışı.
+**R-06 Yedekleme:** `docs/dahili/yedekleme-ve-geri-donus.md` (senaryo tablosu, migration öncesi dump düzeni, geri yükleme tatbikatı, KVKK dışa aktarma, staging maliyet/risk). Supabase planının gerçek yedek özellikleri **doğrulanamadı**; geri yükleme **hiç denenmedi**.
+
+**Tarayıcıda denenmeli (yapamadım):** Onay penceresinin başka bir pencere içinden (Şirket "Yönet", İrsaliye detayı) açıldığında odak/tıklama davranışı; kurulum rehberinin boş firmada görünüşü; plan bitimi uyarısı.
 
 ## 5. Değişen dosyalar, commit'ler
 

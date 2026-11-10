@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { userErrorMessage } from "@/lib/user-error";
 
 const STORAGE_KEY = "mkops.kvkk.controller";
 
@@ -41,7 +42,7 @@ export function KvkkCard({ companyName }: { companyName: string }) {
       try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(info)); } catch { /* depolama kapalı olabilir */ }
       await downloadPersonnelNoticeWord(brand, info);
     } catch (error) {
-      toast.error("Belge oluşturulamadı", { description: (error as Error)?.message });
+      toast.error("Belge oluşturulamadı", { description: userErrorMessage(error) });
     } finally {
       setBusy(false);
     }

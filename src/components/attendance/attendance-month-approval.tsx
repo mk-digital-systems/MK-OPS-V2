@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 import { AttendanceRepository } from "@/modules/attendance/attendance-repository";
 import { Button } from "@/components/ui/button";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { userErrorMessage } from "@/lib/user-error";
 
 /**
  * Ay sonu puantaj onayı, şube başına. Onaylı şubenin ayı kilitlenir; onayı yalnızca firma yöneticisi kaldırır.
@@ -52,7 +53,7 @@ export function AttendanceMonthApprovalBar({
       router.refresh();
     } catch (error) {
       console.error(error);
-      toast.error("İşlem yapılamadı", { description: (error as Error)?.message });
+      toast.error("İşlem yapılamadı", { description: userErrorMessage(error) });
     } finally {
       setBusy(null);
     }

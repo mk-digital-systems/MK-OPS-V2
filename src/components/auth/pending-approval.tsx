@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { userErrorMessage } from "@/lib/user-error";
 
 export function PendingApproval({
   companyName,
@@ -43,7 +44,7 @@ export function PendingApproval({
       router.replace("/onboarding");
       router.refresh();
     } catch (error) {
-      toast.error("İstek iptal edilemedi", { description: (error as Error)?.message });
+      toast.error("İstek iptal edilemedi", { description: userErrorMessage(error) });
     } finally {
       setLeaving(false);
     }

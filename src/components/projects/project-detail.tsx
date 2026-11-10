@@ -34,6 +34,7 @@ import { CorporateStatusPanel } from "@/components/projects/corporate-status-pan
 import { PozBoard } from "@/components/projects/poz-board";
 import type { PozItem } from "@/types/poz";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { userErrorMessage } from "@/lib/user-error";
 
 type Props = {
   project: Project;
@@ -72,7 +73,7 @@ export function ProjectDetail({ project, type, progress, hpSheets, sheetKesif = 
       if (after) after();
       else router.refresh();
     } catch (error) {
-      toast.error("İşlem yapılamadı", { description: (error as Error)?.message });
+      toast.error("İşlem yapılamadı", { description: userErrorMessage(error) });
     } finally {
       setBusy(null);
     }
@@ -169,13 +170,14 @@ export function ProjectDetail({ project, type, progress, hpSheets, sheetKesif = 
             {statusButtons && project.status !== "completed" && (
               <Button
                 variant="outline"
-                onClick={() =>
-                  window.confirm(
+                onClick={async () => {
+                  const ok = await confirm(
                     hpSheets
                       ? "Proje, paftaları bitmemiş olsa da tamamlandı olarak işaretlensin mi? Bir pafta değiştiğinde durum paftalardan yeniden hesaplanır."
                       : "Proje, aşamaları tamamlanmamış olsa da tamamlandı olarak işaretlensin mi?"
-                  ) && setStatus("completed")
-                }
+                  );
+                  if (ok) setStatus("completed");
+                }}
                 disabled={busy !== null}
               >
                 <CheckCircle2 className="h-4 w-4" />

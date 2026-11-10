@@ -19,6 +19,7 @@ import { ProjectTypeShortcuts } from "@/components/projects/project-type-shortcu
 import { useBranches } from "@/components/layout/branch-provider";
 import { groupByBranch } from "@/lib/branch-groups";
 import { ProgressBar, ProjectStatusBadge, TypeDot } from "@/components/projects/project-status-indicators";
+import { userErrorMessage } from "@/lib/user-error";
 
 type Props = {
   title: string;
@@ -136,7 +137,7 @@ export function ProjectsTable({
         toast.success(`${exported.data.length} proje Excel'e aktarıldı`);
       }
     } catch (error) {
-      toast.error("Excel oluşturulamadı", { description: (error as Error)?.message });
+      toast.error("Excel oluşturulamadı", { description: userErrorMessage(error) });
     } finally {
       setExporting(false);
     }

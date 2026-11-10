@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { userErrorMessage } from "@/lib/user-error";
 
 const vault = () => new CompanyVaultRepository(createClient());
 
@@ -38,7 +39,7 @@ export function PrivateNotesPanel() {
     try {
       setStatus(await vault().status());
     } catch (error) {
-      toast.error("Gizli alan bilgisi alınamadı", { description: (error as Error).message });
+      toast.error("Gizli alan bilgisi alınamadı", { description: userErrorMessage(error) });
     }
   }
 
@@ -53,7 +54,7 @@ export function PrivateNotesPanel() {
   /** Oturum düşmüşse paneli kilitler; değilse hatayı gösterir. */
   function handleError(error: unknown, fallback: string) {
     if (isVaultLockedError(error)) relock();
-    else toast.error(fallback, { description: (error as Error)?.message });
+    else toast.error(fallback, { description: userErrorMessage(error) });
   }
 
   async function unlock(event: React.FormEvent) {
@@ -70,7 +71,7 @@ export function PrivateNotesPanel() {
       setLegacyNotes(legacy);
       setPassword("");
     } catch (error) {
-      toast.error((error as Error).message || "Şifre doğrulanamadı");
+      toast.error(userErrorMessage(error, "Şifre doğrulanamadı"));
     } finally {
       setLoading(false);
     }
@@ -140,7 +141,7 @@ export function PrivateNotesPanel() {
       setLegacyNotes((current) => current.filter((item) => item.id !== note.id));
       toast.success("Kişisel not silindi");
     } catch (error) {
-      toast.error("Not silinemedi", { description: (error as Error).message });
+      toast.error("Not silinemedi", { description: userErrorMessage(error) });
     }
   }
 

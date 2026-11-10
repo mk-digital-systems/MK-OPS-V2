@@ -22,6 +22,7 @@ import type { CurrencyCode } from "@/types/auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { userErrorMessage } from "@/lib/user-error";
 
 /** Firma yöneticisi ve Merkez şantiye şefinin onay ekranı: bütün şubeler. */
 export function ApprovalsCenter({
@@ -67,7 +68,7 @@ export function ApprovalsCenter({
       toast.success(message);
       router.refresh();
     } catch (error) {
-      toast.error("İşlem tamamlanamadı", { description: (error as Error)?.message });
+      toast.error("İşlem tamamlanamadı", { description: userErrorMessage(error) });
     }
   }
 
@@ -83,7 +84,7 @@ export function ApprovalsCenter({
       );
       router.refresh();
     } catch (error) {
-      toast.error("İşlem tamamlanamadı", { description: (error as Error)?.message });
+      toast.error("İşlem tamamlanamadı", { description: userErrorMessage(error) });
     }
   }
 

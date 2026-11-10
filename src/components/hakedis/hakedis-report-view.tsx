@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { userErrorMessage } from "@/lib/user-error";
 
 type Props = {
   report: HakedisReport;
@@ -53,7 +54,7 @@ export function HakedisReportView({ report, periods, currency, canEditPrices, st
       const { downloadHakedisPdf } = await import("@/lib/hakedis-pdf");
       await downloadHakedisPdf(brand, report, currency);
     } catch (error) {
-      toast.error("PDF oluşturulamadı", { description: (error as Error)?.message });
+      toast.error("PDF oluşturulamadı", { description: userErrorMessage(error) });
     } finally {
       setExporting(null);
     }
@@ -142,7 +143,7 @@ export function HakedisReportView({ report, periods, currency, canEditPrices, st
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (error) {
-      toast.error("Excel oluşturulamadı", { description: (error as Error)?.message });
+      toast.error("Excel oluşturulamadı", { description: userErrorMessage(error) });
     } finally {
       setExporting(null);
     }
@@ -350,7 +351,7 @@ function ExtraPriceInput({ itemId, unitPrice, onSaved }: { itemId: string; unitP
       toast.success(next === null ? "Fiyat kaldırıldı" : "Ek iş fiyatı kaydedildi");
       onSaved();
     } catch (error) {
-      toast.error("Fiyat kaydedilemedi", { description: (error as Error)?.message });
+      toast.error("Fiyat kaydedilemedi", { description: userErrorMessage(error) });
     } finally {
       setSaving(false);
     }

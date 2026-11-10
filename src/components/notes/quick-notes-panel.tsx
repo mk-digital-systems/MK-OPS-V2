@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { downloadNotesPdf } from "@/lib/notes-pdf";
 import { useReportBrand } from "@/components/layout/company-brand-provider";
 import { useConfirm } from "@/components/ui/confirm-dialog";
+import { userErrorMessage } from "@/lib/user-error";
 
 function today() {
   const date = new Date();
@@ -83,7 +84,7 @@ export function QuickNotesPanel({
       toast.success(editingId ? "Not güncellendi" : "Not eklendi");
     } catch (error) {
       console.error(error);
-      toast.error("Not eklenemedi", { description: (error as Error)?.message });
+      toast.error("Not eklenemedi", { description: userErrorMessage(error) });
     } finally {
       setLoading(false);
     }
@@ -107,7 +108,7 @@ export function QuickNotesPanel({
       await downloadNotesPdf(brand, notes);
       toast.success("Notlar A4 PDF olarak indirildi");
     } catch (error) {
-      toast.error("PDF oluşturulamadı", { description: (error as Error)?.message });
+      toast.error("PDF oluşturulamadı", { description: userErrorMessage(error) });
     } finally {
       setPdfLoading(false);
     }
@@ -120,7 +121,7 @@ export function QuickNotesPanel({
       setNotes((current) => current.filter((note) => note.id !== noteId));
       toast.success("Not silindi");
     } catch (error) {
-      toast.error("Not silinemedi", { description: (error as Error)?.message });
+      toast.error("Not silinemedi", { description: userErrorMessage(error) });
     }
   }
 

@@ -57,6 +57,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { WhatsAppPreview } from "@/components/work-plans/whatsapp-preview";
+import { userErrorMessage } from "@/lib/user-error";
 
 type TeamDraft = {
   client_id: string;
@@ -561,7 +562,7 @@ export function WorkPlanEditor({
       router.push(`/panel/work-plans/drafts/${saved.id}/edit`);
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Taslak kaydedilemedi");
+      toast.error("Taslak kaydedilemedi", { description: userErrorMessage(error) });
     } finally {
       setLoading(false);
     }
@@ -668,10 +669,7 @@ export function WorkPlanEditor({
       router.refresh();
     } catch (error) {
       console.error(error);
-      const errorMessage =
-        error instanceof Error && error.message.trim()
-          ? error.message
-          : null;
+      const errorMessage = userErrorMessage(error, "İş planı kaydedilemedi");
       const isUniqueViolation =
         error &&
         typeof error === "object" &&
@@ -709,7 +707,7 @@ export function WorkPlanEditor({
       router.refresh();
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : "İş planı kaydedilemedi");
+      toast.error("İş planı kaydedilemedi", { description: userErrorMessage(error) });
       throw error;
     } finally {
       setLoading(false);
