@@ -10,8 +10,10 @@ import { createClient } from "@/lib/supabase/client";
 import { CompanyRepository } from "@/modules/company/company-repository";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export function CompanyLogoCard({ company }: { company: CompanySummary }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<"upload" | "remove" | null>(null);
@@ -40,7 +42,7 @@ export function CompanyLogoCard({ company }: { company: CompanySummary }) {
   }
 
   async function remove() {
-    if (!window.confirm("Firma logosu kaldırılsın mı? Raporlarda yalnızca firma adı yazılır.")) return;
+    if (!(await confirm("Firma logosu kaldırılsın mı? Raporlarda yalnızca firma adı yazılır."))) return;
     setBusy("remove");
     try {
       await new CompanyRepository(createClient()).removeLogo(company.logo_path);

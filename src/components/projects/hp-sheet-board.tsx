@@ -21,6 +21,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import type { PozItem } from "@/types/poz";
 import { KesifLinesEditor } from "@/components/projects/sheet-kesif";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 const repository = () => new ProjectRepository(createClient());
 const statusOrder = (status: HpSheetStatus) => HP_SHEET_STATUSES.findIndex((item) => item.value === status);
@@ -132,6 +133,7 @@ function Summary({ label, value, highlight = false }: { label: string; value: nu
 }
 
 function SheetRow({ sheet, personnel, readOnly }: { sheet: HpSheet; personnel: Personnel[]; readOnly: boolean }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const [form, setForm] = useState({
     sheet_no: sheet.sheet_no,
@@ -181,7 +183,7 @@ function SheetRow({ sheet, personnel, readOnly }: { sheet: HpSheet; personnel: P
   }
 
   async function remove() {
-    if (!window.confirm(`${sheet.sheet_no} paftası silinsin mi?`)) return;
+    if (!(await confirm(`${sheet.sheet_no} paftası silinsin mi?`))) return;
     setBusy("delete");
     try {
       await repository().deleteHpSheet(sheet.id);

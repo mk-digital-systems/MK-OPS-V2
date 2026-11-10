@@ -33,6 +33,7 @@ import { HpSheetBoard } from "@/components/projects/hp-sheet-board";
 import { CorporateStatusPanel } from "@/components/projects/corporate-status-panel";
 import { PozBoard } from "@/components/projects/poz-board";
 import type { PozItem } from "@/types/poz";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 type Props = {
   project: Project;
@@ -51,6 +52,7 @@ type Props = {
 type Busy = "status" | "archive" | "cancel" | "reactivate" | "delete" | null;
 
 export function ProjectDetail({ project, type, progress, hpSheets, sheetKesif = [], pozes, personnel, readOnly }: Props) {
+  const confirm = useConfirm();
   const router = useRouter();
   const [busy, setBusy] = useState<Busy>(null);
   const [readyDismissed, setReadyDismissed] = useState(false);
@@ -90,8 +92,8 @@ export function ProjectDetail({ project, type, progress, hpSheets, sheetKesif = 
     setReason("");
   }
 
-  function remove() {
-    if (!window.confirm(`${project.name} ve bütün aşama kayıtları kalıcı olarak silinsin mi?`)) return;
+  async function remove() {
+    if (!(await confirm(`${project.name} ve bütün aşama kayıtları kalıcı olarak silinsin mi?`))) return;
     void run("delete", () => repository().delete(project.id), "Proje silindi", () => {
       router.push("/panel/projects");
       router.refresh();

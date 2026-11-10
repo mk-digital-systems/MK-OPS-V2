@@ -35,6 +35,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 /** Kullanıcıları yönetebilen roller. */
 export type UserManagerRole = Extract<UserRole, "site_chief" | "company_manager">;
@@ -111,6 +112,7 @@ export function UserRoleManager({
   branches?: Branch[];
   branchAssignments?: { user_id: string; branch_id: string }[];
 }) {
+  const confirm = useConfirm();
   const isManager = viewerRole === "site_chief";
   const [users, setUsers] = useState(initialUsers);
   const [selections, setSelections] = useState<Record<string, UserRole>>({});
@@ -220,7 +222,7 @@ Katılım kodu: ${joinCode}`);
     // Onaylanmamış kullanıcı için hesabı silmek yerine şirketten çıkarılır;
     // kişi başka bir şirkete katılabilir.
     if (!user.is_approved) {
-      if (!window.confirm(`${user.full_name || user.email} kullanıcısının katılma isteği reddedilsin mi?`)) return;
+      if (!(await confirm(`${user.full_name || user.email} kullanıcısının katılma isteği reddedilsin mi?`))) return;
       setDeletingId(user.id);
       try {
         await new CompanyRepository(createClient()).rejectJoinRequest(user.id);

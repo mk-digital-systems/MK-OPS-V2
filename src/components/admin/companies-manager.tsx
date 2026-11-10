@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AdminOverview, isIdleCompany } from "@/components/admin/admin-overview";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 const pad = (value: number) => String(value).padStart(2, "0");
 const toDateInput = (iso: string | null) => {
@@ -236,6 +237,7 @@ function ManageCompanyDialog({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const confirm = useConfirm();
   const [plan, setPlan] = useState(company.plan ?? "");
   const [planEndsAt, setPlanEndsAt] = useState(toDateInput(company.plan_ends_at));
   const [userLimit, setUserLimit] = useState(company.user_limit?.toString() ?? "");
@@ -339,7 +341,7 @@ function ManageCompanyDialog({
 
   async function toggleSuspend() {
     const suspend = company.access_status !== "suspended";
-    if (suspend && !window.confirm(`${company.name} askıya alınsın mı? Kullanıcıları panele erişemez.`)) return;
+    if (suspend && !(await confirm(`${company.name} askıya alınsın mı? Kullanıcıları panele erişemez.`))) return;
     setBusy("suspend");
     try {
       await repository().setSuspended(company.id, suspend);

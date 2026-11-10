@@ -10,6 +10,7 @@ import { formatDateTime } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { AttendanceRepository } from "@/modules/attendance/attendance-repository";
 import { Button } from "@/components/ui/button";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 /**
  * Ay sonu puantaj onayı, şube başına. Onaylı şubenin ayı kilitlenir; onayı yalnızca firma yöneticisi kaldırır.
@@ -28,6 +29,7 @@ export function AttendanceMonthApprovalBar({
   canApprove: boolean;
   canReopen: boolean;
 }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const label = `${MONTH_NAMES[month - 1]} ${year}`;
@@ -40,7 +42,7 @@ export function AttendanceMonthApprovalBar({
       action === "approve"
         ? `${target} puantajı onaylanacak. Onaydan sonra bu ayın puantajı ve avansları değiştirilemez. Devam edilsin mi?`
         : `${target} puantaj onayı kaldırılacak ve ay yeniden düzenlemeye açılacak. Devam edilsin mi?`;
-    if (!window.confirm(question)) return;
+    if (!(await confirm(question))) return;
     setBusy(item.branch_id);
     try {
       const repository = new AttendanceRepository(createClient());

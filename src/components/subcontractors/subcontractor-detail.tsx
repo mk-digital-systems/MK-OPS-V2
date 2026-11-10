@@ -30,6 +30,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 const TABS = [
   { id: "ozet", label: "Özet ve Hakediş", money: true },
@@ -74,6 +75,7 @@ export function SubcontractorDetail({
   currency: CurrencyCode;
   initialTab: string;
 }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -93,7 +95,7 @@ export function SubcontractorDetail({
   const todayIso = new Date().toLocaleDateString("en-CA");
 
   async function closePeriod() {
-    if (!window.confirm(`${periodLabel} dönemi kapatılsın mı? Ekstre olduğu gibi saklanır; kapalı döneme ödeme ve personel avansı/maaş ödemesi girilemez.`)) return;
+    if (!(await confirm(`${periodLabel} dönemi kapatılsın mı? Ekstre olduğu gibi saklanır; kapalı döneme ödeme ve personel avansı/maaş ödemesi girilemez.`))) return;
     setBusy(true);
     try {
       await new SubcontractorRepository(createClient()).closePeriod(subcontractor.id, start, end);
@@ -107,7 +109,7 @@ export function SubcontractorDetail({
   }
 
   async function reopenPeriod() {
-    if (!closedInfo || !window.confirm("Kapalı dönem yeniden açılsın mı? Kapanıştaki kayıt silinir; dönem yeniden canlı hesaplanır.")) return;
+    if (!closedInfo || !(await confirm("Kapalı dönem yeniden açılsın mı? Kapanıştaki kayıt silinir; dönem yeniden canlı hesaplanır."))) return;
     setBusy(true);
     try {
       await new SubcontractorRepository(createClient()).reopenPeriod(closedInfo.closure.id);
@@ -547,7 +549,7 @@ export function SubcontractorDetail({
                         title="Kaydı sil"
                         disabled={busy}
                         onClick={async () => {
-                          if (!window.confirm("Bu kayıt silinsin mi?")) return;
+                          if (!(await confirm("Bu kayıt silinsin mi?"))) return;
                           if (await withRepository((repository) => repository.removeTransaction(tx.id), "Kayıt silindi")) router.refresh();
                         }}
                       >

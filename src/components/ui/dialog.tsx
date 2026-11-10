@@ -79,6 +79,13 @@ function DialogTitle({
   );
 }
 
+function DialogDescription({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>) {
+  return <DialogPrimitive.Description className={cn("text-sm text-muted-foreground", className)} {...props} />;
+}
+
 export {
   Dialog,
   DialogPortal,
@@ -88,4 +95,5 @@ export {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 };

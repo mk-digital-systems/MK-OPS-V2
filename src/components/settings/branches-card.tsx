@@ -11,9 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 /** Firma yöneticisi: şube açar, adını değiştirir, boş şubeyi siler. Merkez silinemez. */
 export function BranchesCard({ initialBranches, branchLimit }: { initialBranches: Branch[]; branchLimit?: number }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const [branches, setBranches] = useState(initialBranches);
   const [name, setName] = useState("");
@@ -89,7 +91,7 @@ export function BranchesCard({ initialBranches, branchLimit }: { initialBranches
                     title="Şubeyi sil"
                     disabled={busy}
                     onClick={async () => {
-                      if (!window.confirm(`"${branch.name}" şubesi silinsin mi? Şubede kayıt varsa silinemez.`)) return;
+                      if (!(await confirm(`"${branch.name}" şubesi silinsin mi? Şubede kayıt varsa silinemez.`))) return;
                       if (await run((repository) => repository.remove(branch.id), "Şube silindi")) {
                         setBranches((current) => current.filter((item) => item.id !== branch.id));
                       }

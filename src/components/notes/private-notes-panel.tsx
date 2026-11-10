@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 const vault = () => new CompanyVaultRepository(createClient());
 
@@ -20,6 +21,7 @@ const vault = () => new CompanyVaultRepository(createClient());
  * firma şifresiyle açılır; koruma sunucudadır. Oturum anahtarı yalnızca bellekte tutulur.
  */
 export function PrivateNotesPanel() {
+  const confirm = useConfirm();
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<CompanyVaultStatus | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -108,7 +110,7 @@ export function PrivateNotesPanel() {
   }
 
   async function remove(id: string) {
-    if (!token || !window.confirm("Bu gizli not firmadaki herkes için kalıcı olarak silinsin mi?")) return;
+    if (!token || !(await confirm("Bu gizli not firmadaki herkes için kalıcı olarak silinsin mi?"))) return;
     try {
       await vault().remove(token, id);
       setNotes((current) => current.filter((note) => note.id !== id));
@@ -132,7 +134,7 @@ export function PrivateNotesPanel() {
   }
 
   async function removeLegacy(note: PrivateNote) {
-    if (!window.confirm("Bu kişisel not kalıcı olarak silinsin mi?")) return;
+    if (!(await confirm("Bu kişisel not kalıcı olarak silinsin mi?"))) return;
     try {
       await new PrivateNotesRepository(createClient()).remove(note.id);
       setLegacyNotes((current) => current.filter((item) => item.id !== note.id));

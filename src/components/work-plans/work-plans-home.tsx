@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 type Props = {
   todayPlan: DailyWorkPlanWithTeams | null;
@@ -29,6 +30,7 @@ type Props = {
 };
 
 export function WorkPlansHome({ todayPlan, pastPlans, drafts, readOnly = false }: Props) {
+  const confirm = useConfirm();
   const { effectiveBranchId, multiBranch, branchName } = useBranches();
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<WorkPlanSearchHit[] | null>(null);
@@ -56,7 +58,7 @@ export function WorkPlansHome({ todayPlan, pastPlans, drafts, readOnly = false }
       year: "numeric",
       timeZone: "Europe/Istanbul",
     }).format(new Date(`${month}-01T12:00:00+03:00`));
-    if (!window.confirm(`${label} ayındaki tüm iş planları kalıcı olarak silinsin mi?`)) return;
+    if (!(await confirm(`${label} ayındaki tüm iş planları kalıcı olarak silinsin mi?`))) return;
     setDeletingMonth(month);
     try {
       await new WorkPlanRepository(createClient()).deletePlansByMonth(month, effectiveBranchId);

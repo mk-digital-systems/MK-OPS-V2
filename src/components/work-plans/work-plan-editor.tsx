@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -34,6 +34,7 @@ import type {
 } from "@/types/work-plan";
 import type { Vehicle } from "@/types/vehicle";
 import { createClient } from "@/lib/supabase/client";
+import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes";
 import { WorkPlanRepository } from "@/modules/work-plans/work-plan-repository";
 import { ensureChiefFirst } from "@/modules/work-plans/whatsapp-formatter";
 import { tomorrowISODate } from "@/lib/constants/project";
@@ -181,6 +182,14 @@ export function WorkPlanEditor({
   const [absences, setAbsences] = useState<WorkPlanAbsenceSnapshot[]>(
     initialAbsences ?? []
   );
+
+  // Kaydedilmemiş değişiklik uyarısı: ilk görünümün özeti ile şimdiki durum karşılaştırılır.
+  const formSnapshot = JSON.stringify({ planDate, notes, teams, absences });
+  const initialSnapshot = useRef<string | null>(null);
+  useEffect(() => {
+    if (initialSnapshot.current === null) initialSnapshot.current = formSnapshot;
+  }, [formSnapshot]);
+  useUnsavedChangesWarning(initialSnapshot.current !== null && formSnapshot !== initialSnapshot.current && !loading);
 
   const activePersonnel = useMemo(
     () => personnel.filter((p) => p.is_active),

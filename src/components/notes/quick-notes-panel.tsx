@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { downloadNotesPdf } from "@/lib/notes-pdf";
 import { useReportBrand } from "@/components/layout/company-brand-provider";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 function today() {
   const date = new Date();
@@ -30,6 +31,7 @@ export function QuickNotesPanel({
   initialNotes: SharedNote[];
   currentUserId: string;
 }) {
+  const confirm = useConfirm();
   const brand = useReportBrand();
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState(initialNotes);
@@ -112,7 +114,7 @@ export function QuickNotesPanel({
   }
 
   async function removeNote(noteId: string) {
-    if (!window.confirm("Bu not silinsin mi?")) return;
+    if (!(await confirm("Bu not silinsin mi?"))) return;
     try {
       await new NotesRepository(createClient()).remove(noteId);
       setNotes((current) => current.filter((note) => note.id !== noteId));

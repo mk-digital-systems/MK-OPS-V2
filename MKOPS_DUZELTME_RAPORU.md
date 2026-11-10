@@ -85,12 +85,21 @@ Canlı veritabanı, Vercel ve harici servislerde **hiçbir değişiklik yapılma
 
 **R-05 notları:** Süper admin işlemleri artık `platform_events` (silinse de kalan, değiştirilemez) kaydına yazılıyor (önceki işte yapıldı, canlıda). MFA/AAL2 zorunluluğu **etkinleştirilmedi** (talimat: yönetici onayı ve kurtarma prosedürü olmadan açılmaz). Öneri: önce süper admin hesabı için Supabase panelinden MFA kaydı, sonra `assert_super_admin()` içinde `auth.jwt()->>'aal' = 'aal2'` kontrolü; kilitlenmeye karşı ikinci bir süper admin hesabı ve kurtarma adımı belgelenmeli. Şirket silme zaten adı yazarak onay istiyor.
 
-## 4. Aşama 4 — Kullanıcı deneyimi (YAPILMADI; talimat güvenlik bitmeden başlamamayı söylüyor)
+## 4. Aşama 4 — Kullanıcı deneyimi (KISMEN; güvenlik işleri bittikten sonra başlandı)
 
-Envanter ve durum:
-- **U-04:** `window.confirm` 18 dosyada, 30 yerde. Tutarlı bir onay penceresi bileşeni yazılıp kademeli taşınmalı.
-- **U-01:** `public/` altında manifest yok; ikon yalnızca `logo-mk-ops.png`. Offline önbellek yok (hassas veri riski nedeniyle önce salt-okunur tasarım).
-- **U-02, U-03, U-05, U-06, U-07, U-08, U-09, U-10:** başlanmadı. U-06/U-07 yeni tablo/e-posta gerektirebilir → onay. U-08/U-09 ticari karar ve gerçek bilgi gerektirir (limit/fiyat/KDV/deneme süresi/yasal bilgiler **uydurulmadı, değiştirilmedi**).
+| Kod | Durum | Ayrıntı |
+|---|---|---|
+| U-04 İşlem onayları | **Kısmen** | `ConfirmProvider` + `useConfirm()` (`src/components/ui/confirm-dialog.tsx`): erişilebilir (Radix), varsayılan odak "Vazgeç", geri alınamaz işlemlerde kırmızı düğme. 30 kullanımdan **17'si** taşındı (not silme, proje silme, şube silme, logo kaldırma, dönem kapatma, kullanıcı reddi, aylık plan silme, poz silme, toplu fiyat vb.). **Kalan 13 yer** `window.confirm` kullanıyor: çok satırlı/JSX içi `&&` biçimleri (katalog, aylık puantaj, poz fiyat geçmişi, proje detayı, iş planı detayı, kullanıcı rolü, envanter) |
+| U-01 PWA | **Kısmen** | `src/app/manifest.ts` (ana ekrana eklenebilir, `/panel` açılış, mevcut 192/512 ikon). **Hizmet çalışanı ve çevrimdışı önbellek yok** (hassas veri: ayrı tasarım + onay) |
+| U-02 Kaydedilmemiş değişiklik | **Kısmen** | İş planı editöründe sekme kapatma/yenileme uyarısı (`useUnsavedChangesWarning`). Uygulama içi bağlantı geçişlerini kapsamaz; imalat/proje/keşif formları yapılmadı |
+| U-03 Kurulum rehberi | Yapılmadı | |
+| U-05 Hata mesajları | Yapılmadı | Kod yolları `toast.error(error.message)` ile ham metin gösteriyor (30+ yer); merkezi Türkçe eşleme tablosu gerekiyor |
+| U-06 Resmi tatiller | Yapılmadı | Yeni tablo/migration gerekir → onay |
+| U-07 Abonelik uyarıları | Yapılmadı | E-posta altyapısı doğrulanmadan gönderim yok |
+| U-08 Paket/deneme, U-09 Yasal | Dokunulmadı | Ticari karar ve gerçek bilgi gerektirir; hiçbir değer değiştirilmedi/uydurulmadı |
+| U-10 Büyük bileşenler | Yapılmadı | Ölçüm ve tarayıcı testi olmadan bölme riskli |
+
+**Tarayıcıda denenmeli (yapamadım):** Onay penceresinin başka bir pencere (ör. Şirket "Yönet") içinden açıldığında doğru odaklanıp tıklanabildiği (iç içe Radix pencereleri); işlem sırasında Enter/Esc davranışı.
 
 ## 5. Değişen dosyalar, commit'ler
 

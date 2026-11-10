@@ -28,6 +28,10 @@ node tests/db/work-plan-drafts.test.mjs     # V-03 (DB tarafı)
 5. **`next.config.ts`** — `Content-Security-Policy-Report-Only` zorunlu değil; `Content-Security-Policy: frame-ancestors 'self'` zorunlu. `'unsafe-inline'`/`'unsafe-eval'` Report-Only içinde bilerek var (GA ve Next.js için); zorunlu CSP'de nonce'a geçilmesi önerilir.
 6. **`src/modules/projects/project-repository.ts`** — `list` sıralamasına son anahtar olarak `id` eklendi (sayfalar arası kararlılık); davranış değişikliği: aynı değerli satırların sırası artık deterministik.
 
+## Aşama 4 değişiklikleri
+- `src/components/ui/confirm-dialog.tsx` (+ `dialog.tsx`'e `DialogDescription`), `src/app/layout.tsx` (`ConfirmProvider`), 14 bileşende `window.confirm` → `await confirm(...)` (otomatik dönüşüm; `tsc` + `eslint` denetledi). İnceleme önerisi: dönüştürülen işleyicilerin `async` olması davranışı değiştirmemeli; hook'lar bileşen düzeyinde.
+- `src/app/manifest.ts`, `src/hooks/use-unsaved-changes.ts`, `work-plan-editor.tsx` (dirty uyarısı).
+
 ## Değişen dosyalar (özet)
 - Bağımlılık: `package.json`, `package-lock.json`
 - Yönlendirme/oturum: `src/lib/safe-redirect.ts`, `src/components/auth/login-form.tsx`, `src/app/auth/callback/route.ts`, `src/middleware.ts`
@@ -47,7 +51,7 @@ node tests/db/work-plan-drafts.test.mjs     # V-03 (DB tarafı)
 | CSP zorunluluğu | Önce canlıda Report-Only izlenmeli |
 | Süper admin MFA/AAL2 | Kurtarma prosedürü ve onay gerekli |
 | Ön yüz/E2E testleri | Altyapı yok |
-| Aşama 4 (UX: PWA, kaydedilmemiş değişiklik, rehber, onay pencereleri, hata mesajları, tatiller, abonelik, paket/yasal, büyük bileşenler) | Talimat güvenlik bitmeden başlamayı yasakladı; ticari kararlar onay gerektirir |
+| Aşama 4 kalanı (rehber, hata mesajı eşlemesi, tatiller, abonelik, paket/yasal, büyük bileşenler, kalan 13 `window.confirm`, çevrimdışı) | Ticari/ek tasarım kararları ve tarayıcı testi gerekir |
 | `delete-user` Edge Function adlandırma/oran sınırı | Deploy gerekir |
 | Supabase/Vercel panel ayarları | Erişim yok: doğrulanamadı |
 
