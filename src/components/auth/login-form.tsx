@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { safeNextPath } from "@/lib/safe-redirect";
 import { loginSchema, type LoginFormValues } from "@/lib/validations/project";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +49,7 @@ export function LoginForm() {
     }
 
     toast.success("Hoş geldiniz");
-    const redirect = searchParams.get("redirect") || "/panel";
+    const redirect = safeNextPath(searchParams.get("redirect"));
     router.push(redirect);
     router.refresh();
   }
