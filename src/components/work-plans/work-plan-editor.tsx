@@ -87,6 +87,8 @@ type Props = {
   projects: ProjectOption[];
   initialDate?: string;
   existingPlanId?: string;
+  /** Düzenleme açıldığındaki updated_at; kayıtta başkasının araya girdiğini yakalamak için. */
+  existingPlanUpdatedAt?: string;
   initialTeams?: WorkPlanTeamSnapshot[];
   initialAbsences?: WorkPlanAbsenceSnapshot[];
   initialNotes?: string | null;
@@ -137,6 +139,7 @@ export function WorkPlanEditor({
   projects,
   initialDate,
   existingPlanId,
+  existingPlanUpdatedAt,
   initialTeams,
   initialAbsences,
   initialNotes,
@@ -646,6 +649,7 @@ export function WorkPlanEditor({
         notes,
         userId: user.id,
         existingPlanId,
+        expectedUpdatedAt: existingPlanUpdatedAt ?? null,
         absences,
         teams: planTeams(),
       });

@@ -36,6 +36,7 @@ export default async function EditWorkPlanPage({ params }: Props) {
       vehicles={vehicles}
       projects={projects}
       existingPlanId={plan.id}
+      existingPlanUpdatedAt={plan.updated_at}
       initialDate={plan.plan_date}
       initialTeams={plan.teams}
       initialAbsences={plan.absences}
