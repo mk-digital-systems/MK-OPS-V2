@@ -30,6 +30,7 @@ import { formatDate } from "@/lib/utils";
 import { NativeSelect } from "@/components/ui/native-select";
 import {
   personnelSchema,
+  type PersonnelFormOutput,
   type PersonnelFormValues,
 } from "@/lib/validations/work-plan";
 import { createClient } from "@/lib/supabase/client";
@@ -155,7 +156,7 @@ export function PersonnelManager({
       return next;
     });
 
-  const form = useForm<PersonnelFormValues>({
+  const form = useForm<PersonnelFormValues, unknown, PersonnelFormOutput>({
     resolver: zodResolver(personnelSchema),
     defaultValues: {
       full_name: "",
@@ -361,7 +362,7 @@ export function PersonnelManager({
     }
   }
 
-  async function onSubmit(values: PersonnelFormValues) {
+  async function onSubmit(values: PersonnelFormOutput) {
     setLoading(true);
     const supabase = createClient();
     const {

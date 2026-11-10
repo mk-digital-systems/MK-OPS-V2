@@ -250,6 +250,10 @@ dökümüne göre geri yükleme yapılır. RLS politikaları veri sınırını b
 
 ## 15. Diğer güvenlik notları
 
+- **Süper admin MFA:** `is_super_admin()` fonksiyonu, doğrulanmış (verified) MFA faktörü olan platform yöneticisi için `aal2` oturum ister
+  (`20261123000001_super_admin_mfa.sql`); `aal1` oturumla bütün admin RPC'leri ve süper admin RLS yolları `42501 / mfa_required` verir.
+  Faktörü olmayan yönetici etkilenmez. Kurtarma: `delete from auth.mfa_factors where user_id = '…';` (SQL Editor). Test: `tests/db/super-admin-mfa.test.mjs`.
+
 - Service role anahtarı yalnızca sunucu/edge function ortam değişkenindedir; repoya, `.env.example`'a, istemci koduna
   girmez. `.env*` dosyaları git'e eklenmez.
 - Edge function'lar (`supabase/functions/*`) çağıranı doğrular (`getUser`) ve rolünü/yetkisini kontrol ettikten sonra

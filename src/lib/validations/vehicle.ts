@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+// Mesajı olmayan kuralların hata metni Türkçe olur (özel mesajlarımız etkilenmez).
+z.config(z.locales.tr());
+
 export const vehicleSchema = z.object({
   plate: z
     .string()
@@ -27,4 +30,5 @@ export const vehicleSchema = z.object({
   notes: z.string().trim().max(2000).optional().or(z.literal("")),
 });
 
-export type VehicleFormValues = z.infer<typeof vehicleSchema>;
+export type VehicleFormValues = z.input<typeof vehicleSchema>;
+export type VehicleFormOutput = z.output<typeof vehicleSchema>;

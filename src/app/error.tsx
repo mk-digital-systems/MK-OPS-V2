@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     console.error(error);
+    // Hata izleme açıksa (NEXT_PUBLIC_SENTRY_DSN) bildir; kapalıyken SDK hiç indirilmez.
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN) void import("@sentry/nextjs").then((Sentry) => Sentry.captureException(error));
   }, [error]);
 
   return (

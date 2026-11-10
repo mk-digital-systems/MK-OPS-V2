@@ -7,6 +7,7 @@ import {
   Building2,
   CalendarDays,
   History,
+  KeyRound,
   LibraryBig,
   LifeBuoy,
   LogOut,
@@ -38,6 +39,7 @@ const LINKS: NavLink[] = [
   { href: "/admin/kataloglar", label: "Kataloglar", icon: LibraryBig },
   { href: "/admin/tatiller", label: "Resmi Tatiller", icon: CalendarDays },
   { href: "/admin/gecmis", label: "İşlem Geçmişi", icon: History },
+  { href: "/admin/guvenlik", label: "Güvenlik (2 adım)", icon: KeyRound },
 ];
 
 const POLL_MS = 60_000;

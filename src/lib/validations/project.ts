@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+// Mesajı olmayan kuralların hata metni Türkçe olur (özel mesajlarımız etkilenmez).
+z.config(z.locales.tr());
+
 const optionalDate = z
   .string()
   .trim()

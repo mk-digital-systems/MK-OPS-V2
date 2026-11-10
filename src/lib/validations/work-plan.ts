@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+// Mesajı olmayan kuralların hata metni Türkçe olur (özel mesajlarımız etkilenmez).
+z.config(z.locales.tr());
+
 export const personnelSchema = z
   .object({
     full_name: z
@@ -53,7 +56,8 @@ export const personnelSchema = z
     }
   });
 
-export type PersonnelFormValues = z.infer<typeof personnelSchema>;
+export type PersonnelFormValues = z.input<typeof personnelSchema>;
+export type PersonnelFormOutput = z.output<typeof personnelSchema>;
 
 export const workPlanMemberSchema = z.object({
   personnel_id: z.string().nullable(),

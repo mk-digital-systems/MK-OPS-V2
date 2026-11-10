@@ -1,13 +1,17 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { mfaVerifyHref, shouldRedirectToMfa } from "@/lib/mfa";
 
 /**
  * 1) Sayfa yolunu sunucu bileşenlerine `x-app-pathname` başlığıyla iletir (panel/layout.tsx kullanır).
  * 2) Supabase oturumunu yeniler: süresi dolmak üzere olan erişim anahtarı burada yenilenir ve yeni
  *    çerezler hem bu isteğe (sunucu bileşenleri güncel oturumu görsün) hem yanıta (tarayıcı alsın) yazılır.
  *
- * Bilerek YÖNLENDİRME YAPMAZ: yetki kararları layout / sayfa / RLS düzeyinde; burada yönlendirme
- * döngü riski doğurur. Hata olursa istek olduğu gibi devam eder, site açılmaya devam eder.
+ * 3) TEK yönlendirme: doğrulanmış iki adımlı doğrulaması (MFA) olan ama oturumu henüz aal1 olan kullanıcı
+ *    (süper admin) uygulama bölümlerinde /mfa-dogrulama sayfasına alınır. Yetki kararının kendisi
+ *    veritabanındadır (is_super_admin() aal2 ister); bu yalnızca kullanıcıyı doğru ekrana taşır.
+ *    Başka yetki/rol yönlendirmesi burada YAPILMAZ (layout / sayfa / RLS düzeyinde). Hata olursa istek
+ *    olduğu gibi devam eder, site açılmaya devam eder.
  */
 export async function middleware(request: NextRequest) {
   const buildResponse = () => {
@@ -39,7 +43,17 @@ export async function middleware(request: NextRequest) {
       },
     });
     // getUser() jetonu doğrular ve gerekirse yeniler (getSession() sunucuda güvenilmez).
-    await supabase.auth.getUser();
+    const { data } = await supabase.auth.getUser();
+    if (data.user) {
+      const { data: levels } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      const { pathname, search } = request.nextUrl;
+      if (shouldRedirectToMfa(pathname, request.method, levels)) {
+        const redirect = NextResponse.redirect(new URL(mfaVerifyHref(pathname, search), request.url));
+        // Yenilenen oturum çerezlerini yönlendirme yanıtına da taşı.
+        for (const cookie of response.headers.getSetCookie()) redirect.headers.append("set-cookie", cookie);
+        return redirect;
+      }
+    }
   } catch (error) {
     console.error("Oturum yenileme atlandı", error instanceof Error ? error.message : error);
   }

@@ -14,6 +14,7 @@ import { downloadVehicleEquipmentWord } from "@/lib/vehicle-equipment-word";
 import { useReportBrand } from "@/components/layout/company-brand-provider";
 import {
   vehicleSchema,
+  type VehicleFormOutput,
   type VehicleFormValues,
 } from "@/lib/validations/vehicle";
 import { formatDate } from "@/lib/utils";
@@ -89,7 +90,7 @@ export function VehiclesManager({
   const [reportMonth, setReportMonth] = useState(currentMonth);
   const [dateFrom, setDateFrom] = useState(`${currentMonth}-01`);
   const [dateTo, setDateTo] = useState(new Date().toISOString().slice(0, 10));
-  const form = useForm<VehicleFormValues>({
+  const form = useForm<VehicleFormValues, unknown, VehicleFormOutput>({
     resolver: zodResolver(vehicleSchema),
     defaultValues: {
       plate: "",
@@ -177,7 +178,7 @@ export function VehiclesManager({
     finally { setLoading(false); }
   }
 
-  async function onSubmit(values: VehicleFormValues) {
+  async function onSubmit(values: VehicleFormOutput) {
     setLoading(true);
     try {
       const supabase = createClient();
