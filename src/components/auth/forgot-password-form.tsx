@@ -7,6 +7,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { isCaptchaError } from "@/lib/captcha";
+import { userErrorMessage } from "@/lib/user-error";
+import { TurnstileWidget, useTurnstile } from "@/components/auth/turnstile-widget";
 import {
   forgotPasswordSchema,
   type ForgotPasswordFormValues,
@@ -25,6 +28,7 @@ import {
 export function ForgotPasswordForm() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const captcha = useTurnstile();
   const form = useForm<ForgotPasswordFormValues>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: "" },
@@ -36,11 +40,17 @@ export function ForgotPasswordForm() {
     const origin = window.location.origin;
     const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
       redirectTo: `${origin}/auth/callback?next=/update-password`,
+      ...captcha.options,
     });
     setLoading(false);
+    // CAPTCHA jetonu tek kullanımlıktır: sonuç ne olursa olsun yeni doğrulama istenir.
+    captcha.reset();
 
     if (error) {
-      toast.error("Şifre sıfırlama e-postası gönderilemedi");
+      toast.error(
+        isCaptchaError(error) ? "Güvenlik doğrulaması başarısız" : "Şifre sıfırlama e-postası gönderilemedi",
+        isCaptchaError(error) ? { description: userErrorMessage(error) } : undefined
+      );
       return;
     }
 
@@ -78,7 +88,8 @@ export function ForgotPasswordForm() {
                 </p>
               )}
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <TurnstileWidget captcha={captcha} />
+            <Button type="submit" className="w-full" disabled={loading || !captcha.ready}>
               {loading && <Loader2 className="animate-spin" />}
               Bağlantı Gönder
             </Button>

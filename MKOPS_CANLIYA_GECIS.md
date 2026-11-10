@@ -60,6 +60,19 @@ Anon probe: `POST /rest/v1/rpc/save_work_plan` anon anahtarıyla → `42501` bek
 - [ ] Edge Function `delete-user`: `verify_jwt = true` (config.toml'da var). Mesajlar kodda "firma yöneticisi" olarak düzeltildi; **yeniden deploy edilmeli** (`supabase functions deploy delete-user`, ayrı onay).
 - [ ] Süper admin hesabı için MFA (TOTP) kaydı; ikinci süper admin ve kurtarma adımı belgesi → sonra AAL2 zorunluluğu (ayrı onay).
 
+## 3a. Cloudflare Turnstile (CAPTCHA) — kod hazır, SIRA ÖNEMLİ
+Kod `NEXT_PUBLIC_TURNSTILE_SITE_KEY` yoksa CAPTCHA kutusunu göstermez ve Auth çağrılarına token eklemez (mevcut giriş aynen çalışır).
+
+1. **Vercel → Project → Settings → Environment Variables:** `NEXT_PUBLIC_TURNSTILE_SITE_KEY` = Cloudflare **Site Key** (herkese açık anahtar). Production (ve istersen Preview) için ekle.
+   - Cloudflare widget'ının **Hostname** listesinde üretim alan adı (ve önizleme kullanacaksan `*.vercel.app` önizleme adresi) bulunmalı; yoksa widget hata verir (kod bu durumda kullanıcıyı kilitlemez, uyarı gösterir).
+2. Kodu yayınla (onay sonrası) ve `/login`, `/register`, `/forgot-password` sayfalarında kutunun göründüğünü, düğmenin doğrulamadan sonra açıldığını doğrula. **Supabase CAPTCHA hâlâ kapalıyken** üç akış çalışmalı (token Supabase'e gider, kapalıyken yok sayılır).
+3. **Ancak sonra** Supabase → Authentication → Attack Protection → CAPTCHA: sağlayıcı *Turnstile*, **Secret Key**'i yalnızca bu panele gir. (Secret Key Vercel'e, repoya veya `NEXT_PUBLIC_*` değişkenine yazılmaz.)
+4. Önizleme/üretimde dene: giriş, kayıt, şifre sıfırlama isteği, e-postadaki bağlantıyla yeni şifre belirleme (bu son adım CAPTCHA kullanmaz).
+5. Sorun olursa anında geri dönüş: Supabase'de CAPTCHA'yı kapat (kod zararsız kalır).
+6. Sonra CSP'yi Report-Only'den zorunluya alırken `https://challenges.cloudflare.com` script/frame/connect'te zaten ekli.
+
+**Sıra ters yapılırsa** (önce Supabase'de aç, sonra kod) kimse giriş yapamaz.
+
 ## 4. Vercel
 - [ ] Ortam değişkenleri: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (üretim ve önizleme). **Service role anahtarı Vercel'de olmamalı.**
 - [ ] İlk önizleme dağıtımında build başarılı mı (bu makinede yerel build çalışmıyor; CI ve Vercel build'i gerçek doğrulama).

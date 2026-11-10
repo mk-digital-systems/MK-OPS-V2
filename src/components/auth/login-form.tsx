@@ -9,6 +9,9 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { safeNextPath } from "@/lib/safe-redirect";
+import { isCaptchaError } from "@/lib/captcha";
+import { userErrorMessage } from "@/lib/user-error";
+import { TurnstileWidget, useTurnstile } from "@/components/auth/turnstile-widget";
 import { loginSchema, type LoginFormValues } from "@/lib/validations/project";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +30,7 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const captcha = useTurnstile();
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
@@ -38,9 +42,16 @@ export function LoginForm() {
     const { error } = await supabase.auth.signInWithPassword({
       email: values.email,
       password: values.password,
+      options: captcha.options,
     });
     setLoading(false);
+    // CAPTCHA jetonu tek kullanımlıktır: sonuç ne olursa olsun yeni doğrulama istenir.
+    captcha.reset();
 
+    if (error && isCaptchaError(error)) {
+      toast.error("Güvenlik doğrulaması başarısız", { description: userErrorMessage(error) });
+      return;
+    }
     if (error) {
       toast.error("Giriş başarısız", {
         description: "E-posta veya şifre hatalı.",
@@ -104,7 +115,8 @@ export function LoginForm() {
               </p>
             )}
           </div>
-          <Button type="submit" className="w-full" disabled={loading}>
+          <TurnstileWidget captcha={captcha} />
+          <Button type="submit" className="w-full" disabled={loading || !captcha.ready}>
             {loading && <Loader2 className="animate-spin" />}
             Giriş Yap
           </Button>

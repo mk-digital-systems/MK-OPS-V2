@@ -33,6 +33,9 @@ export function userErrorMessage(error: unknown, fallback: string = GENERIC_ERRO
   const text = message.trim();
   const tag = code ? ` (Teknik kod: ${code})` : "";
 
+  if (/captcha/i.test(text) || /captcha/i.test(code)) {
+    return "Güvenlik doğrulaması tamamlanamadı veya süresi doldu. Kutucuğu yeniden doğrulayıp tekrar deneyin. Sayfa yüklenmediyse yenileyin ya da reklam engelleyicinizi bu site için kapatın.";
+  }
   if (/failed to fetch|networkerror|network request failed|load failed|fetch failed|err_internet|offline/i.test(text)) {
     return "İnternet bağlantısı kurulamadı. Bağlantınızı kontrol edip tekrar deneyin. İşlem tamamlanmamış olabilir; sayfayı yenileyip kaydın durumunu kontrol edin.";
   }
