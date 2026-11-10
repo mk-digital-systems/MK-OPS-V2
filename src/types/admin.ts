@@ -107,3 +107,43 @@ export const SUPPORT_STATUS_LABELS: Record<SupportStatus, string> = {
   answered: "Yanıtlandı",
   closed: "Kapandı",
 };
+
+export type AdminCompanyHealth = {
+  company_id: string;
+  last_sign_in_at: string | null;
+  last_activity_at: string | null;
+  activity_30d: number;
+  project_count: number;
+  personnel_count: number;
+  vehicle_count: number;
+};
+
+export type PlatformEventAction = "update_company" | "suspend_company" | "unsuspend_company" | "delete_company";
+
+export type PlatformEvent = {
+  id: number;
+  created_at: string;
+  actor_email: string | null;
+  action: PlatformEventAction;
+  company_id: string | null;
+  company_name: string;
+  details: Record<string, unknown> & Partial<Record<string, { old: unknown; new: unknown }>>;
+};
+
+export const PLATFORM_EVENT_LABELS: Record<PlatformEventAction, string> = {
+  update_company: "Plan / limit güncelledi",
+  suspend_company: "Askıya aldı",
+  unsuspend_company: "Askıdan çıkardı",
+  delete_company: "Firmayı sildi",
+};
+
+export const PLATFORM_FIELD_LABELS: Record<string, string> = {
+  plan: "Plan",
+  plan_ends_at: "Plan bitişi",
+  trial_ends_at: "Deneme bitişi",
+  user_limit: "Toplam kullanıcı",
+  site_chief_limit: "Firma yöneticisi",
+  manager_limit: "Şantiye şefi",
+  accounting_limit: "Muhasebe",
+  branch_limit: "Ek şube",
+};

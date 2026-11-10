@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AdminCompany, AdminCompanyUser, AdminSupportRequest, Catalog, CatalogItem, CatalogType, SupportStatus } from "@/types/admin";
+import type { AdminCompany, AdminCompanyHealth, AdminCompanyUser, PlatformEvent, AdminSupportRequest, Catalog, CatalogItem, CatalogType, SupportStatus } from "@/types/admin";
 
 export class AdminRepository {
   constructor(private readonly supabase: SupabaseClient) {}
@@ -8,6 +8,18 @@ export class AdminRepository {
     const { data, error } = await this.supabase.rpc("admin_list_companies");
     if (error) throw error;
     return (data ?? []) as AdminCompany[];
+  }
+
+  async companyHealth(): Promise<AdminCompanyHealth[]> {
+    const { data, error } = await this.supabase.rpc("admin_company_health");
+    if (error) throw error;
+    return (data ?? []) as AdminCompanyHealth[];
+  }
+
+  async platformEvents(companyId: string | null = null, limit = 200): Promise<PlatformEvent[]> {
+    const { data, error } = await this.supabase.rpc("admin_platform_events", { p_company_id: companyId, p_limit: limit });
+    if (error) throw error;
+    return (data ?? []) as PlatformEvent[];
   }
 
   async listCompanyUsers(companyId: string): Promise<AdminCompanyUser[]> {

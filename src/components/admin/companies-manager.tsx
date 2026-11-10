@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addMonths } from "date-fns";
-import { Ban, Loader2, Play, Search, Settings2, Trash2, Users } from "lucide-react";
+import { Ban, History, Loader2, Play, Search, Settings2, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
-import type { AdminCompany, AdminCompanyUser, Catalog } from "@/types/admin";
+import type { AdminCompany, AdminCompanyHealth, AdminCompanyUser, Catalog } from "@/types/admin";
 import { USER_ROLE_LABELS, type CompanyAccessStatus } from "@/types/auth";
 import {
   ACCESS_STATUS_CLASSES,
@@ -26,6 +26,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { AdminOverview, isIdleCompany } from "@/components/admin/admin-overview";
 
 const pad = (value: number) => String(value).padStart(2, "0");
 const toDateInput = (iso: string | null) => {
@@ -43,11 +44,28 @@ export function StatusBadge({ status }: { status: CompanyAccessStatus }) {
   return <Badge className={ACCESS_STATUS_CLASSES[status]}>{ACCESS_STATUS_LABELS[status]}</Badge>;
 }
 
-export function CompaniesManager({ initialCompanies, catalogs }: { initialCompanies: AdminCompany[]; catalogs: Catalog[] }) {
+function relativeDays(iso: string | null): string {
+  if (!iso) return "Hiç";
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
+  if (days <= 0) return "Bugün";
+  if (days === 1) return "Dün";
+  return `${days} gün önce`;
+}
+
+export function CompaniesManager({
+  initialCompanies,
+  catalogs,
+  health = [],
+}: {
+  initialCompanies: AdminCompany[];
+  catalogs: Catalog[];
+  health?: AdminCompanyHealth[];
+}) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<CompanyAccessStatus | "all">("all");
   const [selected, setSelected] = useState<AdminCompany | null>(null);
+  const healthById = useMemo(() => new Map(health.map((item) => [item.company_id, item])), [health]);
 
   const counts = useMemo(() => {
     const result = { all: initialCompanies.length, trial: 0, active: 0, expired: 0, suspended: 0 };
@@ -73,6 +91,8 @@ export function CompaniesManager({ initialCompanies, catalogs }: { initialCompan
           Plan atayın, deneme süresini uzatın veya şirketleri askıya alın
         </p>
       </div>
+
+      <AdminOverview companies={initialCompanies} health={healthById} onPick={setSelected} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {(["all", "trial", "active", "expired", "suspended"] as const).map((key) => (
@@ -136,6 +156,9 @@ export function CompaniesManager({ initialCompanies, catalogs }: { initialCompan
                   <p className="truncate text-sm text-muted-foreground">
                     {company.owner_name || "—"} · {company.owner_email || "—"}
                   </p>
+                  {healthById.has(company.id) && (
+                    <HealthLine item={healthById.get(company.id)!} idle={isIdleCompany(company, healthById.get(company.id))} />
+                  )}
                 </div>
                 <div className="grid grid-cols-3 gap-4 text-sm md:w-[420px]">
                   <div>
@@ -177,6 +200,7 @@ export function CompaniesManager({ initialCompanies, catalogs }: { initialCompan
       {selected && (
         <ManageCompanyDialog
           company={selected}
+          health={healthById.get(selected.id)}
           catalogs={catalogs}
           onClose={() => setSelected(null)}
           onChanged={() => {
@@ -189,13 +213,25 @@ export function CompaniesManager({ initialCompanies, catalogs }: { initialCompan
   );
 }
 
+function HealthLine({ item, idle }: { item: AdminCompanyHealth; idle: boolean }) {
+  return (
+    <p className="truncate text-xs text-muted-foreground">
+      Son giriş: {relativeDays(item.last_sign_in_at)} · Son hareket: {relativeDays(item.last_activity_at)} ·{" "}
+      {item.project_count} proje · {item.personnel_count} personel · {item.vehicle_count} araç
+      {idle && <span className="ml-1 font-medium text-amber-600">· kurulum yapılmamış</span>}
+    </p>
+  );
+}
+
 function ManageCompanyDialog({
   company,
+  health,
   catalogs,
   onClose,
   onChanged,
 }: {
   company: AdminCompany;
+  health?: AdminCompanyHealth;
   catalogs: Catalog[];
   onClose: () => void;
   onChanged: () => void;
@@ -350,6 +386,47 @@ function ManageCompanyDialog({
             {formatDateTime(company.created_at)}
           </p>
         </DialogHeader>
+
+        {health && (
+          <section className="space-y-2 rounded-lg border bg-muted/30 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold">Kullanım</h3>
+              <Link
+                href={`/admin/gecmis?firma=${company.id}`}
+                className="flex items-center gap-1 text-xs font-medium text-primary underline"
+              >
+                <History className="h-3 w-3" />
+                Bu firmanın işlem geçmişi
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Son giriş</p>
+                <p className="font-medium">{health.last_sign_in_at ? formatDateTime(health.last_sign_in_at) : "Hiç"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Son hareket</p>
+                <p className="font-medium">{health.last_activity_at ? formatDateTime(health.last_activity_at) : "Hiç"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Son 30 gün işlem</p>
+                <p className="font-medium">{health.activity_30d}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Proje</p>
+                <p className="font-medium">{health.project_count}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Personel</p>
+                <p className="font-medium">{health.personnel_count}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Araç</p>
+                <p className="font-medium">{health.vehicle_count}</p>
+              </div>
+            </div>
+          </section>
+        )}
 
         <section className="space-y-4">
           <h3 className="text-sm font-semibold">Plan ve limit</h3>

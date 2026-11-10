@@ -27,6 +27,7 @@ node tests/db/vault.test.mjs # tek dosya, ayrıntılı çıktı
 | `catalogs` | Süper admin katalogları, türlerin firmaya kurulması, eklentiden geçiş |
 | `corporate-projects` | Kurumsal proje eklentisi, elle durum, ekip başı, toplam proje tarihi |
 | `hp-projects` | Süper admin proje eklentisi, HP odaklı tür, paftalar, paftadan proje durumu, HP raporu |
+| `admin-overview` | Süper admin firma sağlığı, platform işlem geçmişi (plan/askı/silme kaydı, silinen firma dahil) |
 | `hakedis` | Birim fiyat, fiyat sabitleme, rapor, yetki |
 | `production` | İmalat → proje iş kaydı → hakediş, ek iş fiyatı |
 | `production-extra-approval` | İmalattaki özel iş kalemi: fiyat onayı, bildirim, hakedişe girişi |
