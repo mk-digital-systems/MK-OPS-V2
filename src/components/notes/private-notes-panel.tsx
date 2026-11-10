@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { userErrorMessage } from "@/lib/user-error";
 
 const vault = () => new CompanyVaultRepository(createClient());
 
@@ -20,6 +22,7 @@ const vault = () => new CompanyVaultRepository(createClient());
  * firma şifresiyle açılır; koruma sunucudadır. Oturum anahtarı yalnızca bellekte tutulur.
  */
 export function PrivateNotesPanel() {
+  const confirm = useConfirm();
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<CompanyVaultStatus | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -36,7 +39,7 @@ export function PrivateNotesPanel() {
     try {
       setStatus(await vault().status());
     } catch (error) {
-      toast.error("Gizli alan bilgisi alınamadı", { description: (error as Error).message });
+      toast.error("Gizli alan bilgisi alınamadı", { description: userErrorMessage(error) });
     }
   }
 
@@ -51,7 +54,7 @@ export function PrivateNotesPanel() {
   /** Oturum düşmüşse paneli kilitler; değilse hatayı gösterir. */
   function handleError(error: unknown, fallback: string) {
     if (isVaultLockedError(error)) relock();
-    else toast.error(fallback, { description: (error as Error)?.message });
+    else toast.error(fallback, { description: userErrorMessage(error) });
   }
 
   async function unlock(event: React.FormEvent) {
@@ -68,7 +71,7 @@ export function PrivateNotesPanel() {
       setLegacyNotes(legacy);
       setPassword("");
     } catch (error) {
-      toast.error((error as Error).message || "Şifre doğrulanamadı");
+      toast.error(userErrorMessage(error, "Şifre doğrulanamadı"));
     } finally {
       setLoading(false);
     }
@@ -108,7 +111,7 @@ export function PrivateNotesPanel() {
   }
 
   async function remove(id: string) {
-    if (!token || !window.confirm("Bu gizli not firmadaki herkes için kalıcı olarak silinsin mi?")) return;
+    if (!token || !(await confirm("Bu gizli not firmadaki herkes için kalıcı olarak silinsin mi?"))) return;
     try {
       await vault().remove(token, id);
       setNotes((current) => current.filter((note) => note.id !== id));
@@ -132,13 +135,13 @@ export function PrivateNotesPanel() {
   }
 
   async function removeLegacy(note: PrivateNote) {
-    if (!window.confirm("Bu kişisel not kalıcı olarak silinsin mi?")) return;
+    if (!(await confirm("Bu kişisel not kalıcı olarak silinsin mi?"))) return;
     try {
       await new PrivateNotesRepository(createClient()).remove(note.id);
       setLegacyNotes((current) => current.filter((item) => item.id !== note.id));
       toast.success("Kişisel not silindi");
     } catch (error) {
-      toast.error("Not silinemedi", { description: (error as Error).message });
+      toast.error("Not silinemedi", { description: userErrorMessage(error) });
     }
   }
 

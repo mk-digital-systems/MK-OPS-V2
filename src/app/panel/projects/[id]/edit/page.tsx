@@ -1,3 +1,4 @@
+import { requireModuleWrite } from "@/lib/supabase/request-cache";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProjectRepository } from "@/modules/projects/project-repository";
@@ -12,6 +13,7 @@ export const metadata = {
 };
 
 export default async function EditProjectPage({ params }: Props) {
+  await requireModuleWrite("projects", "/panel/projects");
   const { id } = await params;
   const supabase = await createClient();
   const repository = new ProjectRepository(supabase);

@@ -5,6 +5,7 @@ import { Check, Clock3, Loader2, Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/utils";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export type PendingApprovalItem = {
   id: string;
@@ -37,11 +38,12 @@ export function PendingApprovalsCard({
   onReview: (id: string, approve: boolean) => Promise<void>;
   onEdit?: (id: string) => void;
 }) {
+  const confirm = useConfirm();
   const [busy, setBusy] = useState<string | null>(null);
   if (items.length === 0) return null;
 
   async function review(id: string, approve: boolean) {
-    if (!approve && !window.confirm(`Bu ${noun} kaydı reddedilip silinecek. Devam edilsin mi?`)) return;
+    if (!approve && !(await confirm(`Bu ${noun} kaydı reddedilip silinecek. Devam edilsin mi?`))) return;
     setBusy(`${id}-${approve}`);
     try {
       await onReview(id, approve);

@@ -147,3 +147,9 @@ export const PLATFORM_FIELD_LABELS: Record<string, string> = {
   accounting_limit: "Muhasebe",
   branch_limit: "Ek şube",
 };
+
+export type OfficialHoliday = {
+  date: string;
+  name: string;
+  kind: "fixed" | "movable";
+};

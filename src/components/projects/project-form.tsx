@@ -31,6 +31,7 @@ import {
 } from "@/components/projects/corporate-status-panel";
 import type { Personnel } from "@/types/work-plan";
 import { todayISODate } from "@/lib/constants/project";
+import { userErrorMessage } from "@/lib/user-error";
 
 type Props = {
   mode: "create" | "edit";
@@ -160,7 +161,7 @@ export function ProjectForm({ mode, project, types: allTypes, locations, personn
               )
             );
           } catch (error) {
-            toast.error("Proje oluşturuldu ama keşif kaydedilemedi", { description: (error as Error).message });
+            toast.error("Proje oluşturuldu ama keşif kaydedilemedi", { description: userErrorMessage(error) });
           }
         }
       } else {
@@ -170,7 +171,7 @@ export function ProjectForm({ mode, project, types: allTypes, locations, personn
         if (corporateCreate) {
           // Durum kaydedilemezse proje "Başlamadı" olarak kalır; proje sayfasından değiştirilebilir.
           await saveCorporateStatus(repository, savedId, corporateStatus, personnel).catch((error: Error) =>
-            toast.error("Proje oluşturuldu ama durumu kaydedilemedi", { description: error.message })
+            toast.error("Proje oluşturuldu ama durumu kaydedilemedi", { description: userErrorMessage(error) })
           );
         }
       }

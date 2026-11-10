@@ -25,7 +25,7 @@ import type {
 } from "@/types/attendance";
 import {
   MONTH_NAMES,
-  getAttendanceMeta,
+  getDayAttendanceMeta,
   getMonthDays,
 } from "@/lib/constants/attendance";
 import { formatEmploymentDuration } from "@/lib/personnel";
@@ -67,8 +67,12 @@ type Props = {
   payroll: PayrollRow | null;
   advances: PersonnelAdvance[];
   canWriteAdvances: boolean;
+  /** Resmi tatiller (tarih → ad). */
+  holidays?: Record<string, string>;
   assignedVehiclePlate?: string | null;
 };
+
+const NO_HOLIDAYS: Record<string, string> = {};
 
 export function PersonnelDetail({
   personnel,
@@ -79,6 +83,7 @@ export function PersonnelDetail({
   payroll,
   advances,
   canWriteAdvances,
+  holidays = NO_HOLIDAYS,
   assignedVehiclePlate = null,
 }: Props) {
   const brand = useReportBrand();
@@ -137,7 +142,7 @@ export function PersonnelDetail({
       className: "bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40",
     },
   ];
-  const monthDays = getMonthDays(year, month);
+  const monthDays = getMonthDays(year, month, holidays);
   const selectedMonthTotals = countAttendanceRecords(summary.month_records);
   const recordsByDate = new Map(
     summary.month_records.map((record) => [record.date, record])
@@ -207,6 +212,7 @@ export function PersonnelDetail({
         ],
         year,
         month,
+        holidays,
         fileName: `${toFileSlug(personnel.full_name)}-puantaj-${year}-${String(
           month
         ).padStart(2, "0")}.xlsx`,
@@ -228,6 +234,7 @@ export function PersonnelDetail({
         },
         year,
         month,
+        holidays,
       });
     } catch (error) {
       console.error(error);
@@ -544,13 +551,17 @@ export function PersonnelDetail({
             <div className="grid min-w-[760px] grid-cols-7 gap-2">
               {monthDays.map((day) => {
                 const record = recordsByDate.get(day.isoDate);
-                const meta = record ? getAttendanceMeta(record.status) : null;
+                const meta = record ? getDayAttendanceMeta(record.status, day) : null;
                 return (
                   <div
                     key={day.isoDate}
-                    title={meta?.label ?? "Puantaj kaydı yok"}
+                    title={[day.holidayName, meta?.label ?? "Puantaj kaydı yok"].filter(Boolean).join(" · ")}
                     className={`rounded-xl border p-2 text-center ${
-                      day.isSunday ? "bg-cyan-50 dark:bg-cyan-950/30" : ""
+                      day.isHoliday
+                        ? "bg-amber-50 dark:bg-amber-950/30"
+                        : day.isSunday
+                          ? "bg-cyan-50 dark:bg-cyan-950/30"
+                          : ""
                     }`}
                   >
                     <p className="text-[10px] text-muted-foreground">

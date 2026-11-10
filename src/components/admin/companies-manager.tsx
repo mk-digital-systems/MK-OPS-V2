@@ -27,6 +27,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AdminOverview, isIdleCompany } from "@/components/admin/admin-overview";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { userErrorMessage } from "@/lib/user-error";
 
 const pad = (value: number) => String(value).padStart(2, "0");
 const toDateInput = (iso: string | null) => {
@@ -236,6 +238,7 @@ function ManageCompanyDialog({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  const confirm = useConfirm();
   const [plan, setPlan] = useState(company.plan ?? "");
   const [planEndsAt, setPlanEndsAt] = useState(toDateInput(company.plan_ends_at));
   const [userLimit, setUserLimit] = useState(company.user_limit?.toString() ?? "");
@@ -318,7 +321,7 @@ function ManageCompanyDialog({
       toast.success(`${company.name} güncellendi`);
       onChanged();
     } catch (error) {
-      toast.error("Kaydedilemedi", { description: (error as Error)?.message });
+      toast.error("Kaydedilemedi", { description: userErrorMessage(error) });
     } finally {
       setBusy(null);
     }
@@ -331,7 +334,7 @@ function ManageCompanyDialog({
       toast.success("Kataloglar kaydedildi; türler firmaya kuruldu");
       onChanged();
     } catch (error) {
-      toast.error("Kaydedilemedi", { description: (error as Error)?.message });
+      toast.error("Kaydedilemedi", { description: userErrorMessage(error) });
     } finally {
       setBusy(null);
     }
@@ -339,14 +342,14 @@ function ManageCompanyDialog({
 
   async function toggleSuspend() {
     const suspend = company.access_status !== "suspended";
-    if (suspend && !window.confirm(`${company.name} askıya alınsın mı? Kullanıcıları panele erişemez.`)) return;
+    if (suspend && !(await confirm(`${company.name} askıya alınsın mı? Kullanıcıları panele erişemez.`))) return;
     setBusy("suspend");
     try {
       await repository().setSuspended(company.id, suspend);
       toast.success(suspend ? "Şirket askıya alındı" : "Şirket yeniden açıldı");
       onChanged();
     } catch (error) {
-      toast.error("İşlem yapılamadı", { description: (error as Error)?.message });
+      toast.error("İşlem yapılamadı", { description: userErrorMessage(error) });
     } finally {
       setBusy(null);
     }
@@ -359,7 +362,7 @@ function ManageCompanyDialog({
       toast.success(`${company.name} ve bütün verisi silindi`);
       onChanged();
     } catch (error) {
-      toast.error("Silinemedi", { description: (error as Error)?.message });
+      toast.error("Silinemedi", { description: userErrorMessage(error) });
     } finally {
       setBusy(null);
     }
@@ -369,7 +372,7 @@ function ManageCompanyDialog({
     try {
       setUsers(await repository().listCompanyUsers(company.id));
     } catch (error) {
-      toast.error("Kullanıcılar yüklenemedi", { description: (error as Error)?.message });
+      toast.error("Kullanıcılar yüklenemedi", { description: userErrorMessage(error) });
     }
   }
 

@@ -47,7 +47,7 @@ Deno.serve(async (request: Request) => {
       !callerProfile.company_id
     ) {
       return jsonResponse(
-        { error: "Yalnız şantiye şefi kullanıcı silebilir" },
+        { error: "Yalnızca firma yöneticisi kullanıcı silebilir" },
         403
       );
     }
@@ -84,7 +84,7 @@ Deno.serve(async (request: Request) => {
     }
     if (targetProfile.role === "site_chief") {
       return jsonResponse(
-        { error: "Birincil Şantiye Şefi hesabı silinemez" },
+        { error: "Firma yöneticisi hesabı silinemez" },
         403
       );
     }

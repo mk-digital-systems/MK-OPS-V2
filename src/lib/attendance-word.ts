@@ -57,6 +57,8 @@ export async function downloadMonthlyAttendanceWord(options: {
   notes?: string;
   /** Çıktı kapsamı (ör. "Firma personeli", "Taşeron: Ahmet Usta"). */
   scopeLabel?: string;
+  /** Resmi tatiller (tarih → ad); tatilde çalışma +1 mesai sayılır. */
+  holidays?: Record<string, string>;
 }) {
   const docx = await import("docx");
   const {
@@ -132,7 +134,7 @@ export async function downloadMonthlyAttendanceWord(options: {
         cell(index + 1),
         cell(person.fullName, AlignmentType.LEFT),
         cell(maskTcIdentityNumber(person.tcIdentityNumber)),
-        cell(countPayableDays(person.records), AlignmentType.CENTER, true),
+        cell(countPayableDays(person.records, options.holidays), AlignmentType.CENTER, true),
       ],
     })
   );
@@ -224,6 +226,7 @@ export async function downloadPersonnelAttendanceWord(options: {
   person: AttendanceWordPerson;
   year: number;
   month: number;
+  holidays?: Record<string, string>;
 }) {
   const docx = await import("docx");
   const {
@@ -259,7 +262,7 @@ export async function downloadPersonnelAttendanceWord(options: {
     ["Raporlu Gün", totals.medical_report],
     ["Hafta Tatili", totals.weekly_rest],
     ["Mazeretsiz Gelmedi", totals.unexcused_absence],
-    ["Toplam Hak Edilen Gün", countPayableDays(options.person.records)],
+    ["Toplam Hak Edilen Gün", countPayableDays(options.person.records, options.holidays)],
   ];
   const records = [...options.person.records].sort((a, b) => a.date.localeCompare(b.date));
   const dailyHeader = new TableRow({

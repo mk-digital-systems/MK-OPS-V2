@@ -24,9 +24,8 @@ async function ProjectsContent({ searchParams }: Props) {
   filters.branchId = await getSelectedBranchId(myBranches.branches);
   const repository = new ProjectRepository(supabase);
   await repository.refreshOverdueStatuses();
-  const [result, exportResult, types, locations, canEdit, profile] = await Promise.all([
+  const [result, types, locations, canEdit, profile] = await Promise.all([
     repository.list(filters, { refreshStatuses: false }),
-    repository.list({ ...filters, page: 1, pageSize: 5000 }, { refreshStatuses: false }),
     repository.listTypes(true),
     repository.getDistinctLocations(),
     canWrite("projects"),
@@ -41,7 +40,7 @@ async function ProjectsContent({ searchParams }: Props) {
       locations={locations}
       showCreate={canEdit}
       canManageTypes={profile?.role === "site_chief"}
-      exportProjects={exportResult.data}
+      exportFilters={filters}
       showHpReport={types.some((type) => type.screen === "hp")}
       defaultArchiveScope="active"
       allowArchiveScopeFilter

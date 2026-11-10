@@ -54,7 +54,7 @@ export default async function PersonnelDetailPage({
   const monthEnd = `${year}-${String(month).padStart(2, "0")}-${String(
     new Date(year, month, 0).getDate()
   ).padStart(2, "0")}`;
-  const [personnel, employmentPeriods, summary, advancesResult, assignedVehicleResult, canWriteAdvances] = await Promise.all([
+  const [personnel, employmentPeriods, summary, advancesResult, assignedVehicleResult, canWriteAdvances, holidays] = await Promise.all([
     personnelRepository.getById(id),
     personnelRepository.listEmploymentPeriods(id),
     attendanceRepository.getPersonnelDetail(id, year, month),
@@ -71,6 +71,7 @@ export default async function PersonnelDetailPage({
       .eq("assigned_personnel_id", id)
       .maybeSingle(),
     canWrite("attendance"),
+    attendanceRepository.getHolidays(year),
   ]);
 
   if (!personnel || !summary) notFound();
@@ -95,6 +96,7 @@ export default async function PersonnelDetailPage({
       advances={(advancesResult.data ?? []) as PersonnelAdvance[]}
       assignedVehiclePlate={assignedVehicleResult.data?.plate ?? null}
       canWriteAdvances={canWriteAdvances}
+      holidays={holidays}
     />
   );
 }

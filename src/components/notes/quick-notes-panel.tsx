@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { downloadNotesPdf } from "@/lib/notes-pdf";
 import { useReportBrand } from "@/components/layout/company-brand-provider";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { userErrorMessage } from "@/lib/user-error";
 
 function today() {
   const date = new Date();
@@ -30,6 +32,7 @@ export function QuickNotesPanel({
   initialNotes: SharedNote[];
   currentUserId: string;
 }) {
+  const confirm = useConfirm();
   const brand = useReportBrand();
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState(initialNotes);
@@ -81,7 +84,7 @@ export function QuickNotesPanel({
       toast.success(editingId ? "Not güncellendi" : "Not eklendi");
     } catch (error) {
       console.error(error);
-      toast.error("Not eklenemedi", { description: (error as Error)?.message });
+      toast.error("Not eklenemedi", { description: userErrorMessage(error) });
     } finally {
       setLoading(false);
     }
@@ -105,20 +108,20 @@ export function QuickNotesPanel({
       await downloadNotesPdf(brand, notes);
       toast.success("Notlar A4 PDF olarak indirildi");
     } catch (error) {
-      toast.error("PDF oluşturulamadı", { description: (error as Error)?.message });
+      toast.error("PDF oluşturulamadı", { description: userErrorMessage(error) });
     } finally {
       setPdfLoading(false);
     }
   }
 
   async function removeNote(noteId: string) {
-    if (!window.confirm("Bu not silinsin mi?")) return;
+    if (!(await confirm("Bu not silinsin mi?"))) return;
     try {
       await new NotesRepository(createClient()).remove(noteId);
       setNotes((current) => current.filter((note) => note.id !== noteId));
       toast.success("Not silindi");
     } catch (error) {
-      toast.error("Not silinemedi", { description: (error as Error)?.message });
+      toast.error("Not silinemedi", { description: userErrorMessage(error) });
     }
   }
 

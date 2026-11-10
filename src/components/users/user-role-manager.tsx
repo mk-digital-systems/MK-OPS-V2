@@ -35,6 +35,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { userErrorMessage } from "@/lib/user-error";
 
 /** Kullanıcıları yönetebilen roller. */
 export type UserManagerRole = Extract<UserRole, "site_chief" | "company_manager">;
@@ -111,6 +113,7 @@ export function UserRoleManager({
   branches?: Branch[];
   branchAssignments?: { user_id: string; branch_id: string }[];
 }) {
+  const confirm = useConfirm();
   const isManager = viewerRole === "site_chief";
   const [users, setUsers] = useState(initialUsers);
   const [selections, setSelections] = useState<Record<string, UserRole>>({});
@@ -195,7 +198,7 @@ Katılım kodu: ${joinCode}`);
       toast.success(selected === "pending" ? "Kullanıcının erişimi kaldırıldı" : "Kullanıcı rolü kaydedildi");
     } catch (error) {
       console.error(error);
-      toast.error("Rol güncellenemedi", { description: (error as Error)?.message });
+      toast.error("Rol güncellenemedi", { description: userErrorMessage(error) });
     } finally {
       setLoadingId(null);
     }
@@ -210,7 +213,7 @@ Katılım kodu: ${joinCode}`);
       toast.success(enabled ? "Alan yetkisi açıldı" : "Alan yetkisi kapatıldı");
     } catch (error) {
       console.error(error);
-      toast.error("Alan yetkisi güncellenemedi", { description: (error as Error)?.message });
+      toast.error("Alan yetkisi güncellenemedi", { description: userErrorMessage(error) });
     } finally {
       setLoadingPermission(null);
     }
@@ -220,7 +223,7 @@ Katılım kodu: ${joinCode}`);
     // Onaylanmamış kullanıcı için hesabı silmek yerine şirketten çıkarılır;
     // kişi başka bir şirkete katılabilir.
     if (!user.is_approved) {
-      if (!window.confirm(`${user.full_name || user.email} kullanıcısının katılma isteği reddedilsin mi?`)) return;
+      if (!(await confirm(`${user.full_name || user.email} kullanıcısının katılma isteği reddedilsin mi?`))) return;
       setDeletingId(user.id);
       try {
         await new CompanyRepository(createClient()).rejectJoinRequest(user.id);
@@ -228,14 +231,14 @@ Katılım kodu: ${joinCode}`);
         toast.success("Katılma isteği reddedildi");
       } catch (error) {
         console.error(error);
-        toast.error("İstek reddedilemedi", { description: (error as Error)?.message });
+        toast.error("İstek reddedilemedi", { description: userErrorMessage(error) });
       } finally {
         setDeletingId(null);
       }
       return;
     }
 
-    const confirmed = window.confirm(
+    const confirmed = await confirm(
       `${user.full_name || user.email} kullanıcısı tamamen silinecek. Tekrar erişebilmesi için yeniden kayıt olup onay beklemesi gerekecek. Devam edilsin mi?`
     );
     if (!confirmed) return;
@@ -248,7 +251,7 @@ Katılım kodu: ${joinCode}`);
       toast.success("Kullanıcı tamamen kaldırıldı");
     } catch (error) {
       console.error(error);
-      toast.error("Kullanıcı kaldırılamadı", { description: (error as Error)?.message });
+      toast.error("Kullanıcı kaldırılamadı", { description: userErrorMessage(error) });
     } finally {
       setDeletingId(null);
     }

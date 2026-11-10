@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -34,6 +34,7 @@ import type {
 } from "@/types/work-plan";
 import type { Vehicle } from "@/types/vehicle";
 import { createClient } from "@/lib/supabase/client";
+import { useUnsavedChangesWarning } from "@/hooks/use-unsaved-changes";
 import { WorkPlanRepository } from "@/modules/work-plans/work-plan-repository";
 import { ensureChiefFirst } from "@/modules/work-plans/whatsapp-formatter";
 import { tomorrowISODate } from "@/lib/constants/project";
@@ -56,6 +57,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { WhatsAppPreview } from "@/components/work-plans/whatsapp-preview";
+import { userErrorMessage } from "@/lib/user-error";
 
 type TeamDraft = {
   client_id: string;
@@ -87,6 +89,8 @@ type Props = {
   projects: ProjectOption[];
   initialDate?: string;
   existingPlanId?: string;
+  /** Düzenleme açıldığındaki updated_at; kayıtta başkasının araya girdiğini yakalamak için. */
+  existingPlanUpdatedAt?: string;
   initialTeams?: WorkPlanTeamSnapshot[];
   initialAbsences?: WorkPlanAbsenceSnapshot[];
   initialNotes?: string | null;
@@ -137,6 +141,7 @@ export function WorkPlanEditor({
   projects,
   initialDate,
   existingPlanId,
+  existingPlanUpdatedAt,
   initialTeams,
   initialAbsences,
   initialNotes,
@@ -178,6 +183,14 @@ export function WorkPlanEditor({
   const [absences, setAbsences] = useState<WorkPlanAbsenceSnapshot[]>(
     initialAbsences ?? []
   );
+
+  // Kaydedilmemiş değişiklik uyarısı: ilk görünümün özeti ile şimdiki durum karşılaştırılır.
+  const formSnapshot = JSON.stringify({ planDate, notes, teams, absences });
+  const initialSnapshot = useRef<string | null>(null);
+  useEffect(() => {
+    if (initialSnapshot.current === null) initialSnapshot.current = formSnapshot;
+  }, [formSnapshot]);
+  useUnsavedChangesWarning(initialSnapshot.current !== null && formSnapshot !== initialSnapshot.current && !loading);
 
   const activePersonnel = useMemo(
     () => personnel.filter((p) => p.is_active),
@@ -549,7 +562,7 @@ export function WorkPlanEditor({
       router.push(`/panel/work-plans/drafts/${saved.id}/edit`);
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Taslak kaydedilemedi");
+      toast.error("Taslak kaydedilemedi", { description: userErrorMessage(error) });
     } finally {
       setLoading(false);
     }
@@ -646,6 +659,7 @@ export function WorkPlanEditor({
         notes,
         userId: user.id,
         existingPlanId,
+        expectedUpdatedAt: existingPlanUpdatedAt ?? null,
         absences,
         teams: planTeams(),
       });
@@ -655,10 +669,7 @@ export function WorkPlanEditor({
       router.refresh();
     } catch (error) {
       console.error(error);
-      const errorMessage =
-        error instanceof Error && error.message.trim()
-          ? error.message
-          : null;
+      const errorMessage = userErrorMessage(error, "İş planı kaydedilemedi");
       const isUniqueViolation =
         error &&
         typeof error === "object" &&
@@ -696,7 +707,7 @@ export function WorkPlanEditor({
       router.refresh();
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : "İş planı kaydedilemedi");
+      toast.error("İş planı kaydedilemedi", { description: userErrorMessage(error) });
       throw error;
     } finally {
       setLoading(false);

@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { QueryProvider } from "@/providers/query-provider";
 import { MeasurementProvider } from "@/components/measurement/measurement-provider";
+import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 import { OzelGunEkrani } from "@/components/ozel-gunler/ozel-gun-ekrani";
 import "./globals.css";
 import { APP_NAME, APP_TAGLINE, SITE_URL } from "@/lib/constants/brand";
@@ -47,10 +48,12 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <QueryProvider>
+            <ConfirmProvider>
             {children}
             <Toaster richColors position="top-right" closeButton />
             <MeasurementProvider />
             <OzelGunEkrani />
+            </ConfirmProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>

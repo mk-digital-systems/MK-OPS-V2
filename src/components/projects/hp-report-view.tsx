@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProjectStatusBadge } from "@/components/projects/project-status-indicators";
+import { userErrorMessage } from "@/lib/user-error";
 
 const hp = (value: number) => value.toLocaleString("tr-TR");
 const pad = (value: number) => String(value).padStart(2, "0");
@@ -119,7 +120,7 @@ export function HpReportView({ report, from, to }: { report: HpReport; from: str
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (error) {
-      toast.error("Excel oluşturulamadı", { description: (error as Error)?.message });
+      toast.error("Excel oluşturulamadı", { description: userErrorMessage(error) });
     } finally {
       setExporting(false);
     }

@@ -25,10 +25,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { userErrorMessage } from "@/lib/user-error";
+import { TurnstileWidget, useTurnstile } from "@/components/auth/turnstile-widget";
 
 export function RegisterForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const captcha = useTurnstile();
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -58,12 +61,15 @@ export function RegisterForm() {
       options: {
         data: { full_name: values.full_name, ...company },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
+        ...captcha.options,
       },
     });
+    // CAPTCHA jetonu tek kullanımlıktır: sonuç ne olursa olsun yeni doğrulama istenir.
+    captcha.reset();
 
     if (error) {
       setLoading(false);
-      toast.error("Kayıt oluşturulamadı", { description: error.message });
+      toast.error("Kayıt oluşturulamadı", { description: userErrorMessage(error) });
       return;
     }
     if (!data.session) {
@@ -82,7 +88,7 @@ export function RegisterForm() {
       router.replace(result.path);
     } catch (onboardingError) {
       toast.error("Hesap oluşturuldu ancak şirket adımı tamamlanamadı", {
-        description: (onboardingError as Error)?.message,
+        description: userErrorMessage(onboardingError),
       });
       router.replace("/onboarding");
     } finally {
@@ -146,7 +152,8 @@ export function RegisterForm() {
               {...form.register("password_confirmation")}
             />
           </FormField>
-          <Button type="submit" className="w-full" disabled={loading}>
+          <TurnstileWidget captcha={captcha} />
+          <Button type="submit" className="w-full" disabled={loading || !captcha.ready}>
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             Kayıt Ol
           </Button>

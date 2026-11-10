@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPages } from "@/lib/paginate";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants/project";
 import type {
   CorporateStatus,
@@ -34,16 +35,8 @@ export class ProjectRepository {
     if (refreshError && refreshError.code !== "PGRST202") throw refreshError;
   }
 
-  async list(
-    filters: ProjectFilters = {},
-    options: { refreshStatuses?: boolean } = {}
-  ): Promise<PaginatedResult<Project>> {
-    if (options.refreshStatuses !== false) await this.refreshOverdueStatuses();
-
-    const page = Math.max(1, filters.page ?? 1);
-    const pageSize = filters.pageSize ?? DEFAULT_PAGE_SIZE;
-    const from = (page - 1) * pageSize;
-
+  /** Filtre ve sıralamayı uygulayan ortak sorgu (liste sayfası ve Excel dışa aktarım aynı kuralı kullanır). */
+  private buildListQuery(filters: ProjectFilters) {
     let query = this.supabase.from("projects").select("*", { count: "exact" });
 
     const scope = filters.archiveScope ?? "active";
@@ -66,12 +59,24 @@ export class ProjectRepository {
       );
     }
 
-    query = query
+    // id son sıralama anahtarı: aynı değerli satırlar sayfalar arasında kaymaz / tekrarlanmaz.
+    return query
       .order("priority_order", { ascending: true, nullsFirst: false })
       .order(filters.sortBy ?? "updated_at", { ascending: (filters.sortOrder ?? "desc") === "asc" })
-      .range(from, from + pageSize - 1);
+      .order("id", { ascending: true });
+  }
 
-    const { data, error, count } = await query;
+  async list(
+    filters: ProjectFilters = {},
+    options: { refreshStatuses?: boolean } = {}
+  ): Promise<PaginatedResult<Project>> {
+    if (options.refreshStatuses !== false) await this.refreshOverdueStatuses();
+
+    const page = Math.max(1, filters.page ?? 1);
+    const pageSize = filters.pageSize ?? DEFAULT_PAGE_SIZE;
+    const from = (page - 1) * pageSize;
+
+    const { data, error, count } = await this.buildListQuery(filters).range(from, from + pageSize - 1);
     if (error) throw error;
     const total = count ?? 0;
     return {
@@ -81,6 +86,25 @@ export class ProjectRepository {
       pageSize,
       totalPages: Math.max(1, Math.ceil(total / pageSize)),
     };
+  }
+
+  /**
+   * Filtreye uyan TÜM projeleri sayfa sayfa okur (Excel dışa aktarımı için). Sunucu satır sınırı (1000)
+   * yüzünden sessizce eksik kalmaz; üst sınır aşılırsa `truncated` döner.
+   */
+  async listAll(
+    filters: ProjectFilters = {},
+    options: { maxRows?: number } = {}
+  ): Promise<{ data: Project[]; total: number; truncated: boolean }> {
+    const { rows, total, truncated } = await fetchAllPages<Project>(
+      async (from, to) => {
+        const { data, error, count } = await this.buildListQuery(filters).range(from, to);
+        if (error) throw error;
+        return { rows: (data ?? []) as Project[], total: count ?? 0 };
+      },
+      { batchSize: 1000, maxRows: options.maxRows ?? 20000 }
+    );
+    return { data: rows, total, truncated };
   }
 
   async getById(id: string): Promise<Project | null> {

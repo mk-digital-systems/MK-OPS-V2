@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProgressBar, ProjectStatusBadge, TypeDot } from "@/components/projects/project-status-indicators";
 import { DashboardBranchFilter } from "@/components/dashboard/dashboard-branch-filter";
 import { TodayCard } from "@/components/dashboard/today-card";
+import { SetupGuide } from "@/components/dashboard/setup-guide";
+import type { SetupStep } from "@/lib/setup-guide";
 import type { TodaySummary } from "@/modules/dashboard/today-repository";
 
 type Props = {
@@ -27,6 +29,8 @@ type Props = {
   branchNames: Record<string, string>;
   /** Bütün şubeler görüntüleniyorsa şube özeti gösterilir. */
   showBranches: boolean;
+  /** İlk kurulum rehberi adımları (boşsa veya hepsi tamamsa gösterilmez). */
+  setupSteps?: SetupStep[];
 };
 
 const STAT_CARDS = [
@@ -38,7 +42,7 @@ const STAT_CARDS = [
   { key: "completed", label: "Tamamlandı", href: "/panel/projects?status=completed&scope=all", tone: "text-emerald-600" },
 ] as const;
 
-export function DashboardView({ stats, overview, vehicleAlerts, canManageTypes, hakedis, pendingApprovals, today, branchNames, showBranches }: Props) {
+export function DashboardView({ stats, overview, vehicleAlerts, canManageTypes, hakedis, pendingApprovals, today, branchNames, showBranches, setupSteps = [] }: Props) {
   return (
     <div className="space-y-6">
       <div className="space-y-3">
@@ -48,6 +52,8 @@ export function DashboardView({ stats, overview, vehicleAlerts, canManageTypes, 
         </div>
         <DashboardBranchFilter />
       </div>
+
+      <SetupGuide steps={setupSteps} />
 
       {pendingApprovals ? (
         <Link

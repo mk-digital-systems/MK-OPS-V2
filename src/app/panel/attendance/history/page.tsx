@@ -60,7 +60,7 @@ export default async function AttendanceHistoryPage({ searchParams }: Props) {
   const supabase = await createClient();
   const branchId = await getSelectedBranchId((await getMyBranches()).branches);
   const repository = new AttendanceRepository(supabase);
-  const [data, exportData, monthNotes, archives, canWrite, approvals, profile] = await Promise.all([
+  const [data, exportData, monthNotes, archives, canWrite, approvals, profile, holidays] = await Promise.all([
     repository.getMonth({
       year,
       month,
@@ -82,6 +82,7 @@ export default async function AttendanceHistoryPage({ searchParams }: Props) {
     canWriteCached("attendance"),
     repository.getMonthApprovals(year, month),
     getCurrentUser(),
+    repository.getHolidays(year),
   ]);
   const canApprove = profile?.role === "site_chief" || profile?.role === "company_manager";
 
@@ -103,6 +104,7 @@ export default async function AttendanceHistoryPage({ searchParams }: Props) {
         initialStatusFilter={statusFilter}
         historyMode
         archives={archives}
+        holidays={holidays}
         readOnly={!canWrite || (branchId ? approvals.some((item) => item.branch_id === branchId && item.approved_at) : approvals.length > 0 && approvals.every((item) => item.approved_at))}
       />
     </div>

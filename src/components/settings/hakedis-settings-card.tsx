@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { userErrorMessage } from "@/lib/user-error";
 
 export function HakedisSettingsCard({ company }: { company: CompanySummary }) {
   const router = useRouter();
@@ -28,7 +29,7 @@ export function HakedisSettingsCard({ company }: { company: CompanySummary }) {
       toast.success("Hakediş ayarları kaydedildi");
       router.refresh();
     } catch (error) {
-      toast.error("Kaydedilemedi", { description: (error as Error)?.message });
+      toast.error("Kaydedilemedi", { description: userErrorMessage(error) });
     } finally {
       setSaving(false);
     }

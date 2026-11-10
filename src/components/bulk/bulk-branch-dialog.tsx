@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { userErrorMessage } from "@/lib/user-error";
 
 const isoDate = (date: Date) => date.toLocaleDateString("en-CA");
 
@@ -45,7 +46,7 @@ export function BulkBranchDialog({
       onDone(branchId);
       router.refresh();
     } catch (error) {
-      toast.error("Taşınamadı", { description: (error as Error)?.message });
+      toast.error("Taşınamadı", { description: userErrorMessage(error) });
     } finally {
       setSaving(false);
     }

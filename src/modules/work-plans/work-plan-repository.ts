@@ -314,6 +314,8 @@ export class WorkPlanRepository {
     absences: WorkPlanAbsenceSnapshot[];
     existingPlanId?: string;
     branchId?: string | null;
+    /** Düzenleme başladığındaki updated_at; başkası araya kaydettiyse kayıt reddedilir. */
+    expectedUpdatedAt?: string | null;
   }): Promise<DailyWorkPlanWithTeams> {
     if (input.teams.length === 0) {
       throw new Error("En az bir ekip gerekli");
@@ -400,117 +402,19 @@ export class WorkPlanRepository {
       planId = planOnSelectedDate?.id;
     }
 
-    if (planId) {
-      const { error: updateError } = await this.supabase
-        .from("daily_work_plans")
-        .update({
-          notes: input.notes?.trim() || null,
-          updated_by: input.userId,
-        })
-        .eq("id", planId);
-
-      if (updateError) throw persistenceError("Plan güncellenemedi", updateError);
-
-      const { error: deleteTeamsError } = await this.supabase
-        .from("daily_work_plan_teams")
-        .delete()
-        .eq("plan_id", planId);
-
-      if (deleteTeamsError) {
-        throw persistenceError("Eski ekipler temizlenemedi", deleteTeamsError);
-      }
-
-      const { error: deleteAbsencesError } = await this.supabase
-        .from("daily_work_plan_absences")
-        .delete()
-        .eq("work_plan_id", planId);
-
-      if (deleteAbsencesError) {
-        throw persistenceError(
-          "Eski izinli/raporlu kayıtları temizlenemedi",
-          deleteAbsencesError
-        );
-      }
-    } else {
-      const { data: created, error: createError } = await this.supabase
-        .from("daily_work_plans")
-        .insert({
-          plan_date: input.planDate,
-          ...(input.branchId ? { branch_id: input.branchId } : {}),
-          notes: input.notes?.trim() || null,
-          created_by: input.userId,
-          updated_by: input.userId,
-        })
-        .select("*")
-        .single();
-
-      if (createError) throw persistenceError("Plan oluşturulamadı", createError);
-      planId = created.id;
-    }
-
-    for (let i = 0; i < input.teams.length; i++) {
-      const team = input.teams[i];
-      const { data: teamRow, error: teamError } = await this.supabase
-        .from("daily_work_plan_teams")
-        .insert({
-          plan_id: planId,
-          sort_order: i,
-          project_id: team.project_id || null,
-          project_code: team.project_code.trim() || "-",
-          project_name: team.project_name.trim(),
-          team_type: team.team_type.trim(),
-          vehicle_plate: team.vehicle_plate.trim() || null,
-          chief_personnel_id: team.chief_personnel_id,
-          chief_name: team.chief_name.trim(),
-          chief_phone: team.chief_phone.trim(),
-        })
-        .select("*")
-        .single();
-
-      if (teamError) {
-        throw persistenceError(`Ekip ${i + 1} kaydedilemedi`, teamError);
-      }
-
-      const memberRows = team.members.map((m, idx) => ({
-        team_id: teamRow.id,
-        sort_order: idx,
-        personnel_id: m.personnel_id,
-        full_name: m.full_name.trim(),
-        job_title: m.job_title?.trim() || null,
-        phone: m.is_chief ? m.phone?.trim() || team.chief_phone.trim() : null,
-        is_chief: m.is_chief,
-      }));
-
-      const { error: membersError } = await this.supabase
-        .from("daily_work_plan_team_members")
-        .insert(memberRows);
-
-      if (membersError) {
-        throw persistenceError(
-          `Ekip ${i + 1} personelleri kaydedilemedi`,
-          membersError
-        );
-      }
-    }
-
-    if (input.absences.length > 0) {
-      const { error: absencesError } = await this.supabase
-        .from("daily_work_plan_absences")
-        .insert(
-          input.absences.map((absence) => ({
-            work_plan_id: planId,
-            personnel_id: absence.personnel_id,
-            full_name: absence.full_name.trim(),
-            status: absence.status,
-          }))
-        );
-      if (absencesError) {
-        throw persistenceError(
-          "İzinli/raporlu personeller kaydedilemedi",
-          absencesError
-        );
-      }
-    }
+    // Kayıt tek bir veritabanı fonksiyonunda (tek transaction) yapılır: araya giren bir hata olursa
+    // eski plan, ekipler ve izinliler olduğu gibi kalır. Yetki ve şube kontrolleri veritabanında sürer.
+    const { data: savedPlanId, error: saveError } = await this.supabase.rpc("save_work_plan", {
+      p_plan_id: planId ?? null,
+      p_plan_date: input.planDate,
+      p_branch_id: input.branchId ?? null,
+      p_notes: input.notes?.trim() || null,
+      p_teams: input.teams,
+      p_absences: input.absences,
+      p_expected_updated_at: input.expectedUpdatedAt ?? null,
+    });
+    if (saveError) throw persistenceError("Plan kaydedilemedi", saveError);
+    planId = savedPlanId as string;
 
     let full: DailyWorkPlanWithTeams | null;
     try {

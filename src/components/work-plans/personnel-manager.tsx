@@ -67,6 +67,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { userErrorMessage } from "@/lib/user-error";
 
 type Props = {
   initialPersonnel: Personnel[];
@@ -277,7 +278,7 @@ export function PersonnelManager({
     } catch (error) {
       console.error(error);
       toast.error("Personel çıkışı kaydedilemedi", {
-        description: (error as Error)?.message,
+        description: userErrorMessage(error),
       });
     } finally {
       setLoading(false);
@@ -330,7 +331,7 @@ export function PersonnelManager({
     } catch (error) {
       console.error(error);
       toast.error("Personel yeniden aktif edilemedi", {
-        description: (error as Error)?.message,
+        description: userErrorMessage(error),
       });
     } finally {
       setLoading(false);
@@ -353,7 +354,7 @@ export function PersonnelManager({
     } catch (error) {
       console.error(error);
       toast.error("Personel silinemedi", {
-        description: (error as Error)?.message,
+        description: userErrorMessage(error),
       });
     } finally {
       setLoading(false);
@@ -458,7 +459,7 @@ export function PersonnelManager({
     } catch (error) {
       console.error(error);
       toast.error("Personel kaydedilemedi", {
-        description: (error as Error)?.message,
+        description: userErrorMessage(error),
       });
     } finally {
       setLoading(false);
@@ -482,7 +483,7 @@ export function PersonnelManager({
       router.refresh();
     } catch (error) {
       console.error(error);
-      toast.error("İşlem yapılamadı", { description: (error as Error)?.message });
+      toast.error("İşlem yapılamadı", { description: userErrorMessage(error) });
     }
   }
 

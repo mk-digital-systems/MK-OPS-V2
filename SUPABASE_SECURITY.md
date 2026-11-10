@@ -45,7 +45,7 @@ geçerli kalıcı teknik referanstır. Veritabanına dokunan her çalışmadan �
 6. **Yalnızca RPC ile erişilen tablolar istemciye açılmaz** (bölüm 6).
 7. Uygulanmış migration dosyaları düzenlenmez; yeni migration yazılır, `begin; … commit;` içine alınır.
 
-## 4. Mevcut yetki modeli (79 tablo, 5 sequence)
+## 4. Mevcut yetki modeli (80 tablo, 5 sequence)
 
 Gerçek kaynak: `supabase/migrations/20261119000001_data_api_grants.sql` ve testteki `expectedAuth` listesi
 (`tests/db/grants.test.mjs`). Özet:
@@ -207,12 +207,12 @@ sıfırdan kurar. `tests/db/grants.test.mjs` şunları doğrular:
 
 - Her tabloda RLS açık; anon hiçbir tablo/sequence/fonksiyonda yetkili değil; ACL'de PUBLIC kaydı yok.
 - TRUNCATE/TRIGGER/REFERENCES/MAINTAIN istemci rollerinde yok.
-- 79 tablo × anon/authenticated/service_role beklenen yetki matrisi (`expectedAuth`); 5 sequence beklentisi.
+- 80 tablo × anon/authenticated/service_role beklenen yetki matrisi (`expectedAuth`); 5 sequence beklentisi.
 - Gerçek rollerle her tabloya sorgu: anon yetki hatası alır, RPC-only tablolar authenticated'a kapalı.
 - Uygulamadaki her `.rpc("ad")` veritabanında var ve `authenticated` çalıştırabiliyor; her `.from("tablo")` var ve gereken
   yetki (SELECT + kodda görülen yazma) verilmiş.
 - Yeni oluşturulan tablo/sequence otomatik yetki almıyor; varsayılan yetki kayıtları yalnızca fonksiyon satırı.
-- 001'in doğrulama bloğu 84 nesnede bozulmayı yakalıyor; eski varsayılanlı veritabanından yükseltme = sıfırdan kurulum.
+- 001'in doğrulama bloğu 85 nesnede bozulmayı yakalıyor; eski varsayılanlı veritabanından yükseltme = sıfırdan kurulum.
 
 **Sınırlar:** PGlite gerçek Supabase (PostgREST, `supabase_admin`) değildir; ilişkili sorgularla (embedded select) gelen
 tablo ihtiyaçları ve `src/` dışındaki kod (edge function) otomatik taranmaz — bunlar elle kontrol edilir.

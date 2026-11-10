@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Clock3 } from "lucide-react";
+import { AlertTriangle, Clock3 } from "lucide-react";
 import type { CompanySummary } from "@/types/auth";
 import { SUPPORT_EMAIL } from "@/lib/constants/brand";
+import { planExpiryWarning } from "@/lib/plan-expiry";
+import { formatDate } from "@/lib/utils";
 
 function remainingLabel(endsAt: string, now: number) {
   const minutes = Math.max(0, Math.floor((new Date(endsAt).getTime() - now) / 60000));
@@ -19,6 +21,43 @@ export function TrialBanner({ company, canRequestPlan }: { company: CompanySumma
     const timer = window.setInterval(() => setNow(Date.now()), 60000);
     return () => window.clearInterval(timer);
   }, []);
+
+  // Ücretli plan bitmek üzere: ödeme elle yapıldığı için süre dolmadan yenileme hatırlatılır.
+  const expiry = planExpiryWarning(company, now);
+  if (expiry && company.plan_ends_at) {
+    const urgent = expiry.level === "urgent";
+    return (
+      <div
+        role="alert"
+        className={`mb-4 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${
+          urgent
+            ? "border-red-300 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
+            : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200"
+        }`}
+      >
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+        <p>
+          <strong>{company.plan}</strong> planınızın bitmesine{" "}
+          <strong>{expiry.daysLeft === 0 ? "bugün son gün" : `${expiry.daysLeft} gün`}</strong> kaldı (
+          {formatDate(company.plan_ends_at)}). Süre dolduğunda verileriniz korunur ancak yenilenene kadar panele erişilemez.{" "}
+          {canRequestPlan ? (
+            <Link href="/panel/support?konu=plan" className="font-semibold underline">
+              Yenileme talebi gönderin
+            </Link>
+          ) : (
+            <>
+              Yenileme için{" "}
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold underline">
+                {SUPPORT_EMAIL}
+              </a>{" "}
+              adresine yazın
+            </>
+          )}
+          .
+        </p>
+      </div>
+    );
+  }
 
   if (company.access_status !== "trial") return null;
 

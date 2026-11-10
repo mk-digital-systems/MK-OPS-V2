@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { userErrorMessage } from "@/lib/user-error";
 
 export function SupportInbox({ initialRequests }: { initialRequests: AdminSupportRequest[] }) {
   const [showAll, setShowAll] = useState(false);
@@ -87,7 +88,7 @@ function RequestCard({ request }: { request: AdminSupportRequest }) {
       toast.success(status === "closed" ? "Talep kapatıldı" : "Yanıt kaydedildi");
       router.refresh();
     } catch (error) {
-      toast.error("Kaydedilemedi", { description: (error as Error)?.message });
+      toast.error("Kaydedilemedi", { description: userErrorMessage(error) });
     } finally {
       setSaving(null);
     }

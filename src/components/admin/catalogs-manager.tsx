@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
+import { userErrorMessage } from "@/lib/user-error";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 const repository = () => new AdminRepository(createClient());
 
@@ -25,6 +27,7 @@ type TypeDraft = { id: string | null; catalogId: string; name: string; screen: C
 
 /** Süper admin: sektör katalogları, proje türleri ve önerilen kalemler. */
 export function CatalogsManager({ catalogs }: { catalogs: Catalog[] }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const [catalogDraft, setCatalogDraft] = useState<CatalogDraft | null>(null);
   const [typeDraft, setTypeDraft] = useState<TypeDraft | null>(null);
@@ -36,7 +39,7 @@ export function CatalogsManager({ catalogs }: { catalogs: Catalog[] }) {
       toast.success(message);
       router.refresh();
     } catch (error) {
-      toast.error("İşlem yapılamadı", { description: (error as Error)?.message });
+      toast.error("İşlem yapılamadı", { description: userErrorMessage(error) });
     }
   }
 
@@ -89,10 +92,11 @@ export function CatalogsManager({ catalogs }: { catalogs: Catalog[] }) {
                   aria-label="Kataloğu sil"
                   disabled={catalog.company_ids.length > 0}
                   title={catalog.company_ids.length > 0 ? "Firmalara atanmış katalog silinemez" : undefined}
-                  onClick={() =>
-                    window.confirm(`${catalog.name} kataloğu silinsin mi?`) &&
-                    run(() => repository().deleteCatalog(catalog.id), "Katalog silindi")
-                  }
+                  onClick={async () => {
+                    if (await confirm(`${catalog.name} kataloğu silinsin mi?`)) {
+                      run(() => repository().deleteCatalog(catalog.id), "Katalog silindi");
+                    }
+                  }}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -150,10 +154,11 @@ export function CatalogsManager({ catalogs }: { catalogs: Catalog[] }) {
                           size="icon"
                           variant="ghost"
                           aria-label="Türü sil"
-                          onClick={() =>
-                            window.confirm(`${type.name} türü katalogdan silinsin mi? Firmalardaki kopyaları arşivlenir, projeleri korunur.`) &&
-                            run(() => repository().deleteCatalogType(type.id), "Tür silindi")
-                          }
+                          onClick={async () => {
+                            if (await confirm(`${type.name} türü katalogdan silinsin mi? Firmalardaki kopyaları arşivlenir, projeleri korunur.`)) {
+                              run(() => repository().deleteCatalogType(type.id), "Tür silindi");
+                            }
+                          }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -223,7 +228,7 @@ function CatalogDialog({ draft: initial, onClose, onSaved }: { draft: CatalogDra
       toast.success(draft.id ? "Katalog güncellendi" : "Katalog oluşturuldu");
       onSaved();
     } catch (error) {
-      toast.error("Kaydedilemedi", { description: (error as Error)?.message });
+      toast.error("Kaydedilemedi", { description: userErrorMessage(error) });
     } finally {
       setSaving(false);
     }
@@ -263,7 +268,7 @@ function TypeDialog({ draft: initial, onClose, onSaved }: { draft: TypeDraft; on
       toast.success(draft.id ? "Tür güncellendi; atanmış firmalara yansıdı" : "Tür eklendi; atanmış firmalara kuruldu");
       onSaved();
     } catch (error) {
-      toast.error("Kaydedilemedi", { description: (error as Error)?.message });
+      toast.error("Kaydedilemedi", { description: userErrorMessage(error) });
     } finally {
       setSaving(false);
     }
@@ -369,7 +374,7 @@ function ItemsDialog({ catalog, onClose, onSaved }: { catalog: Catalog; onClose:
       toast.success("Önerilen kalemler kaydedildi");
       onSaved();
     } catch (error) {
-      toast.error("Kaydedilemedi", { description: (error as Error)?.message });
+      toast.error("Kaydedilemedi", { description: userErrorMessage(error) });
     } finally {
       setSaving(false);
     }

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { userErrorMessage } from "@/lib/user-error";
 
 export function CompanyVaultCard({ configured }: { configured: boolean }) {
   const router = useRouter();
@@ -29,7 +30,7 @@ export function CompanyVaultCard({ configured }: { configured: boolean }) {
       setConfirm("");
       router.refresh();
     } catch (error) {
-      toast.error("Şifre kaydedilemedi", { description: (error as Error)?.message });
+      toast.error("Şifre kaydedilemedi", { description: userErrorMessage(error) });
     } finally {
       setSaving(false);
     }

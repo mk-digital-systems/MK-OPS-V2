@@ -177,7 +177,7 @@ for (const [label, db] of [["sıfırdan", pg], ["yükseltme", legacy]]) {
   check(`[${label}] service_role profiles tablosunu okuyabiliyor`, svc === true, String(svc));
 }
 // Beklenen authenticated yetkileri (S=SELECT, I=INSERT, U=UPDATE, D=DELETE); "" = istemciye kapalı (yalnızca RPC).
-// 79 tablonun tamamı burada olmalı; yeni tablo eklenince bu liste de bilinçli olarak güncellenir.
+// 80 tablonun tamamı burada olmalı; yeni tablo eklenince bu liste de bilinçli olarak güncellenir.
 const expectedAuth = {
   app_settings: "SIU",
   attendance_audit_logs: "S",
@@ -224,6 +224,7 @@ const expectedAuth = {
   inventory_shipment_items: "S",
   inventory_shipments: "S",
   notification_reads: "",
+  official_holidays: "S",
   personnel: "SIUD",
   personnel_advances: "SIUD",
   personnel_branch_history: "S",
@@ -261,7 +262,7 @@ const expectedAuth = {
 };
 
 // ---------------------------------------------------------------------------------------------
-// Beklenen yetki matrisi (79 tablo + 5 sequence), işlevsel rol denemeleri ve 001'in doğrulama bloğu.
+// Beklenen yetki matrisi (80 tablo + 5 sequence), işlevsel rol denemeleri ve 001'in doğrulama bloğu.
 // ---------------------------------------------------------------------------------------------
 const privByLetter = { S: "SELECT", I: "INSERT", U: "UPDATE", D: "DELETE" };
 const writeOps = ["SELECT", "INSERT", "UPDATE", "DELETE"];
@@ -284,7 +285,7 @@ for (const [label, db] of [["sıfırdan", pg], ["yükseltme", legacy]]) {
       if (anonHas) wrong.push(`${table}: anon ${priv} var`);
     }
   }
-  check(`[${label}] 79 tablonun anon / authenticated / service_role yetkisi beklenen matrisle birebir`, !wrong.length, wrong.slice(0, 5).join("; "));
+  check(`[${label}] 80 tablonun anon / authenticated / service_role yetkisi beklenen matrisle birebir`, !wrong.length, wrong.slice(0, 5).join("; "));
 
   const seqs = (await db.query(`select c.oid, c.relname n from pg_class c where c.relnamespace = 'public'::regnamespace and c.relkind = 'S' order by 1`)).rows;
   const seqWrong = [];
@@ -319,7 +320,7 @@ for (const [label, db] of [["sıfırdan", pg], ["yükseltme", legacy]]) {
   }
   check(`[${label}] anon hiçbir tabloyu sorgulayamıyor (boş sonuç değil, yetki hatası)`, !anonOk.length, anonOk.join(", "));
   check(`[${label}] authenticated: açık tablolar sorgulanıyor, RPC-only tablolar kapalı`, !authBad.length, authBad.slice(0, 3).join("; "));
-  check(`[${label}] service_role 79 tablonun hepsini sorgulayabiliyor`, !svcBad.length, svcBad.join(", "));
+  check(`[${label}] service_role 80 tablonun hepsini sorgulayabiliyor`, !svcBad.length, svcBad.join(", "));
 }
 
 // 001'in doğrulama bloğu: bütün tablo ve sequence'larda, PUBLIC ve görünümlerde bozulmayı yakalamalı.
@@ -356,7 +357,7 @@ for (const rel of allRels) {
     await pg.exec(`revoke all on sequence public.${rel.relname} from authenticated`);
   }
 }
-check(`doğrulama bloğu ${allRels.length} tablo/sequence için anon, PUBLIC ve fazla yetkiyi yakalıyor`, !missed.length && allRels.length === 84, missed.slice(0, 5).join("; ") || `${allRels.length} nesne`);
+check(`doğrulama bloğu ${allRels.length} tablo/sequence için anon, PUBLIC ve fazla yetkiyi yakalıyor`, !missed.length && allRels.length === 85, missed.slice(0, 5).join("; ") || `${allRels.length} nesne`);
 check("doğrulama bloğu, denemelerden sonra eski haline dönen veritabanında yine geçiyor", (await blockError(verifyBlock)) === null);
 
 await pg.exec(`create view public.__probe_view as select 1 as x`);

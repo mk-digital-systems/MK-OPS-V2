@@ -15,6 +15,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { userErrorMessage } from "@/lib/user-error";
 
 export function PendingApproval({
   companyName,
@@ -23,6 +25,7 @@ export function PendingApproval({
   companyName: string | null;
   isSuperAdmin: boolean;
 }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const [leaving, setLeaving] = useState(false);
 
@@ -33,7 +36,7 @@ export function PendingApproval({
   }
 
   async function cancelRequest() {
-    if (!window.confirm(`${companyName} şirketine katılma isteğiniz iptal edilsin mi?`)) return;
+    if (!(await confirm(`${companyName} şirketine katılma isteğiniz iptal edilsin mi?`))) return;
     setLeaving(true);
     try {
       await new CompanyRepository(createClient()).leavePendingCompany();
@@ -41,7 +44,7 @@ export function PendingApproval({
       router.replace("/onboarding");
       router.refresh();
     } catch (error) {
-      toast.error("İstek iptal edilemedi", { description: (error as Error)?.message });
+      toast.error("İstek iptal edilemedi", { description: userErrorMessage(error) });
     } finally {
       setLeaving(false);
     }

@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { userErrorMessage } from "@/lib/user-error";
 
 const today = () => new Date().toLocaleDateString("en-CA");
 type NewCatalog = { material_name: string; category_id: string | null; material_type: string; size: string; unit: InventoryUnit; has_id: boolean; notes: string };
@@ -33,7 +34,7 @@ export function MaterialRequestsManager({ initialRequests, catalogs, categories,
   const [receive, setReceive] = useState<InventoryRequest | null>(null);
   const [loading, setLoading] = useState(false);
   async function refresh() { const repository = new InventoryRepository(createClient()); setRequests(await repository.listRequests()); await onChanged(); }
-  async function run(action: (repository: InventoryRepository) => Promise<void>, message: string) { setLoading(true); try { await action(new InventoryRepository(createClient())); await refresh(); toast.success(message); return true; } catch (error) { toast.error("İşlem tamamlanamadı", { description: (error as Error).message }); return false; } finally { setLoading(false); } }
+  async function run(action: (repository: InventoryRepository) => Promise<void>, message: string) { setLoading(true); try { await action(new InventoryRepository(createClient())); await refresh(); toast.success(message); return true; } catch (error) { toast.error("İşlem tamamlanamadı", { description: userErrorMessage(error) }); return false; } finally { setLoading(false); } }
   const labels = { requested: "Talep Edildi", approved: "Onaylandı", receipt_review: "Stok Onayı Bekliyor", received: "Stoğa Geldi" } as const;
   return <Card><CardHeader className="flex-row items-center justify-between"><div><CardTitle>Malzeme Talep Listesi</CardTitle><p className="mt-1 text-sm text-muted-foreground">Talebin üzerine tıklayarak detaylarını görüntüleyin</p></div>{!readOnly && <Button onClick={() => setCreateOpen(true)}><Plus />Yeni Talep</Button>}</CardHeader><CardContent>
     <div className="grid grid-cols-[110px_minmax(140px,1fr)_130px] gap-3 border-b pb-2 text-xs font-medium text-muted-foreground"><span>Talep Tarihi</span><span>Talep Eden</span><span>Durum</span></div>

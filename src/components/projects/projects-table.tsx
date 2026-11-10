@@ -5,9 +5,11 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, FileSpreadsheet, Layers, Loader2, Plus, RadioTower, Search } from "lucide-react";
 import { toast } from "sonner";
-import type { ArchiveScope, PaginatedResult, Project, ProjectType } from "@/types/project";
+import type { ArchiveScope, PaginatedResult, Project, ProjectFilters, ProjectType } from "@/types/project";
 import { PAGE_SIZE_OPTIONS, PROJECT_STATUSES, getStatusLabel } from "@/lib/constants/project";
 import { FILE_NAME_PREFIX } from "@/lib/constants/brand";
+import { createClient } from "@/lib/supabase/client";
+import { ProjectRepository } from "@/modules/projects/project-repository";
 import { cn, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,6 +19,7 @@ import { ProjectTypeShortcuts } from "@/components/projects/project-type-shortcu
 import { useBranches } from "@/components/layout/branch-provider";
 import { groupByBranch } from "@/lib/branch-groups";
 import { ProgressBar, ProjectStatusBadge, TypeDot } from "@/components/projects/project-status-indicators";
+import { userErrorMessage } from "@/lib/user-error";
 
 type Props = {
   title: string;
@@ -26,7 +29,8 @@ type Props = {
   showCreate?: boolean;
   /** Proje türlerini düzenleyebilir (firma yöneticisi). */
   canManageTypes?: boolean;
-  exportProjects?: Project[];
+  /** Verilirse Excel düğmesi görünür; dışa aktarım tıklanınca bu filtreyle TÜM kayıtlar sayfa sayfa okunur. */
+  exportFilters?: ProjectFilters;
   /** Firmada HP odaklı tür varsa HP raporu bağlantısı gösterilir. */
   showHpReport?: boolean;
   defaultArchiveScope: ArchiveScope;
@@ -55,7 +59,7 @@ export function ProjectsTable({
   locations,
   showCreate = false,
   canManageTypes = false,
-  exportProjects,
+  exportFilters,
   showHpReport = false,
   defaultArchiveScope,
   allowArchiveScopeFilter = false,
@@ -82,12 +86,14 @@ export function ProjectsTable({
   }
 
   async function exportExcel() {
-    if (!exportProjects?.length) {
-      toast.error("Aktarılacak proje yok");
-      return;
-    }
+    if (!exportFilters) return;
     setExporting(true);
     try {
+      const exported = await new ProjectRepository(createClient()).listAll(exportFilters);
+      if (exported.data.length === 0) {
+        toast.error("Aktarılacak proje yok");
+        return;
+      }
       const { Workbook } = await import("exceljs");
       const workbook = new Workbook();
       const sheet = workbook.addWorksheet("Projeler");
@@ -102,7 +108,7 @@ export function ProjectsTable({
         { header: "Planlanan Bitiş", key: "end", width: 16 },
         { header: "Sorumlu Ekip", key: "team", width: 22 },
       ];
-      for (const project of exportProjects) {
+      for (const project of exported.data) {
         sheet.addRow({
           code: project.project_code,
           name: project.name,
@@ -123,8 +129,15 @@ export function ProjectsTable({
       anchor.download = `${FILE_NAME_PREFIX}-projeler.xlsx`;
       anchor.click();
       URL.revokeObjectURL(url);
+      if (exported.truncated) {
+        toast.warning(`Dosya eksik: ${exported.data.length} / ${exported.total} proje aktarıldı`, {
+          description: "Çok fazla kayıt var. Filtreleri daraltıp (tür, durum, konum) tekrar dışa aktarın.",
+        });
+      } else {
+        toast.success(`${exported.data.length} proje Excel'e aktarıldı`);
+      }
     } catch (error) {
-      toast.error("Excel oluşturulamadı", { description: (error as Error)?.message });
+      toast.error("Excel oluşturulamadı", { description: userErrorMessage(error) });
     } finally {
       setExporting(false);
     }
@@ -141,7 +154,7 @@ export function ProjectsTable({
           <p className="mt-1 text-sm text-muted-foreground">{result.count} proje</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {exportProjects && (
+          {exportFilters && (
             <Button variant="outline" onClick={exportExcel} disabled={exporting}>
               {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
               Excel

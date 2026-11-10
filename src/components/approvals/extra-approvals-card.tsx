@@ -14,6 +14,7 @@ import { HakedisRepository } from "@/modules/hakedis/hakedis-repository";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { userErrorMessage } from "@/lib/user-error";
 
 const toNumber = (value: string) => (value.trim() ? Number(value.replace(",", ".")) : null);
 
@@ -71,7 +72,7 @@ function EntryRow({ entry, currency, branch }: { entry: PendingExtraEntry; curre
       toast.success("Ek iş fiyatları onaylandı");
       router.refresh();
     } catch (error) {
-      toast.error("Onaylanamadı", { description: (error as Error)?.message });
+      toast.error("Onaylanamadı", { description: userErrorMessage(error) });
     } finally {
       setSaving(false);
     }

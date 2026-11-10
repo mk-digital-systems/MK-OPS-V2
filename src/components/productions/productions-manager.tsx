@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CompanyLogo, useReportBrand } from "@/components/layout/company-brand-provider";
 import { useBranches } from "@/components/layout/branch-provider";
 import { groupByBranch } from "@/lib/branch-groups";
+import { userErrorMessage } from "@/lib/user-error";
 
 /** stage: projenin iş kalemi (projeye iş kaydı açar); extra: fiyatlı ek iş; note: eski serbest metin */
 type FormLine = { key: string; itemId: string | null; kind: ProductionItemKind; progressId: string; sheetId: string; description: string; quantity: string; unit: string; unitPrice: string };
@@ -199,7 +200,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
       setTeams((current) => [...current.filter((team) => !isEmptyTeam(team)), ...added]);
       toast.success(`${added.length} ekip iş planından eklendi; miktarları girip kaydedin`);
     } catch (error) {
-      toast.error("İş planı okunamadı", { description: (error as Error)?.message });
+      toast.error("İş planı okunamadı", { description: userErrorMessage(error) });
     } finally {
       setLoading(false);
     }
@@ -342,14 +343,14 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
           toast.info("PDF paylaşımı iptal edildi");
         } else {
           console.error(shareError);
-          toast.error("Kayıt tamamlandı, dosyalar oluşturulamadı", { description: (shareError as Error).message });
+          toast.error("Kayıt tamamlandı, dosyalar oluşturulamadı", { description: userErrorMessage(shareError) });
         }
       } finally {
         setPdfLoading(false);
       }
     } catch (error) {
       console.error(error);
-      toast.error("İmalatlar kaydedilemedi", { description: (error as Error).message });
+      toast.error("İmalatlar kaydedilemedi", { description: userErrorMessage(error) });
     } finally {
       setLoading(false);
     }
@@ -382,7 +383,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
       if ((error as Error).name === "AbortError") toast.info("PDF paylaşımı iptal edildi");
       else {
         console.error(error);
-        toast.error("Dosyalar oluşturulamadı", { description: (error as Error).message });
+        toast.error("Dosyalar oluşturulamadı", { description: userErrorMessage(error) });
       }
     } finally {
       setPdfLoading(false);
@@ -400,7 +401,7 @@ export function ProductionsManager({ initialDate, personnel, initialEntries, rea
       toast.success("Geçmiş imalat PDF'i indirildi");
     } catch (error) {
       console.error(error);
-      toast.error("PDF oluşturulamadı", { description: (error as Error).message });
+      toast.error("PDF oluşturulamadı", { description: userErrorMessage(error) });
     } finally {
       setPdfLoading(false);
     }

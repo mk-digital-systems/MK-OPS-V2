@@ -33,6 +33,8 @@ import { HpSheetBoard } from "@/components/projects/hp-sheet-board";
 import { CorporateStatusPanel } from "@/components/projects/corporate-status-panel";
 import { PozBoard } from "@/components/projects/poz-board";
 import type { PozItem } from "@/types/poz";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { userErrorMessage } from "@/lib/user-error";
 
 type Props = {
   project: Project;
@@ -51,6 +53,7 @@ type Props = {
 type Busy = "status" | "archive" | "cancel" | "reactivate" | "delete" | null;
 
 export function ProjectDetail({ project, type, progress, hpSheets, sheetKesif = [], pozes, personnel, readOnly }: Props) {
+  const confirm = useConfirm();
   const router = useRouter();
   const [busy, setBusy] = useState<Busy>(null);
   const [readyDismissed, setReadyDismissed] = useState(false);
@@ -70,7 +73,7 @@ export function ProjectDetail({ project, type, progress, hpSheets, sheetKesif = 
       if (after) after();
       else router.refresh();
     } catch (error) {
-      toast.error("İşlem yapılamadı", { description: (error as Error)?.message });
+      toast.error("İşlem yapılamadı", { description: userErrorMessage(error) });
     } finally {
       setBusy(null);
     }
@@ -90,8 +93,8 @@ export function ProjectDetail({ project, type, progress, hpSheets, sheetKesif = 
     setReason("");
   }
 
-  function remove() {
-    if (!window.confirm(`${project.name} ve bütün aşama kayıtları kalıcı olarak silinsin mi?`)) return;
+  async function remove() {
+    if (!(await confirm(`${project.name} ve bütün aşama kayıtları kalıcı olarak silinsin mi?`))) return;
     void run("delete", () => repository().delete(project.id), "Proje silindi", () => {
       router.push("/panel/projects");
       router.refresh();
@@ -167,13 +170,14 @@ export function ProjectDetail({ project, type, progress, hpSheets, sheetKesif = 
             {statusButtons && project.status !== "completed" && (
               <Button
                 variant="outline"
-                onClick={() =>
-                  window.confirm(
+                onClick={async () => {
+                  const ok = await confirm(
                     hpSheets
                       ? "Proje, paftaları bitmemiş olsa da tamamlandı olarak işaretlensin mi? Bir pafta değiştiğinde durum paftalardan yeniden hesaplanır."
                       : "Proje, aşamaları tamamlanmamış olsa da tamamlandı olarak işaretlensin mi?"
-                  ) && setStatus("completed")
-                }
+                  );
+                  if (ok) setStatus("completed");
+                }}
                 disabled={busy !== null}
               >
                 <CheckCircle2 className="h-4 w-4" />
