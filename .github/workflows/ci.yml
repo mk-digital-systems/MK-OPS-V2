@@ -1,0 +1,35 @@
+name: Kalite kapıları
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Derleme için yer tutucu; gerçek anahtar gerekmez (CI hiçbir Supabase'e bağlanmaz).
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: TypeScript
+        run: npm run typecheck
+      - name: ESLint
+        run: npm run lint
+      - name: Birim testleri
+        run: npm run test:unit
+      - name: Production build
+        run: npm run build
+      - name: Bağımlılık güvenliği (kritik uyarı derlemeyi durdurur)
+        run: npm audit --omit=dev --audit-level=critical
+      - name: Bağımlılık güvenliği (tüm seviyeler, bilgi amaçlı)
+        run: npm audit --omit=dev || true
+        continue-on-error: true
