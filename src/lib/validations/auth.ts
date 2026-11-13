@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+// Mesajı olmayan kuralların hata metni Türkçe olur (özel mesajlarımız etkilenmez).
+z.config(z.locales.tr());
+
 const companyFields = {
   signup_mode: z.enum(["create", "join"]),
   company_name: z
