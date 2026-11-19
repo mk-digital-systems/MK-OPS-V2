@@ -10,6 +10,11 @@ const SEO_PAGES = [
   "/santiye-yakit-takibi",
   "/karsilastirma/excel-mi-bagli-sistem-mi",
   "/ucretsiz-sablonlar/puantaj-excel-sablonu",
+  "/santiye-yonetim-sistemi",
+  "/saha-yonetim-yazilimi",
+  "/santiye-raporlama-programi",
+  "/telekom-altyapi-proje-yonetimi",
+  "/demo",
 ];
 
 const PUBLIC_PAGES = ["", "/cozumler", ...SOLUTIONS.map((item) => `/cozumler/${item.slug}`), ...SEO_PAGES, "/kilavuz", "/kvkk", ...KVKK_DOCUMENTS.map((doc) => doc.href).filter((href) => href.startsWith("/kvkk/")), "/gizlilik-politikasi", "/kullanim-sartlari", "/iptal-ve-iade"];
