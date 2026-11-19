@@ -56,7 +56,7 @@ export function LandingPage({ c }: { c: LandingContent }) {
 
       {c.sections.map((s, i) => (
         <section key={s.title} className={i % 2 === 1 ? "border-y bg-muted/30 py-14" : "py-14"}>
-          <div className="mx-auto max-w-5xl px-4">
+          <div className="mx-auto max-w-6xl px-4">
             <h2 className="text-3xl font-semibold tracking-tight">{s.title}</h2>
             <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">{s.text}</p>
             <ul className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -72,7 +72,7 @@ export function LandingPage({ c }: { c: LandingContent }) {
 
       {c.note ? (
         <section className="py-10">
-          <div className="mx-auto max-w-5xl px-4">
+          <div className="mx-auto max-w-6xl px-4">
             <div className="rounded-2xl border border-primary/30 bg-primary/5 p-6">
               <h2 className="text-xl font-semibold">{c.note.title}</h2>
               <p className="mt-2 leading-7 text-muted-foreground">{c.note.text}</p>
